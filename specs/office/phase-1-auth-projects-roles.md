@@ -22,14 +22,16 @@ See `specs/ultimate_android_architecture.md` — Data Model section (User, Proje
 
 ## Files (representative)
 
-- `core/database/AppDatabase.kt`, `ProjectEntity.kt`, `RoleEntity.kt`, `MembershipEntity.kt`, `InviteCodeEntity.kt`, `ProjectDao.kt`, `RoleDao.kt`, `MembershipDao.kt`
-- `feature/auth/domain/AuthRepository.kt`, `User.kt`
-- `feature/auth/data/FirebaseAuthDataSource.kt`, `AuthRepositoryImpl` (or descriptively named)
-- `feature/auth/presentation/SplashViewModel.kt`, `LoginScreen.kt`
-- `feature/project/domain/{Project,Role,Membership,InviteCode}.kt`, `ProjectRepository.kt`, `RoleRepository.kt`
-- `feature/project/data/*DataSource.kt`, `OfflineFirstProjectRepository.kt`, `OfflineFirstRoleRepository.kt`
-- `feature/project/presentation/{CreateProject,JoinProject,Roster,ManageRoles}/*ViewModel.kt`, `*Screen.kt`, `*Root.kt`
-- `di/AuthModule.kt`, `di/ProjectModule.kt`, `di/DatabaseModule.kt`
+- `core/data/database/AppDatabase.kt`, `ProjectEntity.kt`, `RoleEntity.kt`, `MembershipEntity.kt`, `InviteCodeEntity.kt`, `ProjectDao.kt`, `RoleDao.kt`, `MembershipDao.kt`
+- `feature_auth/domain/model/User.kt`, `repository/AuthRepository.kt`
+- `feature_auth/data/remote/{AuthRemoteDataSource,FirebaseAuthRemoteDataSource}.kt`, `data/repository/OfflineFirstAuthRepository.kt`
+- `feature_auth/presentation/splash/SplashViewModel.kt`, `presentation/login/{LoginScreenRoot,LoginScreen}.kt`
+- `feature_auth/di/AuthModule.kt`
+- `feature_project/domain/model/{Project,Role,Membership,InviteCode}.kt`, `repository/{ProjectRepository,RoleRepository,MembershipRepository}.kt`
+- `feature_project/data/remote/*RemoteDataSource.kt`, `data/repository/{OfflineFirstProjectRepository,OfflineFirstRoleRepository}.kt`
+- `feature_project/presentation/{create_project,join_project,roster,manage_roles}/*` (Root/Screen/ViewModel/State/Action/Event per screen)
+- `feature_project/di/ProjectModule.kt`
+- `core/di/CoreModule.kt`
 - `firestore.rules`
 
 ## Testing
