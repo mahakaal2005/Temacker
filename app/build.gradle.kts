@@ -58,6 +58,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
 
     // firebase-bom/firebase-auth/firebase-firestore/kotlinx-coroutines-play-services re-added
     // alongside the google-services plugin once google-services.json is available.
@@ -69,6 +70,8 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
+
+    implementation(libs.androidx.datastore.preferences)
 
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)

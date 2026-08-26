@@ -7,6 +7,7 @@ done/left. Update it after every session or completed task.
 **Current phase: 1 — Auth, projects, roles.**
 
 ## Phase 1 — Auth, projects, roles (`phase-1-auth-projects-roles.md`)
+- [x] Core layer: `Result`/`DataError` (core/domain/util), `SessionManager` interface + DataStore impl, `UiText`/`ObserveAsEvents` (core/presentation/util), `CoreModule` Koin wiring, `App.kt` + `startKoin`. `AppDatabase` deferred until the first Room entity exists (Room rejects `@Database` with zero entities).
 - [ ] feature_auth scaffold (Google Sign-In, AuthRepository, SessionManager)
 - [ ] feature_project scaffold (Project, Role, Membership, InviteCode)
 - [ ] Screens: Splash, Login, No-project, Create project, Join project, Home stub, Roster, Manage roles, Profile
