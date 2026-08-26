@@ -8,7 +8,7 @@ done/left. Update it after every session or completed task.
 
 ## Phase 1 — Auth, projects, roles (`phase-1-auth-projects-roles.md`)
 - [x] Core layer: `Result`/`DataError` (core/domain/util), `SessionManager` interface + DataStore impl, `UiText`/`ObserveAsEvents` (core/presentation/util), `CoreModule` Koin wiring, `App.kt` + `startKoin`. `AppDatabase` deferred until the first Room entity exists (Room rejects `@Database` with zero entities).
-- [ ] feature_auth scaffold (Google Sign-In, AuthRepository, SessionManager)
+- [x] feature_auth scaffold: domain (`User`, `AuthRepository`, `LoginUseCase`, `ObserveSessionUseCase`), `InMemoryAuthRepository` fake (dummy user, no Firebase needed yet), Splash + Login screens with previews, `authGraph` nav, `AuthModule` DI, wired into `App.kt`/`MainActivity.kt`. **TODO when `google-services.json` is available:** swap `InMemoryAuthRepository` for a `FirebaseAuthRemoteDataSource`-backed `OfflineFirstAuthRepository` in `AuthModule` — no other code changes needed. Also delete `MainActivity.kt`'s `AppPlaceholderScreen`/`AppPlaceholderRoute` once feature_project's real Home screen exists.
 - [ ] feature_project scaffold (Project, Role, Membership, InviteCode)
 - [ ] Screens: Splash, Login, No-project, Create project, Join project, Home stub, Roster, Manage roles, Profile
 - [ ] Firestore security rules (projects/roles/memberships/invite codes)

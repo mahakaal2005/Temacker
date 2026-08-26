@@ -1,0 +1,12 @@
+package com.example.temacker.feature_auth.domain.repository
+
+import com.example.temacker.core.domain.util.DataError
+import com.example.temacker.core.domain.util.Result
+import com.example.temacker.feature_auth.domain.model.User
+import kotlinx.coroutines.flow.Flow
+
+interface AuthRepository {
+    fun observeUser(): Flow<User?>
+    suspend fun signInWithGoogle(): Result<User, DataError>
+    suspend fun signOut()
+}
