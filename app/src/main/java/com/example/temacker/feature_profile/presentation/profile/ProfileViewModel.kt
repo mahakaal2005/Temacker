@@ -1,0 +1,71 @@
+package com.example.temacker.feature_profile.presentation.profile
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.temacker.feature_auth.domain.repository.AuthRepository
+import com.example.temacker.feature_project.domain.use_case.ObserveCurrentMembershipUseCase
+import com.example.temacker.feature_project.domain.use_case.ObserveUserProjectsUseCase
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+// Reads across feature_auth (identity) and feature_project (membership) — Profile is inherently
+// a composite view, the same pragmatic exception CreateProjectViewModel/JoinProjectViewModel take.
+class ProfileViewModel(
+    private val authRepository: AuthRepository,
+    private val observeUserProjects: ObserveUserProjectsUseCase,
+    private val observeCurrentMembership: ObserveCurrentMembershipUseCase
+) : ViewModel() {
+
+    private val _state = MutableStateFlow(ProfileState())
+    val state = _state.asStateFlow()
+
+    private val _events = Channel<ProfileEvent>()
+    val events = _events.receiveAsFlow()
+
+    init {
+        viewModelScope.launch {
+            authRepository.observeUser().collectLatest { user ->
+                if (user == null) return@collectLatest
+                _state.update { it.copy(displayName = user.displayName, email = user.email, photoUrl = user.photoUrl) }
+            }
+        }
+        viewModelScope.launch {
+            observeUserProjects().collectLatest { projects ->
+                val project = projects.firstOrNull()
+                if (project == null) {
+                    _state.update { it.copy(isLoading = false) }
+                    return@collectLatest
+                }
+                _state.update { it.copy(projectName = project.name, isLoading = false) }
+                observeCurrentMembership(project.id).collect { membership ->
+                    _state.update {
+                        it.copy(
+                            roleName = membership?.roleName.orEmpty(),
+                            memberSince = membership?.joinedAt?.let(::formatMonthYear).orEmpty()
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun onAction(action: ProfileAction) {
+        when (action) {
+            ProfileAction.OnSignOutClick -> viewModelScope.launch {
+                authRepository.signOut()
+                _events.send(ProfileEvent.NavigateToLogin)
+            }
+        }
+    }
+
+    private fun formatMonthYear(epochMillis: Long): String =
+        SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date(epochMillis))
+}

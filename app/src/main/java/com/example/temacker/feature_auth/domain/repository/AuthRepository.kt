@@ -8,5 +8,7 @@ import kotlinx.coroutines.flow.Flow
 interface AuthRepository {
     fun observeUser(): Flow<User?>
     suspend fun signInWithGoogle(): Result<User, DataError>
+    suspend fun signInWithEmail(email: String, password: String): Result<User, DataError>
+    suspend fun registerWithEmail(email: String, password: String): Result<User, DataError>
     suspend fun signOut()
 }

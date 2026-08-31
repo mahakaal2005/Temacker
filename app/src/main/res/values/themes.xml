@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
+    <!-- Light parent — app is primarily light mode (warm paper surfaces); Compose's TemackerTheme supplies the real palette. -->
     <style name="Theme.Temacker" parent="android:Theme.Material.Light.NoActionBar" />
 </resources>

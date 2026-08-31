@@ -1,0 +1,121 @@
+rules_version = '2';
+
+// Collections (see feature_project/data/remote/*RemoteDataSource.kt for the exact reads/writes):
+//   projects/{projectId}                          — name, ownerUid, createdAt, defaultRoleId
+//   projects/{projectId}/roles/{roleId}            — name, permissions{7 bools}, isLeader
+//   projects/{projectId}/members/{userId}          — userId, roleId, roleName, permissions{7 bools}, displayName, photoUrl, joinedAt
+//   inviteCodes/{code}                             — projectId, expiresAt, isActive
+//
+// Known gap: createProjectWithLeader() writes projects/roles/members in one WriteBatch. Firestore
+// evaluates each write in a batch against the pre-batch database state, so the project/role/member
+// creation rules below can only gate on "does the project doc exist yet" (true cross-doc validation
+// isn't possible without a Cloud Function using the Admin SDK). Accepted for Phase 1: a signed-in
+// user can only ever do this to a projectId of their own choosing that doesn't exist yet, so the
+// blast radius is limited to their own new project. Revisit if this needs closing further (rule 2).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function projectExists(projectId) {
+      return exists(/databases/$(database)/documents/projects/$(projectId));
+    }
+
+    function isMember(projectId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/projects/$(projectId)/members/$(request.auth.uid));
+    }
+
+    function membership(projectId) {
+      return get(/databases/$(database)/documents/projects/$(projectId)/members/$(request.auth.uid)).data;
+    }
+
+    function hasPermission(projectId, perm) {
+      return isMember(projectId) && membership(projectId).permissions[perm] == true;
+    }
+
+    function roleDoc(projectId, roleId) {
+      return get(/databases/$(database)/documents/projects/$(projectId)/roles/$(roleId)).data;
+    }
+
+    function fullPermissions() {
+      return {
+        manageRoles: true, manageInviteCode: true, removeMembers: true,
+        deleteProject: true, assignTasks: true, editAnyTask: true, manageTags: true
+      };
+    }
+
+    function noPermissions() {
+      return {
+        manageRoles: false, manageInviteCode: false, removeMembers: false,
+        deleteProject: false, assignTasks: false, editAnyTask: false, manageTags: false
+      };
+    }
+
+    match /projects/{projectId} {
+      allow read: if isMember(projectId);
+      allow create: if isSignedIn() &&
+        !projectExists(projectId) &&
+        request.resource.data.ownerUid == request.auth.uid;
+      // No edit/delete-project screen in Phase 1 (spec: create/join only) — deny until that feature exists.
+      allow update, delete: if false;
+
+      match /roles/{roleId} {
+        allow read: if isMember(projectId);
+        allow create: if
+          // Initial Leader + Default role pair, written by createProjectWithLeader()'s batch.
+          (!projectExists(projectId) &&
+            ((request.resource.data.isLeader == true && request.resource.data.permissions == fullPermissions()) ||
+             (request.resource.data.isLeader == false && request.resource.data.permissions == noPermissions()))) ||
+          // Manage-roles screen, on an existing project.
+          (projectExists(projectId) && hasPermission(projectId, 'manageRoles') && request.resource.data.isLeader == false);
+        allow update: if hasPermission(projectId, 'manageRoles') &&
+          resource.data.isLeader == false &&
+          request.resource.data.isLeader == false;
+        allow delete: if hasPermission(projectId, 'manageRoles') && resource.data.isLeader == false;
+      }
+
+      match /members/{userId} {
+        allow read: if isMember(projectId);
+        allow create: if isSignedIn() && request.auth.uid == userId &&
+          request.resource.data.userId == request.auth.uid &&
+          (
+            // Creator claims the Leader role for a brand-new project.
+            (!projectExists(projectId) &&
+              request.resource.data.roleName == 'Leader' &&
+              request.resource.data.permissions == fullPermissions()) ||
+            // Joining an existing project via a valid invite code — role/permissions must match
+            // the real role doc (join_project's transaction reads the project's defaultRoleId).
+            (projectExists(projectId) &&
+              exists(/databases/$(database)/documents/projects/$(projectId)/roles/$(request.resource.data.roleId)) &&
+              request.resource.data.roleName == roleDoc(projectId, request.resource.data.roleId).name &&
+              request.resource.data.permissions == roleDoc(projectId, request.resource.data.roleId).permissions)
+          );
+        // Reassign-role screen: only touches roleId/roleName/permissions, never the member's identity,
+        // never the Leader's own membership, and never assigns the Leader role to someone else.
+        allow update: if hasPermission(projectId, 'manageRoles') &&
+          resource.data.roleName != 'Leader' &&
+          request.resource.data.userId == resource.data.userId &&
+          exists(/databases/$(database)/documents/projects/$(projectId)/roles/$(request.resource.data.roleId)) &&
+          roleDoc(projectId, request.resource.data.roleId).isLeader == false &&
+          request.resource.data.roleName == roleDoc(projectId, request.resource.data.roleId).name &&
+          request.resource.data.permissions == roleDoc(projectId, request.resource.data.roleId).permissions;
+        // Remove-member roster action — never the Leader. No "leave project" feature yet, so no self-delete.
+        allow delete: if hasPermission(projectId, 'removeMembers') && resource.data.roleName != 'Leader';
+      }
+    }
+
+    match /inviteCodes/{code} {
+      // Join screen looks a code up by its (unguessable) document ID before the joiner is a member.
+      allow get: if isSignedIn();
+      // observeActiveInviteCode()'s query is only used by members displaying their own project's code.
+      allow list: if isMember(resource.data.projectId);
+      allow create: if hasPermission(request.resource.data.projectId, 'manageInviteCode');
+      allow update: if hasPermission(resource.data.projectId, 'manageInviteCode');
+      allow delete: if false;
+    }
+  }
+}

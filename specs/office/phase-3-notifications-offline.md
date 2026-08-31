@@ -6,7 +6,7 @@ Push notifications for handoffs, plus surfacing offline state instead of hiding 
 
 ## Screens / Flows
 
-- **Why notifications** — permission rationale before the OS prompt: "Relay only pings you when a baton moves."
+- **Why notifications** — permission rationale before the OS prompt: "Temacker only pings you when a baton moves."
 - **Lock screen** — dark, OS-style notification with actions sized 38dp.
 - **Inbox** — 4th bottom-nav destination. Badge counts only handoffs waiting on the current user.
 - **Offline** — queued-write screen surfacing WorkManager-pending/-failed writes (not silent).

@@ -8,6 +8,8 @@ fun DataError.toUiText(): UiText {
         DataError.Network.NO_INTERNET -> UiText.StringResource(R.string.error_no_internet)
         DataError.Network.UNAUTHORIZED -> UiText.StringResource(R.string.error_unauthorized)
         DataError.Network.SERVER_ERROR -> UiText.StringResource(R.string.error_server)
+        DataError.Network.PERMISSION_DENIED -> UiText.StringResource(R.string.error_permission_denied)
+        DataError.Network.CONFLICT -> UiText.StringResource(R.string.error_invite_code_invalid)
         else -> UiText.StringResource(R.string.error_unknown)
     }
 }

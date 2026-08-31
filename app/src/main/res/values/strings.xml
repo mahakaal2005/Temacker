@@ -1,8 +1,13 @@
 <resources>
     <string name="app_name">Temacker</string>
 
+    <string name="google_web_client_id" translatable="false">83858186212-5h7io2s28n7r1qif5c4c85b0dkdpv6um.apps.googleusercontent.com</string>
+
     <string name="error_no_internet">No internet connection.</string>
     <string name="error_unauthorized">Session expired. Please sign in again.</string>
     <string name="error_server">Something went wrong on our end. Try again.</string>
     <string name="error_unknown">Something went wrong. Try again.</string>
+    <string name="error_missing_credentials">Enter an email and password.</string>
+    <string name="error_permission_denied">You don\'t have permission to do that.</string>
+    <string name="error_invite_code_invalid">This code expired. Ask your project Leader for a new one.</string>
 </resources>

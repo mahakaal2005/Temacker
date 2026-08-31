@@ -1,0 +1,12 @@
+package com.example.temacker.feature_project.domain.repository
+
+import com.example.temacker.core.domain.util.DataError
+import com.example.temacker.core.domain.util.Result
+import com.example.temacker.feature_project.domain.model.Project
+import kotlinx.coroutines.flow.Flow
+
+interface ProjectRepository {
+    fun observeUserProjects(): Flow<List<Project>>
+    fun observeProject(projectId: String): Flow<Project?>
+    suspend fun createProject(name: String, ownerDisplayName: String, ownerPhotoUrl: String?): Result<Project, DataError>
+}

@@ -1,12 +1,12 @@
 # Implementation Plan — Index
 
-Derived from `specs/UI/relay-all-phases-android-concept.html` (30 screens, 6 phases). This is an
+Derived from `specs/UI/temacker-all-phases-android-concept.html` (30 screens, 6 phases). This is an
 index only — each phase's real task list lives in its own spec file. For live status, see
 `specs/office/progress.md`.
 
 ## Product note
 
-The UI concept ("Relay") uses a **holder + handoff** task model — one person holds a task and
+The UI concept uses a **holder + handoff** task model — one person holds a task and
 explicitly hands it to someone else, who accepts or declines — not the Backlog/In Progress/Review/
 Done status-column model currently in `specs/ultimate_android_architecture.md`. That doc's Data
 Model and Phase Roadmap sections need rewriting to match — first task in Phase 2 — before any
