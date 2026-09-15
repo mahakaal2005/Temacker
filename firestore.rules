@@ -43,15 +43,15 @@ service cloud.firestore {
 
     function fullPermissions() {
       return {
-        manageRoles: true, manageInviteCode: true, removeMembers: true,
-        deleteProject: true, assignTasks: true, editAnyTask: true, manageTags: true
+        'manageRoles': true, 'manageInviteCode': true, 'removeMembers': true,
+        'deleteProject': true, 'assignTasks': true, 'editAnyTask': true, 'manageTags': true
       };
     }
 
     function noPermissions() {
       return {
-        manageRoles: false, manageInviteCode: false, removeMembers: false,
-        deleteProject: false, assignTasks: false, editAnyTask: false, manageTags: false
+        'manageRoles': false, 'manageInviteCode': false, 'removeMembers': false,
+        'deleteProject': false, 'assignTasks': false, 'editAnyTask': false, 'manageTags': false
       };
     }
 
@@ -79,7 +79,12 @@ service cloud.firestore {
       }
 
       match /members/{userId} {
-        allow read: if isMember(projectId);
+        // The `|| resource.data.userId == request.auth.uid` arm exists for observeUserProjects()'s
+        // collectionGroup("members") query: Firestore validates list/collection-group queries from
+        // the query's own filters alone (it won't run isMember()'s exists() per result document
+        // across a variable projectId), so the rule needs a condition it can verify statically from
+        // the query's whereEqualTo("userId", uid) filter.
+        allow read: if isMember(projectId) || resource.data.userId == request.auth.uid;
         allow create: if isSignedIn() && request.auth.uid == userId &&
           request.resource.data.userId == request.auth.uid &&
           (

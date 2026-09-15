@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import com.example.temacker.core.domain.util.map as resultMap
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class OfflineFirstProjectRepository(
@@ -68,6 +69,12 @@ class OfflineFirstProjectRepository(
     ): Result<Project, DataError> {
         val uid = sessionManager.getUid() ?: return Result.Error(DataError.Network.UNAUTHORIZED)
         return remote.createProjectWithLeader(name, uid, ownerDisplayName, ownerPhotoUrl)
-            .onSuccess { project -> projectDao.upsertAll(listOf(project.toEntity())) }
+            .onSuccess { (project, membership) ->
+                projectDao.upsertAll(listOf(project.toEntity()))
+                // Without this, observeUserProjects()'s Room-backed emission (driven by
+                // membershipDao) never includes a project right after its own creation.
+                membershipDao.upsertAll(listOf(membership.toEntity()))
+            }
+            .resultMap { (project, _) -> project }
     }
 }

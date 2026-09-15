@@ -24,7 +24,9 @@ class FirestoreProjectRemoteDataSource(
             .whereEqualTo("userId", userId)
             .snapshots()
             .map { snapshot ->
-                val projectIds = snapshot.documents.mapNotNull { it.getString("projectId") }
+                // Member docs don't store their own projectId — it's implicit in the doc path
+                // (projects/{projectId}/members/{userId}) — so read it from the parent reference.
+                val projectIds = snapshot.documents.mapNotNull { it.reference.parent.parent?.id }
                 // Membership list changing re-fetches the (small, rarely-changing) project docs.
                 projectIds.mapNotNull { id ->
                     firestore.collection(PROJECTS).document(id).get().await().toProject()
@@ -39,7 +41,7 @@ class FirestoreProjectRemoteDataSource(
         ownerUid: String,
         ownerDisplayName: String,
         ownerPhotoUrl: String?
-    ): Result<Project, DataError> = safeFirestoreCall {
+    ): Result<Pair<Project, Membership>, DataError> = safeFirestoreCall {
         val projectRef = firestore.collection(PROJECTS).document()
         val leaderRoleRef = projectRef.collection(ROLES).document()
         val defaultRoleRef = projectRef.collection(ROLES).document()
@@ -70,7 +72,7 @@ class FirestoreProjectRemoteDataSource(
             .commit()
             .await()
 
-        project
+        project to leaderMembership
     }
 
     companion object {
