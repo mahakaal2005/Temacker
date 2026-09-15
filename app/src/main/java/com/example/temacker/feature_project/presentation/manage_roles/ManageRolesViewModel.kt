@@ -2,6 +2,8 @@ package com.example.temacker.feature_project.presentation.manage_roles
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.temacker.core.domain.util.onFailure
+import com.example.temacker.core.presentation.util.toUiText
 import com.example.temacker.feature_project.domain.model.RolePermissions
 import com.example.temacker.feature_project.domain.use_case.CreateRoleUseCase
 import com.example.temacker.feature_project.domain.use_case.DeleteRoleUseCase
@@ -50,19 +52,31 @@ class ManageRolesViewModel(
             ManageRolesAction.OnCreateRoleConfirm -> {
                 val name = _state.value.newRoleName.trim()
                 if (projectId != null && name.isNotBlank()) {
-                    viewModelScope.launch { createRole(projectId, name, RolePermissions.NONE) }
+                    viewModelScope.launch {
+                        createRole(projectId, name, RolePermissions.NONE)
+                            .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+                    }
                 }
                 _state.update { it.copy(isCreateDialogVisible = false, newRoleName = "") }
             }
             is ManageRolesAction.OnPermissionToggle -> {
                 val role = _state.value.roles.firstOrNull { it.id == action.roleId }
                 if (projectId != null && role != null) {
-                    viewModelScope.launch { updateRole(projectId, role.id, role.name, action.permissions) }
+                    viewModelScope.launch {
+                        updateRole(projectId, role.id, role.name, action.permissions)
+                            .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+                    }
                 }
             }
             is ManageRolesAction.OnDeleteRoleClick -> {
-                if (projectId != null) viewModelScope.launch { deleteRole(projectId, action.roleId) }
+                if (projectId != null) {
+                    viewModelScope.launch {
+                        deleteRole(projectId, action.roleId)
+                            .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+                    }
+                }
             }
+            ManageRolesAction.OnErrorDismissed -> _state.update { it.copy(error = null) }
         }
     }
 }

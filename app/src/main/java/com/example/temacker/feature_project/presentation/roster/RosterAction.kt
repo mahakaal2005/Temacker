@@ -12,4 +12,5 @@ sealed interface RosterAction {
     data object OnDismissReassignSheet : RosterAction
     data class OnRoleSelected(val roleId: String) : RosterAction
     data object OnManageRolesClick : RosterAction
+    data object OnErrorDismissed : RosterAction
 }

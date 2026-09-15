@@ -1,5 +1,6 @@
 package com.example.temacker.feature_project.presentation.roster
 
+import com.example.temacker.core.presentation.util.UiText
 import com.example.temacker.feature_project.domain.model.Membership
 import com.example.temacker.feature_project.domain.model.Role
 
@@ -14,5 +15,6 @@ data class RosterState(
     val isInviteSheetVisible: Boolean = false,
     val isLoading: Boolean = true,
     val menuForUserId: String? = null,
-    val reassignTargetUserId: String? = null
+    val reassignTargetUserId: String? = null,
+    val error: UiText? = null
 )

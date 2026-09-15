@@ -40,6 +40,7 @@ import com.example.temacker.core.presentation.designsystem.AmberWash
 import com.example.temacker.core.presentation.designsystem.Ink500
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import com.example.temacker.core.presentation.util.ObserveAsEvents
+import com.example.temacker.core.presentation.util.UiText
 import com.example.temacker.feature_project.domain.model.Role
 import com.example.temacker.feature_project.domain.model.RolePermissions
 import org.koin.androidx.compose.koinViewModel
@@ -79,6 +80,23 @@ fun ManageRolesScreen(state: ManageRolesState, onAction: (ManageRolesAction) -> 
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
+
+            state.error?.let { error ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = error.asString(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TextButton(onClick = { onAction(ManageRolesAction.OnErrorDismissed) }) {
+                        Text("Dismiss")
+                    }
+                }
+            }
 
             if (state.isLoading) {
                 Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -222,6 +240,21 @@ private fun ManageRolesScreenCreateDialogPreview() {
     TemackerTheme {
         ManageRolesScreen(
             state = ManageRolesState(isLoading = false, isCreateDialogVisible = true, newRoleName = "Scheduler"),
+            onAction = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ManageRolesScreenErrorPreview() {
+    TemackerTheme {
+        ManageRolesScreen(
+            state = ManageRolesState(
+                isLoading = false,
+                roles = listOf(Role("r1", "p1", "Leader", RolePermissions.ALL_GRANTED, isLeader = true)),
+                error = UiText.DynamicString("Couldn't update role. Check your connection and try again.")
+            ),
             onAction = {}
         )
     }

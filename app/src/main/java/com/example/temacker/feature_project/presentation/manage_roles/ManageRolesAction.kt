@@ -10,4 +10,5 @@ sealed interface ManageRolesAction {
     data object OnCreateRoleConfirm : ManageRolesAction
     data class OnPermissionToggle(val roleId: String, val permissions: RolePermissions) : ManageRolesAction
     data class OnDeleteRoleClick(val roleId: String) : ManageRolesAction
+    data object OnErrorDismissed : ManageRolesAction
 }

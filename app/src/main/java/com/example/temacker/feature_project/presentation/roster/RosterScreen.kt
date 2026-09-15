@@ -57,6 +57,7 @@ import com.example.temacker.core.presentation.designsystem.TealInk
 import com.example.temacker.core.presentation.designsystem.TealWash
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import com.example.temacker.core.presentation.util.ObserveAsEvents
+import com.example.temacker.core.presentation.util.UiText
 import com.example.temacker.feature_project.domain.model.Membership
 import com.example.temacker.feature_project.domain.model.Role
 import com.example.temacker.feature_project.domain.model.RolePermissions
@@ -131,6 +132,23 @@ fun RosterScreen(
                     if (state.canManageRoles) {
                         TextButton(onClick = { onAction(RosterAction.OnManageRolesClick) }, modifier = Modifier.padding(start = 0.dp)) {
                             Text("Manage roles →")
+                        }
+                    }
+                }
+
+                state.error?.let { error ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = error.asString(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(onClick = { onAction(RosterAction.OnErrorDismissed) }) {
+                            Text("Dismiss")
                         }
                     }
                 }
@@ -323,6 +341,28 @@ private fun RosterScreenPreview() {
                     Role("r1", "p1", "Leader", RolePermissions.ALL_GRANTED, isLeader = true),
                     Role("r2", "p1", "Editor", RolePermissions(), isLeader = false)
                 )
+            ),
+            onAction = {},
+            onNavigateToHome = {},
+            onNavigateToRoster = {},
+            onNavigateToProfile = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun RosterScreenErrorPreview() {
+    TemackerTheme {
+        RosterScreen(
+            state = RosterState(
+                isLoading = false,
+                canRemoveMembers = true,
+                canManageRoles = true,
+                members = listOf(
+                    Membership("p1", "u1", "r1", "Leader", RolePermissions.ALL_GRANTED, "Priya Raman", null, 0)
+                ),
+                error = UiText.DynamicString("Couldn't remove member. Check your connection and try again.")
             ),
             onAction = {},
             onNavigateToHome = {},

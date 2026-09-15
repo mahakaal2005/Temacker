@@ -2,6 +2,8 @@ package com.example.temacker.feature_project.presentation.roster
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.temacker.core.domain.util.onFailure
+import com.example.temacker.core.presentation.util.toUiText
 import com.example.temacker.feature_project.domain.use_case.GenerateInviteCodeUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveActiveInviteCodeUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveCurrentMembershipUseCase
@@ -81,18 +83,28 @@ class RosterViewModel(
             RosterAction.OnDismissMemberMenu -> _state.update { it.copy(menuForUserId = null) }
             is RosterAction.OnRemoveMemberClick -> {
                 _state.update { it.copy(menuForUserId = null) }
-                viewModelScope.launch { removeMember(projectId, action.userId) }
+                viewModelScope.launch {
+                    removeMember(projectId, action.userId)
+                        .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+                }
             }
             is RosterAction.OnReassignRoleClick -> _state.update { it.copy(menuForUserId = null, reassignTargetUserId = action.userId) }
             RosterAction.OnDismissReassignSheet -> _state.update { it.copy(reassignTargetUserId = null) }
             is RosterAction.OnRoleSelected -> {
                 val targetUserId = _state.value.reassignTargetUserId ?: return
                 _state.update { it.copy(reassignTargetUserId = null) }
-                viewModelScope.launch { reassignMemberRole(projectId, targetUserId, action.roleId) }
+                viewModelScope.launch {
+                    reassignMemberRole(projectId, targetUserId, action.roleId)
+                        .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+                }
             }
             RosterAction.OnManageRolesClick -> viewModelScope.launch { _events.send(RosterEvent.NavigateToManageRoles) }
+            RosterAction.OnErrorDismissed -> _state.update { it.copy(error = null) }
         }
     }
 
-    private fun generateCode(projectId: String) = viewModelScope.launch { generateInviteCode(projectId) }
+    private fun generateCode(projectId: String) = viewModelScope.launch {
+        generateInviteCode(projectId)
+            .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+    }
 }
