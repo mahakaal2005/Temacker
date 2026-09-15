@@ -1,9 +1,12 @@
 package com.example.temacker.core.data.firebase
 
+import android.util.Log
 import com.example.temacker.core.domain.util.DataError
 import com.example.temacker.core.domain.util.Result
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.CancellationException
+
+private const val TAG = "SafeFirestoreCall"
 
 // Catches Firestore exceptions at the layer that owns them (data layer) and maps to DataError.
 suspend fun <T> safeFirestoreCall(action: suspend () -> T): Result<T, DataError> {
@@ -21,8 +24,10 @@ suspend fun <T> safeFirestoreCall(action: suspend () -> T): Result<T, DataError>
             FirebaseFirestoreException.Code.DEADLINE_EXCEEDED -> DataError.Network.REQUEST_TIMEOUT
             else -> DataError.Network.UNKNOWN
         }
+        Log.e(TAG, "safeFirestoreCall: Firestore call failed (code=${e.code})", e)
         Result.Error(error)
     } catch (e: Exception) {
+        Log.e(TAG, "safeFirestoreCall: unexpected exception", e)
         Result.Error(DataError.Network.UNKNOWN)
     }
 }
