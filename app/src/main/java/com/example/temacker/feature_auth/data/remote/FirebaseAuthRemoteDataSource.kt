@@ -86,9 +86,9 @@ class FirebaseAuthRemoteDataSource(
             }
             Result.Success(firebaseUser.toUser())
         } catch (e: GetCredentialCancellationException) {
-            // User dismissed the picker — not an error, just stop.
+            // User dismissed the picker — not an error, just stop. CANCELLED lets LoginViewModel no-op instead of showing an error.
             Log.e(TAG, "signInWithGoogle: GetCredentialCancellationException (message=${e.message})", e)
-            Result.Error(DataError.Network.UNKNOWN) // LoginViewModel handles generic errors as non-fatal UI state
+            Result.Error(DataError.Network.CANCELLED)
         } catch (e: GetCredentialException) {
             Log.e(TAG, "signInWithGoogle: Credential Manager failed (type=${e::class.simpleName})", e)
             Result.Error(DataError.Network.UNKNOWN)

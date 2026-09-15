@@ -3,6 +3,7 @@ package com.example.temacker.feature_auth.presentation.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.temacker.R
+import com.example.temacker.core.domain.util.DataError
 import com.example.temacker.core.domain.util.onFailure
 import com.example.temacker.core.domain.util.onSuccess
 import com.example.temacker.core.presentation.util.UiText
@@ -43,7 +44,12 @@ class LoginViewModel(
         _state.update { it.copy(isLoading = true, error = null) }
         signInWithGoogle()
             .onSuccess { _events.send(LoginEvent.NavigateToApp) }
-            .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+            .onFailure { error ->
+                // Picker dismiss isn't a real failure — don't surface an error for it.
+                if (error != DataError.Network.CANCELLED) {
+                    _state.update { it.copy(error = error.toUiText()) }
+                }
+            }
         _state.update { it.copy(isLoading = false) }
     }
 
