@@ -79,12 +79,9 @@ service cloud.firestore {
       }
 
       match /members/{userId} {
-        // The `|| resource.data.userId == request.auth.uid` arm exists for observeUserProjects()'s
-        // collectionGroup("members") query: Firestore validates list/collection-group queries from
-        // the query's own filters alone (it won't run isMember()'s exists() per result document
-        // across a variable projectId), so the rule needs a condition it can verify statically from
-        // the query's whereEqualTo("userId", uid) filter.
-        allow read: if isMember(projectId) || resource.data.userId == request.auth.uid;
+        // Roster's direct query (membersRef(projectId).snapshots(), no collectionGroup) has a
+        // concrete projectId, so isMember(projectId) is resolvable once for the whole result set.
+        allow get, list: if isMember(projectId) || resource.data.userId == request.auth.uid;
         allow create: if isSignedIn() && request.auth.uid == userId &&
           request.resource.data.userId == request.auth.uid &&
           (
@@ -113,11 +110,26 @@ service cloud.firestore {
       }
     }
 
+    // observeUserProjects()'s collectionGroup("members") query spans all projects, so the nested
+    // rule's isMember(projectId) above is unresolvable per candidate doc there (projectId varies)
+    // — Firestore's list-query validator denies the whole request rather than run it per document.
+    // Cloud Firestore ORs matching rule blocks together, so this dedicated top-level rule (checked
+    // purely from resource.data, provable from the query's own whereEqualTo("userId", uid) filter)
+    // is what actually authorizes that query; the nested block above still governs direct access.
+    match /{path=**}/members/{userId} {
+      allow list: if resource.data.userId == request.auth.uid;
+    }
+
     match /inviteCodes/{code} {
       // Join screen looks a code up by its (unguessable) document ID before the joiner is a member.
       allow get: if isSignedIn();
-      // observeActiveInviteCode()'s query is only used by members displaying their own project's code.
-      allow list: if isMember(resource.data.projectId);
+      // observeActiveInviteCode()'s query and generateInviteCode()'s existing-active-code lookup both
+      // filter by a projectId the caller must already know. isMember(resource.data.projectId) doesn't
+      // work here the way it does for roster's members list: inviteCodes isn't nested under
+      // /projects/{projectId}, so projectId is per-document data, not a path segment Firestore can
+      // resolve statically for a list query — same class of issue as the members collectionGroup bug,
+      // but with no resource.data-only substitute available. Same trust boundary as `get` above.
+      allow list: if isSignedIn();
       allow create: if hasPermission(request.resource.data.projectId, 'manageInviteCode');
       allow update: if hasPermission(resource.data.projectId, 'manageInviteCode');
       allow delete: if false;
