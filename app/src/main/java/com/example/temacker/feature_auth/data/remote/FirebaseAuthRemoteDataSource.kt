@@ -21,7 +21,11 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
+import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.awaitClose
@@ -94,12 +98,12 @@ class FirebaseAuthRemoteDataSource(
             Result.Error(DataError.Network.UNKNOWN)
         } catch (e: GoogleIdTokenParsingException) {
             Log.e(TAG, "signInWithGoogle: Google ID token parsing failed", e)
-            Result.Error(DataError.Network.UNKNOWN)
+            Result.Error(DataError.Network.SERIALIZATION)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             Log.e(TAG, "signInWithGoogle: Firebase sign-in failed", e)
-            Result.Error(DataError.Network.UNKNOWN)
+            Result.Error(e.toAuthDataError())
         }
     }
 
@@ -114,7 +118,7 @@ class FirebaseAuthRemoteDataSource(
             throw e
         } catch (e: Exception) {
             Log.e(TAG, "signInWithEmail: failed", e)
-            Result.Error(DataError.Network.UNKNOWN)
+            Result.Error(e.toAuthDataError())
         }
     }
 
@@ -135,8 +139,20 @@ class FirebaseAuthRemoteDataSource(
             throw e
         } catch (e: Exception) {
             Log.e(TAG, "registerWithEmail: failed", e)
-            Result.Error(DataError.Network.UNKNOWN)
+            Result.Error(e.toAuthDataError())
         }
+    }
+
+    // Maps Firebase Auth's exception hierarchy onto existing DataError.Network cases instead of
+    // collapsing every failure to UNKNOWN. FirebaseAuthWeakPasswordException and
+    // FirebaseAuthTooManyRequestsException have no matching case yet (see audit item #8) and fall
+    // through to UNKNOWN.
+    private fun Exception.toAuthDataError(): DataError.Network = when (this) {
+        is FirebaseNetworkException -> DataError.Network.NO_INTERNET
+        is FirebaseAuthUserCollisionException -> DataError.Network.CONFLICT
+        is FirebaseAuthInvalidCredentialsException -> DataError.Network.UNAUTHORIZED
+        is FirebaseAuthInvalidUserException -> DataError.Network.UNAUTHORIZED
+        else -> DataError.Network.UNKNOWN
     }
 
     override suspend fun signOut() {
