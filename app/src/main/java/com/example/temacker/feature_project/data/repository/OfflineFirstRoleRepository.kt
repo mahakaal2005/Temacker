@@ -1,6 +1,7 @@
 package com.example.temacker.feature_project.data.repository
 
 import com.example.temacker.core.data.database.RoleDao
+import com.example.temacker.core.domain.util.asEmptyResult
 import com.example.temacker.core.domain.util.onSuccess
 import com.example.temacker.feature_project.data.mapper.toDomain
 import com.example.temacker.feature_project.data.mapper.toEntity
@@ -37,8 +38,8 @@ class OfflineFirstRoleRepository(
         name: String,
         permissions: RolePermissions
     ) = remote.updateRole(projectId, roleId, name, permissions).onSuccess {
-        roleDao.upsertAll(listOf(Role(roleId, projectId, name, permissions, isLeader = false).toEntity()))
-    }
+        roleDao.upsertAll(listOf(it.toEntity()))
+    }.asEmptyResult()
 
     override suspend fun deleteRole(projectId: String, roleId: String) =
         remote.deleteRole(projectId, roleId).onSuccess { roleDao.deleteById(roleId) }

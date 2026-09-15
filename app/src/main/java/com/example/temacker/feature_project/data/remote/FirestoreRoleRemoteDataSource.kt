@@ -10,6 +10,7 @@ import com.example.temacker.feature_project.data.mapper.toRole
 import com.example.temacker.feature_project.domain.model.Role
 import com.example.temacker.feature_project.domain.model.RolePermissions
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
@@ -32,11 +33,17 @@ class FirestoreRoleRemoteDataSource(
             role
         }
 
-    override suspend fun updateRole(projectId: String, roleId: String, name: String, permissions: RolePermissions): EmptyResult<DataError> =
+    override suspend fun updateRole(projectId: String, roleId: String, name: String, permissions: RolePermissions): Result<Role, DataError> =
         safeFirestoreCall {
-            val role = Role(id = roleId, projectId = projectId, name = name, permissions = permissions, isLeader = false)
-            rolesRef(projectId).document(roleId).set(role.toFirestoreMap()).await()
-            Unit
+            val roleRef = rolesRef(projectId).document(roleId)
+            roleRef.update(
+                mapOf(
+                    "name" to name,
+                    "permissions" to permissions.toFirestoreMap()
+                )
+            ).await()
+            roleRef.get().await().toRole(projectId)
+                ?: throw FirebaseFirestoreException("Role not found", FirebaseFirestoreException.Code.NOT_FOUND)
         }
 
     override suspend fun deleteRole(projectId: String, roleId: String): EmptyResult<DataError> =

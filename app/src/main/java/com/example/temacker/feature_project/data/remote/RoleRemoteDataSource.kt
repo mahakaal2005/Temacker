@@ -10,6 +10,6 @@ import kotlinx.coroutines.flow.Flow
 interface RoleRemoteDataSource {
     fun observeRoles(projectId: String): Flow<List<Role>>
     suspend fun createRole(projectId: String, name: String, permissions: RolePermissions): Result<Role, DataError>
-    suspend fun updateRole(projectId: String, roleId: String, name: String, permissions: RolePermissions): EmptyResult<DataError>
+    suspend fun updateRole(projectId: String, roleId: String, name: String, permissions: RolePermissions): Result<Role, DataError>
     suspend fun deleteRole(projectId: String, roleId: String): EmptyResult<DataError>
 }
