@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import com.example.temacker.core.domain.util.asEmptyResult
 
 class OfflineFirstMembershipRepository(
     private val remote: MembershipRemoteDataSource,
@@ -55,6 +56,7 @@ class OfflineFirstMembershipRepository(
         remote.removeMember(projectId, userId).onSuccess { membershipDao.delete(projectId, userId) }
 
     override suspend fun reassignRole(projectId: String, userId: String, roleId: String) =
-        // Room row for this member refreshes from the live listener in observeMembers/observeMembership.
         remote.reassignRole(projectId, userId, roleId)
+            .onSuccess { membershipDao.upsertAll(listOf(it.toEntity())) }
+            .asEmptyResult()
 }

@@ -81,21 +81,23 @@ class FirestoreMembershipRemoteDataSource(
             Unit
         }
 
-    override suspend fun reassignRole(projectId: String, userId: String, roleId: String): EmptyResult<DataError> =
+    override suspend fun reassignRole(projectId: String, userId: String, roleId: String): Result<Membership, DataError> =
         safeFirestoreCall {
             val roleRef = firestore.collection("projects").document(projectId).collection("roles").document(roleId)
             val roleSnap = roleRef.get().await()
             val roleName = roleSnap.getString("name")
-            if (roleName != null) {
-                val permissions = (roleSnap.get("permissions") as? Map<String, Any?> ?: emptyMap()).toRolePermissions()
-                membersRef(projectId).document(userId).update(
-                    mapOf(
-                        "roleId" to roleId,
-                        "roleName" to roleName,
-                        "permissions" to permissions.toFirestoreMap()
-                    )
-                ).await()
-            }
-            Unit
+                ?: throw FirebaseFirestoreException("Role not found", FirebaseFirestoreException.Code.NOT_FOUND)
+            val permissions = (roleSnap.get("permissions") as? Map<String, Any?> ?: emptyMap()).toRolePermissions()
+            val memberRef = membersRef(projectId).document(userId)
+            memberRef.update(
+                mapOf(
+                    "roleId" to roleId,
+                    "roleName" to roleName,
+                    "permissions" to permissions.toFirestoreMap()
+                )
+            ).await()
+            val updated = memberRef.get().await().toMembership(projectId)
+                ?: throw FirebaseFirestoreException("Member not found", FirebaseFirestoreException.Code.NOT_FOUND)
+            updated
         }
 }
