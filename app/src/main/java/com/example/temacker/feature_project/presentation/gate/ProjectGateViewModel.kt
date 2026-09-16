@@ -2,9 +2,13 @@ package com.example.temacker.feature_project.presentation.gate
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.temacker.core.domain.util.Result
+import com.example.temacker.feature_project.domain.model.Project
 import com.example.temacker.feature_project.domain.use_case.ObserveUserProjectsUseCase
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
@@ -18,7 +22,12 @@ class ProjectGateViewModel(
 
     init {
         viewModelScope.launch {
-            val projects = observeUserProjects().first()
+            // Skip transient Result.Error blips from a sync hiccup — wait specifically for the
+            // first real (Room-backed) Success emission, since the two channelFlow branches race.
+            val projects = observeUserProjects()
+                .filterIsInstance<Result.Success<List<Project>>>()
+                .map { it.data }
+                .first()
             _events.send(if (projects.isEmpty()) ProjectGateEvent.NavigateToNoProject else ProjectGateEvent.NavigateToHome)
         }
     }

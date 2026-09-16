@@ -3,6 +3,7 @@ package com.example.temacker.feature_project.presentation.manage_roles
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.temacker.core.domain.util.onFailure
+import com.example.temacker.core.domain.util.onSuccess
 import com.example.temacker.core.presentation.util.toUiText
 import com.example.temacker.feature_project.domain.model.RolePermissions
 import com.example.temacker.feature_project.domain.use_case.CreateRoleUseCase
@@ -34,10 +35,18 @@ class ManageRolesViewModel(
 
     init {
         viewModelScope.launch {
-            observeUserProjects().collectLatest { projects ->
-                val project = projects.firstOrNull() ?: return@collectLatest
-                _state.update { it.copy(projectId = project.id) }
-                observeRoles(project.id).collect { roles -> _state.update { it.copy(roles = roles, isLoading = false) } }
+            observeUserProjects().collectLatest { result ->
+                result
+                    .onSuccess { projects ->
+                        val project = projects.firstOrNull() ?: return@onSuccess
+                        _state.update { it.copy(projectId = project.id) }
+                        observeRoles(project.id).collect { rolesResult ->
+                            rolesResult
+                                .onSuccess { roles -> _state.update { it.copy(roles = roles, isLoading = false) } }
+                                .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+                        }
+                    }
+                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
             }
         }
     }

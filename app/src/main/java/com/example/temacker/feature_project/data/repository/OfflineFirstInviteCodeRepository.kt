@@ -1,6 +1,9 @@
 package com.example.temacker.feature_project.data.repository
 
 import com.example.temacker.core.data.database.InviteCodeDao
+import com.example.temacker.core.data.firebase.toFirestoreDataError
+import com.example.temacker.core.domain.util.DataError
+import com.example.temacker.core.domain.util.Result
 import com.example.temacker.core.domain.util.onSuccess
 import com.example.temacker.feature_project.data.mapper.toDomain
 import com.example.temacker.feature_project.data.mapper.toEntity
@@ -18,13 +21,13 @@ class OfflineFirstInviteCodeRepository(
     private val inviteCodeDao: InviteCodeDao
 ) : InviteCodeRepository {
 
-    override fun observeActiveInviteCode(projectId: String): Flow<InviteCode?> = channelFlow {
+    override fun observeActiveInviteCode(projectId: String): Flow<Result<InviteCode?, DataError>> = channelFlow {
         launch {
             remote.observeActiveInviteCode(projectId)
-                .catch { }
+                .catch { e -> send(Result.Error(e.toFirestoreDataError())) }
                 .collect { code -> code?.let { inviteCodeDao.upsert(it.toEntity()) } }
         }
-        inviteCodeDao.observeActiveForProject(projectId).map { it?.toDomain() }.collect { send(it) }
+        inviteCodeDao.observeActiveForProject(projectId).map { it?.toDomain() }.collect { send(Result.Success(it)) }
     }
 
     override suspend fun generateInviteCode(projectId: String) =

@@ -2,6 +2,9 @@ package com.example.temacker.feature_project.presentation.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.temacker.core.domain.util.onFailure
+import com.example.temacker.core.domain.util.onSuccess
+import com.example.temacker.core.presentation.util.toUiText
 import com.example.temacker.feature_project.domain.use_case.ObserveCurrentMembershipUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveMembersUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveUserProjectsUseCase
@@ -29,24 +32,32 @@ class HomeViewModel(
 
     init {
         viewModelScope.launch {
-            observeUserProjects().collectLatest { projects ->
-                val project = projects.firstOrNull()
-                if (project == null) {
-                    _state.update { it.copy(isLoading = false) }
-                    return@collectLatest
-                }
-                _state.update { it.copy(projectId = project.id, projectName = project.name, isLoading = false) }
+            observeUserProjects().collectLatest { result ->
+                result
+                    .onSuccess { projects ->
+                        val project = projects.firstOrNull()
+                        if (project == null) {
+                            _state.update { it.copy(isLoading = false) }
+                            return@onSuccess
+                        }
+                        _state.update { it.copy(projectId = project.id, projectName = project.name, isLoading = false) }
 
-                launch {
-                    observeMembers(project.id).collect { members ->
-                        _state.update { it.copy(memberCount = members.size) }
+                        launch {
+                            observeMembers(project.id).collect { membersResult ->
+                                membersResult
+                                    .onSuccess { members -> _state.update { it.copy(memberCount = members.size) } }
+                                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+                            }
+                        }
+                        launch {
+                            observeCurrentMembership(project.id).collect { membershipResult ->
+                                membershipResult
+                                    .onSuccess { membership -> _state.update { it.copy(isLeader = membership?.roleName == "Leader") } }
+                                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+                            }
+                        }
                     }
-                }
-                launch {
-                    observeCurrentMembership(project.id).collect { membership ->
-                        _state.update { it.copy(isLeader = membership?.roleName == "Leader") }
-                    }
-                }
+                    .onFailure { error -> _state.update { it.copy(isLoading = false, error = error.toUiText()) } }
             }
         }
     }
@@ -54,6 +65,7 @@ class HomeViewModel(
     fun onAction(action: HomeAction) {
         when (action) {
             HomeAction.OnGoToRosterClick -> viewModelScope.launch { _events.send(HomeEvent.NavigateToRoster) }
+            HomeAction.OnErrorDismissed -> _state.update { it.copy(error = null) }
         }
     }
 }

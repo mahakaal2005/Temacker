@@ -18,6 +18,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -40,6 +41,7 @@ import com.example.temacker.core.presentation.designsystem.TealInk
 import com.example.temacker.core.presentation.designsystem.TealWash
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import com.example.temacker.core.presentation.util.ObserveAsEvents
+import com.example.temacker.core.presentation.util.UiText
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -89,6 +91,23 @@ fun ProfileScreen(
                     title = { Text("Profile") },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
                 )
+
+                state.error?.let { error ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = error.asString(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(onClick = { onAction(ProfileAction.OnErrorDismissed) }) {
+                            Text("Dismiss")
+                        }
+                    }
+                }
 
                 if (state.isLoading) {
                     Column(
@@ -223,5 +242,26 @@ private fun ProfileScreenPreview() {
 private fun ProfileScreenLoadingPreview() {
     TemackerTheme {
         ProfileScreen(state = ProfileState(isLoading = true), onAction = {}, onNavigateToHome = {}, onNavigateToRoster = {})
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ProfileScreenErrorPreview() {
+    TemackerTheme {
+        ProfileScreen(
+            state = ProfileState(
+                displayName = "Priya Raman",
+                email = "priya.raman@northwind.co",
+                projectName = "Aurora Launch",
+                roleName = "Leader",
+                memberSince = "August 2026",
+                isLoading = false,
+                error = UiText.DynamicString("Couldn't sync with the server. Showing your last known data.")
+            ),
+            onAction = {},
+            onNavigateToHome = {},
+            onNavigateToRoster = {}
+        )
     }
 }

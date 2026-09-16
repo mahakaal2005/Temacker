@@ -1,6 +1,9 @@
 package com.example.temacker.feature_project.data.repository
 
 import com.example.temacker.core.data.database.RoleDao
+import com.example.temacker.core.data.firebase.toFirestoreDataError
+import com.example.temacker.core.domain.util.DataError
+import com.example.temacker.core.domain.util.Result
 import com.example.temacker.core.domain.util.asEmptyResult
 import com.example.temacker.core.domain.util.onSuccess
 import com.example.temacker.feature_project.data.mapper.toDomain
@@ -20,13 +23,13 @@ class OfflineFirstRoleRepository(
     private val roleDao: RoleDao
 ) : RoleRepository {
 
-    override fun observeRoles(projectId: String): Flow<List<Role>> = channelFlow {
+    override fun observeRoles(projectId: String): Flow<Result<List<Role>, DataError>> = channelFlow {
         launch {
             remote.observeRoles(projectId)
-                .catch { }
+                .catch { e -> send(Result.Error(e.toFirestoreDataError())) }
                 .collect { roles -> roleDao.upsertAll(roles.map { it.toEntity() }) }
         }
-        roleDao.observeByProject(projectId).map { it.map { e -> e.toDomain() } }.collect { send(it) }
+        roleDao.observeByProject(projectId).map { it.map { e -> e.toDomain() } }.collect { send(Result.Success(it)) }
     }
 
     override suspend fun createRole(projectId: String, name: String, permissions: RolePermissions) =

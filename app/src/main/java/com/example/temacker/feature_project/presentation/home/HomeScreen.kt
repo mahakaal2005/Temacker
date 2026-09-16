@@ -2,7 +2,9 @@ package com.example.temacker.feature_project.presentation.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,6 +28,7 @@ import com.example.temacker.core.presentation.designsystem.Ink500
 import com.example.temacker.core.presentation.designsystem.Ink900
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import com.example.temacker.core.presentation.util.ObserveAsEvents
+import com.example.temacker.core.presentation.util.UiText
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -87,6 +90,23 @@ fun HomeScreen(
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
                 )
+
+                state.error?.let { error ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = error.asString(),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(onClick = { onAction(HomeAction.OnErrorDismissed) }) {
+                            Text("Dismiss")
+                        }
+                    }
+                }
 
                 if (state.isLoading) {
                     Column(
@@ -154,6 +174,26 @@ private fun HomeScreenLoadingPreview() {
     TemackerTheme {
         HomeScreen(
             state = HomeState(isLoading = true),
+            onAction = {},
+            onNavigateToHome = {},
+            onNavigateToRoster = {},
+            onNavigateToProfile = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun HomeScreenErrorPreview() {
+    TemackerTheme {
+        HomeScreen(
+            state = HomeState(
+                projectName = "Aurora Launch",
+                memberCount = 8,
+                isLeader = true,
+                isLoading = false,
+                error = UiText.DynamicString("Couldn't sync with the server. Showing your last known data.")
+            ),
             onAction = {},
             onNavigateToHome = {},
             onNavigateToRoster = {},

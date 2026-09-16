@@ -6,7 +6,7 @@ import com.example.temacker.feature_project.domain.model.Project
 import kotlinx.coroutines.flow.Flow
 
 interface ProjectRepository {
-    fun observeUserProjects(): Flow<List<Project>>
-    fun observeProject(projectId: String): Flow<Project?>
+    fun observeUserProjects(): Flow<Result<List<Project>, DataError>>
+    fun observeProject(projectId: String): Flow<Result<Project?, DataError>>
     suspend fun createProject(name: String, ownerDisplayName: String, ownerPhotoUrl: String?): Result<Project, DataError>
 }

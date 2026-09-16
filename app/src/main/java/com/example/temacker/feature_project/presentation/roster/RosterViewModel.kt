@@ -3,6 +3,7 @@ package com.example.temacker.feature_project.presentation.roster
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.temacker.core.domain.util.onFailure
+import com.example.temacker.core.domain.util.onSuccess
 import com.example.temacker.core.presentation.util.toUiText
 import com.example.temacker.feature_project.domain.use_case.GenerateInviteCodeUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveActiveInviteCodeUseCase
@@ -39,32 +40,50 @@ class RosterViewModel(
 
     init {
         viewModelScope.launch {
-            observeUserProjects().collectLatest { projects ->
-                val project = projects.firstOrNull() ?: return@collectLatest
-                _state.update { it.copy(projectId = project.id) }
+            observeUserProjects().collectLatest { result ->
+                result
+                    .onSuccess { projects ->
+                        val project = projects.firstOrNull() ?: return@onSuccess
+                        _state.update { it.copy(projectId = project.id) }
 
-                launch {
-                    observeMembers(project.id).collect { members ->
-                        _state.update { it.copy(members = members, isLoading = false) }
-                    }
-                }
-                launch {
-                    observeRoles(project.id).collect { roles -> _state.update { it.copy(roles = roles) } }
-                }
-                launch {
-                    observeCurrentMembership(project.id).collect { membership ->
-                        _state.update {
-                            it.copy(
-                                canManageInvite = membership?.permissions?.manageInviteCode == true,
-                                canRemoveMembers = membership?.permissions?.removeMembers == true,
-                                canManageRoles = membership?.permissions?.manageRoles == true
-                            )
+                        launch {
+                            observeMembers(project.id).collect { membersResult ->
+                                membersResult
+                                    .onSuccess { members -> _state.update { it.copy(members = members, isLoading = false) } }
+                                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+                            }
+                        }
+                        launch {
+                            observeRoles(project.id).collect { rolesResult ->
+                                rolesResult
+                                    .onSuccess { roles -> _state.update { it.copy(roles = roles) } }
+                                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+                            }
+                        }
+                        launch {
+                            observeCurrentMembership(project.id).collect { membershipResult ->
+                                membershipResult
+                                    .onSuccess { membership ->
+                                        _state.update {
+                                            it.copy(
+                                                canManageInvite = membership?.permissions?.manageInviteCode == true,
+                                                canRemoveMembers = membership?.permissions?.removeMembers == true,
+                                                canManageRoles = membership?.permissions?.manageRoles == true
+                                            )
+                                        }
+                                    }
+                                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+                            }
+                        }
+                        launch {
+                            observeActiveInviteCode(project.id).collect { codeResult ->
+                                codeResult
+                                    .onSuccess { code -> _state.update { it.copy(inviteCode = code?.code) } }
+                                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+                            }
                         }
                     }
-                }
-                launch {
-                    observeActiveInviteCode(project.id).collect { code -> _state.update { it.copy(inviteCode = code?.code) } }
-                }
+                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
             }
         }
     }

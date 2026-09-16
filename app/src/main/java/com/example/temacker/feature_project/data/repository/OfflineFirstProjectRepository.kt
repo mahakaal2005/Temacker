@@ -2,6 +2,7 @@ package com.example.temacker.feature_project.data.repository
 
 import com.example.temacker.core.data.database.MembershipDao
 import com.example.temacker.core.data.database.ProjectDao
+import com.example.temacker.core.data.firebase.toFirestoreDataError
 import com.example.temacker.core.domain.session.SessionManager
 import com.example.temacker.core.domain.util.DataError
 import com.example.temacker.core.domain.util.Result
@@ -29,16 +30,17 @@ class OfflineFirstProjectRepository(
     private val sessionManager: SessionManager
 ) : ProjectRepository {
 
-    override fun observeUserProjects(): Flow<List<Project>> = channelFlow {
+    override fun observeUserProjects(): Flow<Result<List<Project>, DataError>> = channelFlow {
         val uid = sessionManager.getUid()
         if (uid == null) {
-            send(emptyList())
+            send(Result.Success(emptyList()))
             return@channelFlow
         }
 
         launch {
             remote.observeUserProjects(uid)
-                .catch { } // offline — the Room-backed emission below keeps serving cached rows.
+                // Offline — the Room-backed emission below keeps serving cached rows regardless.
+                .catch { e -> send(Result.Error(e.toFirestoreDataError())) }
                 .collect { projects -> projectDao.upsertAll(projects.map { it.toEntity() }) }
         }
 
@@ -46,19 +48,19 @@ class OfflineFirstProjectRepository(
             .map { rows -> rows.map { it.projectId } }
             .flatMapLatest { projectIds -> projectDao.observeByIds(projectIds) }
             .map { entities -> entities.map { it.toDomain() } }
-            .collect { send(it) }
+            .collect { send(Result.Success(it)) }
 
         awaitClose { }
     }
 
-    override fun observeProject(projectId: String): Flow<Project?> = channelFlow {
+    override fun observeProject(projectId: String): Flow<Result<Project?, DataError>> = channelFlow {
         launch {
             remote.observeProject(projectId)
-                .catch { }
+                .catch { e -> send(Result.Error(e.toFirestoreDataError())) }
                 .collect { project -> project?.let { projectDao.upsertAll(listOf(it.toEntity())) } }
         }
 
-        projectDao.observeById(projectId).map { it?.toDomain() }.collect { send(it) }
+        projectDao.observeById(projectId).map { it?.toDomain() }.collect { send(Result.Success(it)) }
         awaitClose { }
     }
 

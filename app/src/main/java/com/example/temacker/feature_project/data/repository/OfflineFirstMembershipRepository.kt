@@ -1,6 +1,7 @@
 package com.example.temacker.feature_project.data.repository
 
 import com.example.temacker.core.data.database.MembershipDao
+import com.example.temacker.core.data.firebase.toFirestoreDataError
 import com.example.temacker.core.domain.session.SessionManager
 import com.example.temacker.core.domain.util.DataError
 import com.example.temacker.core.domain.util.Result
@@ -23,27 +24,27 @@ class OfflineFirstMembershipRepository(
     private val sessionManager: SessionManager
 ) : MembershipRepository {
 
-    override fun observeMembers(projectId: String): Flow<List<Membership>> = channelFlow {
+    override fun observeMembers(projectId: String): Flow<Result<List<Membership>, DataError>> = channelFlow {
         launch {
             remote.observeMembers(projectId)
-                .catch { }
+                .catch { e -> send(Result.Error(e.toFirestoreDataError())) }
                 .collect { members -> membershipDao.upsertAll(members.map { it.toEntity() }) }
         }
-        membershipDao.observeByProject(projectId).map { it.map { e -> e.toDomain() } }.collect { send(it) }
+        membershipDao.observeByProject(projectId).map { it.map { e -> e.toDomain() } }.collect { send(Result.Success(it)) }
     }
 
-    override fun observeMembership(projectId: String): Flow<Membership?> = channelFlow {
+    override fun observeMembership(projectId: String): Flow<Result<Membership?, DataError>> = channelFlow {
         val uid = sessionManager.getUid()
         if (uid == null) {
-            send(null)
+            send(Result.Success(null))
             return@channelFlow
         }
         launch {
             remote.observeMembership(projectId, uid)
-                .catch { }
+                .catch { e -> send(Result.Error(e.toFirestoreDataError())) }
                 .collect { membership -> membership?.let { membershipDao.upsertAll(listOf(it.toEntity())) } }
         }
-        membershipDao.observeOne(projectId, uid).map { it?.toDomain() }.collect { send(it) }
+        membershipDao.observeOne(projectId, uid).map { it?.toDomain() }.collect { send(Result.Success(it)) }
     }
 
     override suspend fun joinProject(code: String, displayName: String, photoUrl: String?): Result<Membership, DataError> {

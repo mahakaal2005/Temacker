@@ -8,7 +8,7 @@ import com.example.temacker.feature_project.domain.model.RolePermissions
 import kotlinx.coroutines.flow.Flow
 
 interface RoleRepository {
-    fun observeRoles(projectId: String): Flow<List<Role>>
+    fun observeRoles(projectId: String): Flow<Result<List<Role>, DataError>>
     suspend fun createRole(projectId: String, name: String, permissions: RolePermissions): Result<Role, DataError>
     suspend fun updateRole(projectId: String, roleId: String, name: String, permissions: RolePermissions): EmptyResult<DataError>
     suspend fun deleteRole(projectId: String, roleId: String): EmptyResult<DataError>
