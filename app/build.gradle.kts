@@ -43,6 +43,10 @@ android {
     }
 }
 
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 kotlin {
     // Keeps compileDebugKotlin's target aligned with compileOptions above.
     jvmToolchain(11)

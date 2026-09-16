@@ -1,11 +1,13 @@
 package com.example.temacker.core.data.database
 
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 
 @Database(
     entities = [ProjectEntity::class, RoleEntity::class, MembershipEntity::class, InviteCodeEntity::class],
-    version = 1
+    version = 2,
+    autoMigrations = [AutoMigration(from = 1, to = 2)]
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun projectDao(): ProjectDao

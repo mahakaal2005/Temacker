@@ -1,8 +1,9 @@
 package com.example.temacker.core.data.database
 
 import androidx.room.Entity
+import androidx.room.Index
 
-@Entity(tableName = "memberships", primaryKeys = ["projectId", "userId"])
+@Entity(tableName = "memberships", primaryKeys = ["projectId", "userId"], indices = [Index("projectId")])
 data class MembershipEntity(
     val projectId: String,
     val userId: String,

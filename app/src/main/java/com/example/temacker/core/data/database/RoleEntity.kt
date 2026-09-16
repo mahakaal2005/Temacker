@@ -1,9 +1,10 @@
 package com.example.temacker.core.data.database
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "roles")
+@Entity(tableName = "roles", indices = [Index("projectId")])
 data class RoleEntity(
     @PrimaryKey val id: String,
     val projectId: String,
