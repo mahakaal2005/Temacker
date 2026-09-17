@@ -170,6 +170,20 @@ private fun HomeScreenPreview() {
 
 @Preview(showBackground = true)
 @Composable
+private fun HomeScreenEmptyPreview() {
+    TemackerTheme {
+        HomeScreen(
+            state = HomeState(isLoading = false),
+            onAction = {},
+            onNavigateToHome = {},
+            onNavigateToRoster = {},
+            onNavigateToProfile = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
 private fun HomeScreenLoadingPreview() {
     TemackerTheme {
         HomeScreen(
