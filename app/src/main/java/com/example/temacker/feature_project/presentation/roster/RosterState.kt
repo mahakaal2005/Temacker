@@ -1,9 +1,11 @@
 package com.example.temacker.feature_project.presentation.roster
 
+import androidx.compose.runtime.Stable
 import com.example.temacker.core.presentation.util.UiText
 import com.example.temacker.feature_project.domain.model.Membership
 import com.example.temacker.feature_project.domain.model.Role
 
+@Stable
 data class RosterState(
     val projectId: String? = null,
     val members: List<Membership> = emptyList(),

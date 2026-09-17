@@ -1,7 +1,9 @@
 package com.example.temacker.feature_profile.presentation.profile
 
+import androidx.compose.runtime.Stable
 import com.example.temacker.core.presentation.util.UiText
 
+@Stable
 data class ProfileState(
     val displayName: String = "",
     val email: String = "",

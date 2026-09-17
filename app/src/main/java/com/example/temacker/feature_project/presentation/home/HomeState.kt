@@ -1,7 +1,9 @@
 package com.example.temacker.feature_project.presentation.home
 
+import androidx.compose.runtime.Stable
 import com.example.temacker.core.presentation.util.UiText
 
+@Stable
 data class HomeState(
     val projectId: String? = null,
     val projectName: String = "",
