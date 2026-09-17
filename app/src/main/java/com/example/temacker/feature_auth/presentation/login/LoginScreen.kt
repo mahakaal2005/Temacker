@@ -25,9 +25,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -112,18 +109,17 @@ fun LoginScreen(state: LoginState, onAction: (LoginAction) -> Unit) {
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                var isPasswordVisible by remember { mutableStateOf(false) }
                 OutlinedTextField(
                     value = state.password,
                     onValueChange = { onAction(LoginAction.OnPasswordChange(it)) },
                     label = { Text("Password") },
                     singleLine = true,
                     enabled = !state.isLoading,
-                    visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    visualTransformation = if (state.isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                     trailingIcon = {
-                        TextButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
-                            Text(if (isPasswordVisible) "Hide" else "Show")
+                        TextButton(onClick = { onAction(LoginAction.OnTogglePasswordVisibility) }) {
+                            Text(if (state.isPasswordVisible) "Hide" else "Show")
                         }
                     },
                     modifier = Modifier.fillMaxWidth()

@@ -36,6 +36,7 @@ class LoginViewModel(
             is LoginAction.OnEmailChange -> _state.update { it.copy(email = action.value, error = null) }
             is LoginAction.OnPasswordChange -> _state.update { it.copy(password = action.value, error = null) }
             LoginAction.OnToggleMode -> _state.update { it.copy(isRegisterMode = !it.isRegisterMode, error = null) }
+            LoginAction.OnTogglePasswordVisibility -> _state.update { it.copy(isPasswordVisible = !it.isPasswordVisible) }
             LoginAction.OnEmailSubmit -> emailSubmit()
         }
     }
