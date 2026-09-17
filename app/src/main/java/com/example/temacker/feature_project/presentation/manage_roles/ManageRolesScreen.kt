@@ -236,6 +236,22 @@ private fun ManageRolesScreenPreview() {
 
 @Preview(showBackground = true)
 @Composable
+private fun ManageRolesScreenLoadingPreview() {
+    TemackerTheme {
+        ManageRolesScreen(state = ManageRolesState(isLoading = true), onAction = {})
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ManageRolesScreenEmptyPreview() {
+    TemackerTheme {
+        ManageRolesScreen(state = ManageRolesState(isLoading = false, roles = emptyList()), onAction = {})
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
 private fun ManageRolesScreenCreateDialogPreview() {
     TemackerTheme {
         ManageRolesScreen(
