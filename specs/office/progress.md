@@ -4,7 +4,7 @@ Read this first, every session, before touching code — it's the current status
 detail lives in each phase's spec file (`specs/office/phase-N-*.md`); this file only tracks
 done/left. Update it after every session or completed task.
 
-**Current phase: 1 — Auth, projects, roles.**
+**Current phase: 2 — Board and the baton.**
 
 ## Phase 1 — Auth, projects, roles (`phase-1-auth-projects-roles.md`)
 - [x] Core layer: `Result`/`DataError` (core/domain/util), `SessionManager` interface + DataStore impl, `UiText`/`ObserveAsEvents` (core/presentation/util), `CoreModule` Koin wiring, `App.kt` + `startKoin`. `AppDatabase` deferred until the first Room entity exists (Room rejects `@Database` with zero entities).
@@ -43,13 +43,53 @@ done/left. Update it after every session or completed task.
 - [x] **Fixed (2026-09-15):** `observeUserProjects()` always returned empty — it read a `projectId` field off member docs that `MembershipMapper` never writes (implicit in the doc path); now derives it from `it.reference.parent.parent?.id`. Also, `createProjectWithLeader()` now returns the Leader `Membership` alongside `Project` so `OfflineFirstProjectRepository.createProject()` can seed the local `membershipDao` row immediately (previously only `joinProject()` did this) — without it, a freshly created project never appeared in the UI until something else happened to populate that row.
 
 ## Phase 2 — Board and the baton (`phase-2-board-baton.md`)
-- [ ] Rewrite architecture doc's Data Model + Phase Roadmap to holder/handoff model
-- [ ] feature_tasks scaffold + domain (Task, Handoff, use cases)
-- [ ] feature_tasks data layer (Firestore + Room + OfflineFirstTaskRepository)
-- [ ] Screens: Board, Empty board, New task, Task detail/trail, Hand-off, Incoming, Decline, Read-only board, Delete confirm
-- [ ] Bottom nav shell (Board · Team · You)
-- [ ] Permission gating on board actions
-- [ ] Firestore security rules for handoffs/events
+- [x] Rewrite architecture doc's Data Model + Phase Roadmap to holder/handoff model (2026-09-17). Also
+  added two new cross-feature contracts to §8 (`ProjectMemberProvider`, `CurrentProjectProvider` in
+  `core/domain`, implemented in `feature_project/data`) — `feature_tasks` needs the member list,
+  the current user's `assignTasks`/`editAnyTask` flags, and the current project id, none of which
+  existed outside `feature_project`'s domain before. Flagged per CLAUDE.md rule 2.
+- [x] feature_tasks scaffold + domain (`Task`, `Handoff`, `TaskRepository`, 12 use cases: create/delete
+  task, offer/accept/decline handoff, mark done, observe board/task/trail/pending-handoffs/current
+  project id/current project member/project members) (2026-09-17).
+- [x] feature_tasks data layer: `FirestoreTaskRemoteDataSource` (transactional accept/decline/offer,
+  matching `reassignRole`'s "return the updated doc so the repo can upsert Room immediately" pattern),
+  `TaskEntity`/`HandoffEntity`/DAOs (`@Index("projectId")` + `deleteMissing` from day one, per the
+  Phase 1 stale-UI lesson), `OfflineFirstTaskRepository` (channelFlow sync-then-read-Room, same shape
+  as `OfflineFirstMembershipRepository`). `AppDatabase` bumped to v3 with `@AutoMigration(2,3)`
+  (2026-09-17).
+- [x] Screens: Board (tabs + waiting-on-you strip + FAB), New task, Task detail + baton trail
+  (hand off/mark done/hand back/delete menu), Hand-off sheet, Handoff-to-you (Incoming), Decline
+  (reason required, quick chips) — all Root/Screen split, MVI, `@Preview`s for loading/empty/populated
+  states. Read-only board (no FAB when `assignTasks` is false) and delete confirm dialog folded into
+  Board/TaskDetail rather than separate screens. (2026-09-17)
+- [x] Bottom nav shell (Board · Team · You) (2026-09-17): `AppDestination` enum renamed
+  `HOME/ROSTER/PROFILE` → `BOARD/TEAM/YOU`; `HomeScreen`/`HomeViewModel`/`HomeRoute` retired per
+  user decision (Board replaces Home as the first tab); `RosterScreen`/`ProfileScreen` relabeled to
+  Team/You in place (same screens, same ViewModels, renamed nav callbacks only).
+- [x] Permission gating on board actions (2026-09-17): `assignTasks` gates task creation (the FAB);
+  `editAnyTask` gates deletion of any task regardless of who holds it; accepting/declining/handing off
+  a task you currently hold never requires a permission. Decided with the user — no new
+  `RolePermissions` field added.
+- [x] Task status derivation (2026-09-17): no manual status picker (matches the mock, which has none).
+  `TODO` at creation, auto-flips to `DOING` on first accepted handoff, `DONE` via a new holder-only
+  "Mark done" action (small addition beyond the literal mock, confirmed with the user).
+- [x] Firestore security rules for tasks/handoffs/events (2026-09-17): nested `projects/{id}/tasks`,
+  `.../tasks/{id}/handoffs`, `projects/{id}/events` (write-only, unread until Phase 4), plus a
+  collection-group `allow list` rule for `observePendingHandoffs()`'s cross-task query (same pattern
+  Phase 1 needed for `inviteCodes`/`members`). 17 new Jest/emulator test cases added to
+  `firestore-tests/rules.test.js` (62/62 passing). **Deployed to production (2026-09-17)** —
+  `firebase deploy --only firestore:rules` succeeded against `temacker-a0252` after a CLI re-login
+  (the stored token had expired, 401 on first attempt).
+- [ ] Unit tests for handoff transitions and status derivation (`OfferHandoff`/`AcceptHandoff`/
+  `DeclineHandoff`, `TODO→DOING→DONE`) — **deferred, matching Phase 1's precedent of deferring
+  ViewModel unit tests** (2026-09-17); flagged to the user rather than assumed.
+- [ ] On-device golden-path verification (create → hand off → accept → mark done → delete →
+  read-only board for Default role) — **blocked on task creation failure**. Build passes,
+  Firestore rules tests pass (62/62), rules deployed to production. Device testing on 2026-09-18
+  found task creation fails silently — Firestore rule requires `createdByUid == request.auth.uid`,
+  but `FirestoreTaskRemoteDataSource.createTask()` correctly sets it. Root cause likely in
+  `ObserveCurrentProjectMemberUseCase` data load or a permission/auth state gap.
+  Flagged for investigation in next session.
 
 ## Phase 3 — Notifications, honest offline (`phase-3-notifications-offline.md`)
 - [ ] FCM setup + permission rationale screen
