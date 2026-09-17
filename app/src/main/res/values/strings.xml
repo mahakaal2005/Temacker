@@ -10,4 +10,8 @@
     <string name="error_missing_credentials">Enter an email and password.</string>
     <string name="error_permission_denied">You don\'t have permission to do that.</string>
     <string name="error_invite_code_invalid">This code expired. Ask your project Leader for a new one.</string>
+    <string name="error_request_timeout">That took too long. Try again.</string>
+    <string name="error_serialization">Couldn\'t read the response. Try again.</string>
+    <string name="error_too_many_requests">Too many attempts. Wait a moment and try again.</string>
+    <string name="error_bad_request">That password is too weak. Use at least 6 characters.</string>
 </resources>

@@ -22,10 +22,12 @@ import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.google.firebase.FirebaseNetworkException
+import com.google.firebase.FirebaseTooManyRequestsException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.awaitClose
@@ -143,13 +145,14 @@ class FirebaseAuthRemoteDataSource(
         }
     }
 
-    // Maps Firebase Auth's exception hierarchy onto existing DataError.Network cases instead of
-    // collapsing every failure to UNKNOWN. FirebaseAuthWeakPasswordException and
-    // FirebaseAuthTooManyRequestsException have no matching case yet (see audit item #8) and fall
-    // through to UNKNOWN.
+    // Maps Firebase Auth's exception hierarchy onto DataError.Network cases instead of collapsing
+    // every failure to UNKNOWN. FirebaseAuthWeakPasswordException is checked before
+    // FirebaseAuthInvalidCredentialsException since it's a subtype of it.
     private fun Exception.toAuthDataError(): DataError.Network = when (this) {
         is FirebaseNetworkException -> DataError.Network.NO_INTERNET
         is FirebaseAuthUserCollisionException -> DataError.Network.CONFLICT
+        is FirebaseTooManyRequestsException -> DataError.Network.TOO_MANY_REQUESTS
+        is FirebaseAuthWeakPasswordException -> DataError.Network.BAD_REQUEST
         is FirebaseAuthInvalidCredentialsException -> DataError.Network.UNAUTHORIZED
         is FirebaseAuthInvalidUserException -> DataError.Network.UNAUTHORIZED
         else -> DataError.Network.UNKNOWN
