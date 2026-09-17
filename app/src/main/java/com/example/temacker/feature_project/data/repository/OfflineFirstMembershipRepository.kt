@@ -28,7 +28,10 @@ class OfflineFirstMembershipRepository(
         launch {
             remote.observeMembers(projectId)
                 .catch { e -> send(Result.Error(e.toFirestoreDataError())) }
-                .collect { members -> membershipDao.upsertAll(members.map { it.toEntity() }) }
+                .collect { members ->
+                    membershipDao.upsertAll(members.map { it.toEntity() })
+                    membershipDao.deleteMissing(projectId, members.map { it.userId })
+                }
         }
         membershipDao.observeByProject(projectId).map { it.map { e -> e.toDomain() } }.collect { send(Result.Success(it)) }
     }
@@ -42,7 +45,13 @@ class OfflineFirstMembershipRepository(
         launch {
             remote.observeMembership(projectId, uid)
                 .catch { e -> send(Result.Error(e.toFirestoreDataError())) }
-                .collect { membership -> membership?.let { membershipDao.upsertAll(listOf(it.toEntity())) } }
+                .collect { membership ->
+                    if (membership != null) {
+                        membershipDao.upsertAll(listOf(membership.toEntity()))
+                    } else {
+                        membershipDao.delete(projectId, uid)
+                    }
+                }
         }
         membershipDao.observeOne(projectId, uid).map { it?.toDomain() }.collect { send(Result.Success(it)) }
     }

@@ -27,7 +27,10 @@ class OfflineFirstRoleRepository(
         launch {
             remote.observeRoles(projectId)
                 .catch { e -> send(Result.Error(e.toFirestoreDataError())) }
-                .collect { roles -> roleDao.upsertAll(roles.map { it.toEntity() }) }
+                .collect { roles ->
+                    roleDao.upsertAll(roles.map { it.toEntity() })
+                    roleDao.deleteMissing(projectId, roles.map { it.id })
+                }
         }
         roleDao.observeByProject(projectId).map { it.map { e -> e.toDomain() } }.collect { send(Result.Success(it)) }
     }

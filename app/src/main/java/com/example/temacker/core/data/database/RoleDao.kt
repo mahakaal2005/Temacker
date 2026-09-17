@@ -15,4 +15,7 @@ interface RoleDao {
 
     @Query("DELETE FROM roles WHERE id = :roleId")
     suspend fun deleteById(roleId: String)
+
+    @Query("DELETE FROM roles WHERE projectId = :projectId AND id NOT IN (:keepIds)")
+    suspend fun deleteMissing(projectId: String, keepIds: List<String>)
 }

@@ -12,4 +12,7 @@ interface InviteCodeDao {
 
     @Query("SELECT * FROM invite_codes WHERE projectId = :projectId AND isActive = 1 LIMIT 1")
     fun observeActiveForProject(projectId: String): Flow<InviteCodeEntity?>
+
+    @Query("UPDATE invite_codes SET isActive = 0 WHERE projectId = :projectId AND isActive = 1")
+    suspend fun deactivateAllForProject(projectId: String)
 }

@@ -25,7 +25,13 @@ class OfflineFirstInviteCodeRepository(
         launch {
             remote.observeActiveInviteCode(projectId)
                 .catch { e -> send(Result.Error(e.toFirestoreDataError())) }
-                .collect { code -> code?.let { inviteCodeDao.upsert(it.toEntity()) } }
+                .collect { code ->
+                    if (code != null) {
+                        inviteCodeDao.upsert(code.toEntity())
+                    } else {
+                        inviteCodeDao.deactivateAllForProject(projectId)
+                    }
+                }
         }
         inviteCodeDao.observeActiveForProject(projectId).map { it?.toDomain() }.collect { send(Result.Success(it)) }
     }
