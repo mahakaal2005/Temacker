@@ -19,3 +19,10 @@ local.properties
 
 # Local Claude Code settings
 .claude/settings.local.json
+
+# Node / Firestore rules test suite
+node_modules/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
