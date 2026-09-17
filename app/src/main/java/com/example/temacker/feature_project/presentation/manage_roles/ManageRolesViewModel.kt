@@ -2,6 +2,7 @@ package com.example.temacker.feature_project.presentation.manage_roles
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.temacker.core.domain.util.Result
 import com.example.temacker.core.domain.util.onFailure
 import com.example.temacker.core.domain.util.onSuccess
 import com.example.temacker.core.presentation.util.toUiText
@@ -11,14 +12,18 @@ import com.example.temacker.feature_project.domain.use_case.DeleteRoleUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveRolesUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveUserProjectsUseCase
 import com.example.temacker.feature_project.domain.use_case.UpdateRoleUseCase
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ManageRolesViewModel(
     private val observeUserProjects: ObserveUserProjectsUseCase,
     private val observeRoles: ObserveRolesUseCase,
@@ -35,17 +40,23 @@ class ManageRolesViewModel(
 
     init {
         viewModelScope.launch {
-            observeUserProjects().collectLatest { result ->
+            observeUserProjects().collect { result ->
                 result
                     .onSuccess { projects ->
-                        val project = projects.firstOrNull() ?: return@onSuccess
-                        _state.update { it.copy(projectId = project.id) }
-                        observeRoles(project.id).collect { rolesResult ->
-                            rolesResult
-                                .onSuccess { roles -> _state.update { it.copy(roles = roles, isLoading = false) } }
-                                .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
-                        }
+                        projects.firstOrNull()?.let { project -> _state.update { it.copy(projectId = project.id) } }
                     }
+                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+            }
+        }
+
+        val projectId = observeUserProjects()
+            .mapNotNull { result -> (result as? Result.Success)?.data?.firstOrNull()?.id }
+            .distinctUntilChanged()
+
+        viewModelScope.launch {
+            projectId.flatMapLatest { observeRoles(it) }.collect { rolesResult ->
+                rolesResult
+                    .onSuccess { roles -> _state.update { it.copy(roles = roles, isLoading = false) } }
                     .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
             }
         }

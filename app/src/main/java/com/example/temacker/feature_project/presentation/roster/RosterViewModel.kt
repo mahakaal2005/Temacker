@@ -2,6 +2,7 @@ package com.example.temacker.feature_project.presentation.roster
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.temacker.core.domain.util.Result
 import com.example.temacker.core.domain.util.onFailure
 import com.example.temacker.core.domain.util.onSuccess
 import com.example.temacker.core.presentation.util.toUiText
@@ -13,14 +14,18 @@ import com.example.temacker.feature_project.domain.use_case.ObserveRolesUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveUserProjectsUseCase
 import com.example.temacker.feature_project.domain.use_case.ReassignMemberRoleUseCase
 import com.example.temacker.feature_project.domain.use_case.RemoveMemberUseCase
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class RosterViewModel(
     private val observeUserProjects: ObserveUserProjectsUseCase,
     private val observeMembers: ObserveMembersUseCase,
@@ -40,49 +45,55 @@ class RosterViewModel(
 
     init {
         viewModelScope.launch {
-            observeUserProjects().collectLatest { result ->
+            observeUserProjects().collect { result ->
                 result
                     .onSuccess { projects ->
-                        val project = projects.firstOrNull() ?: return@onSuccess
-                        _state.update { it.copy(projectId = project.id) }
+                        projects.firstOrNull()?.let { project -> _state.update { it.copy(projectId = project.id) } }
+                    }
+                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+            }
+        }
 
-                        launch {
-                            observeMembers(project.id).collect { membersResult ->
-                                membersResult
-                                    .onSuccess { members -> _state.update { it.copy(members = members, isLoading = false) } }
-                                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
-                            }
-                        }
-                        launch {
-                            observeRoles(project.id).collect { rolesResult ->
-                                rolesResult
-                                    .onSuccess { roles -> _state.update { it.copy(roles = roles) } }
-                                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
-                            }
-                        }
-                        launch {
-                            observeCurrentMembership(project.id).collect { membershipResult ->
-                                membershipResult
-                                    .onSuccess { membership ->
-                                        _state.update {
-                                            it.copy(
-                                                canManageInvite = membership?.permissions?.manageInviteCode == true,
-                                                canRemoveMembers = membership?.permissions?.removeMembers == true,
-                                                canManageRoles = membership?.permissions?.manageRoles == true
-                                            )
-                                        }
-                                    }
-                                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
-                            }
-                        }
-                        launch {
-                            observeActiveInviteCode(project.id).collect { codeResult ->
-                                codeResult
-                                    .onSuccess { code -> _state.update { it.copy(inviteCode = code?.code) } }
-                                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
-                            }
+        // Only restarts nested listeners when the project id actually changes, not on every
+        // observeUserProjects() re-emission (which was tearing down/rebuilding Firestore
+        // listeners on unrelated Firestore chatter and widening the stale-data race window).
+        val projectId = observeUserProjects()
+            .mapNotNull { result -> (result as? Result.Success)?.data?.firstOrNull()?.id }
+            .distinctUntilChanged()
+
+        viewModelScope.launch {
+            projectId.flatMapLatest { observeMembers(it) }.collect { membersResult ->
+                membersResult
+                    .onSuccess { members -> _state.update { it.copy(members = members, isLoading = false) } }
+                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+            }
+        }
+        viewModelScope.launch {
+            projectId.flatMapLatest { observeRoles(it) }.collect { rolesResult ->
+                rolesResult
+                    .onSuccess { roles -> _state.update { it.copy(roles = roles) } }
+                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+            }
+        }
+        viewModelScope.launch {
+            projectId.flatMapLatest { observeCurrentMembership(it) }.collect { membershipResult ->
+                membershipResult
+                    .onSuccess { membership ->
+                        _state.update {
+                            it.copy(
+                                canManageInvite = membership?.permissions?.manageInviteCode == true,
+                                canRemoveMembers = membership?.permissions?.removeMembers == true,
+                                canManageRoles = membership?.permissions?.manageRoles == true
+                            )
                         }
                     }
+                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+            }
+        }
+        viewModelScope.launch {
+            projectId.flatMapLatest { observeActiveInviteCode(it) }.collect { codeResult ->
+                codeResult
+                    .onSuccess { code -> _state.update { it.copy(inviteCode = code?.code) } }
                     .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
             }
         }

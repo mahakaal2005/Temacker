@@ -2,16 +2,21 @@ package com.example.temacker.feature_profile.presentation.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.temacker.core.domain.util.Result
 import com.example.temacker.core.domain.util.onFailure
 import com.example.temacker.core.domain.util.onSuccess
 import com.example.temacker.core.presentation.util.toUiText
 import com.example.temacker.feature_auth.domain.repository.AuthRepository
 import com.example.temacker.feature_project.domain.use_case.ObserveCurrentMembershipUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveUserProjectsUseCase
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -21,6 +26,7 @@ import java.util.Locale
 
 // Reads across feature_auth (identity) and feature_project (membership) — Profile is inherently
 // a composite view, the same pragmatic exception CreateProjectViewModel/JoinProjectViewModel take.
+@OptIn(ExperimentalCoroutinesApi::class)
 class ProfileViewModel(
     private val authRepository: AuthRepository,
     private val observeUserProjects: ObserveUserProjectsUseCase,
@@ -41,7 +47,7 @@ class ProfileViewModel(
             }
         }
         viewModelScope.launch {
-            observeUserProjects().collectLatest { result ->
+            observeUserProjects().collect { result ->
                 result
                     .onSuccess { projects ->
                         val project = projects.firstOrNull()
@@ -50,20 +56,27 @@ class ProfileViewModel(
                             return@onSuccess
                         }
                         _state.update { it.copy(projectName = project.name, isLoading = false) }
-                        observeCurrentMembership(project.id).collect { membershipResult ->
-                            membershipResult
-                                .onSuccess { membership ->
-                                    _state.update {
-                                        it.copy(
-                                            roleName = membership?.roleName.orEmpty(),
-                                            memberSince = membership?.joinedAt?.let(::formatMonthYear).orEmpty()
-                                        )
-                                    }
-                                }
-                                .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
-                        }
                     }
                     .onFailure { error -> _state.update { it.copy(isLoading = false, error = error.toUiText()) } }
+            }
+        }
+
+        val projectId = observeUserProjects()
+            .mapNotNull { result -> (result as? Result.Success)?.data?.firstOrNull()?.id }
+            .distinctUntilChanged()
+
+        viewModelScope.launch {
+            projectId.flatMapLatest { observeCurrentMembership(it) }.collect { membershipResult ->
+                membershipResult
+                    .onSuccess { membership ->
+                        _state.update {
+                            it.copy(
+                                roleName = membership?.roleName.orEmpty(),
+                                memberSince = membership?.joinedAt?.let(::formatMonthYear).orEmpty()
+                            )
+                        }
+                    }
+                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
             }
         }
     }
