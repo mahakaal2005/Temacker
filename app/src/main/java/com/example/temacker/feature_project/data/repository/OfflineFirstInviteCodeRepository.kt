@@ -26,10 +26,13 @@ class OfflineFirstInviteCodeRepository(
             remote.observeActiveInviteCode(projectId)
                 .catch { e -> send(Result.Error(e.toFirestoreDataError())) }
                 .collect { code ->
+                    // Firestore is the source of truth for which single code is active — always
+                    // deactivate stale local rows first so Room's isActive=1 set never has more
+                    // than the one Firestore just confirmed (old rows otherwise linger forever,
+                    // since nothing else in Room deactivates them when a newer code is generated).
+                    inviteCodeDao.deactivateAllForProject(projectId)
                     if (code != null) {
                         inviteCodeDao.upsert(code.toEntity())
-                    } else {
-                        inviteCodeDao.deactivateAllForProject(projectId)
                     }
                 }
         }
@@ -37,5 +40,8 @@ class OfflineFirstInviteCodeRepository(
     }
 
     override suspend fun generateInviteCode(projectId: String) =
-        remote.generateInviteCode(projectId).onSuccess { inviteCodeDao.upsert(it.toEntity()) }
+        remote.generateInviteCode(projectId).onSuccess {
+            inviteCodeDao.deactivateAllForProject(projectId)
+            inviteCodeDao.upsert(it.toEntity())
+        }
 }

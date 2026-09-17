@@ -52,10 +52,15 @@ Mark this phase complete here, tick it off in `specs/office/progress.md`, and lo
 
 **Implemented 2026-09-17** — all screens, data/domain layers, DI, nav, and Firestore rules built and
 compiling (`./gradlew clean assembleDebug lintDebug` green; 62/62 Firestore rules tests passing).
-Firestore rules deployed to production (2026-09-17, `temacker-a0252`). On-device golden path partially
-verified 2026-09-18 (create/mark-done/delete confirmed working; hand-off/accept/decline and the
-Default-role read-only board need a second project member, not yet available). Two things remain
-before this phase can be marked fully complete: unit tests for handoff transitions (deferred, matching
-Phase 1's precedent), and the second-member-dependent verification above. See
-`specs/logs/2026-09-17-phase-2-implementation.md` and `specs/logs/2026-09-18-phase-2-device-verification.md`
-for the full session logs.
+Firestore rules deployed to production (2026-09-17, `temacker-a0252`).
+
+**On-device golden path fully verified 2026-09-18** — create, hand off, accept (TODO→DOING), decline
+(holder unchanged), mark done (→DONE), delete (`editAnyTask`), and the Default-role read-only board
+all confirmed working with two real signed-in accounts. Along the way, found and fixed two
+pre-existing bugs blocking a genuine second-account join (stale-Room invite-code bug, and a
+`joinProject()` Firestore-rules gap) — both deployed to production; 64/64 rules tests passing. See
+`specs/logs/2026-09-17-phase-2-implementation.md`, `specs/logs/2026-09-18-phase-2-device-verification.md`,
+and `specs/logs/2026-09-18-invite-code-and-join-rules-fix.md` for full session logs.
+
+**Phase 2 is complete.** The only remaining item — unit tests for handoff transitions and status
+derivation — is deliberately deferred, matching Phase 1's precedent for this class of test.

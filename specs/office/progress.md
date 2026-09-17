@@ -4,7 +4,7 @@ Read this first, every session, before touching code — it's the current status
 detail lives in each phase's spec file (`specs/office/phase-N-*.md`); this file only tracks
 done/left. Update it after every session or completed task.
 
-**Current phase: 2 — Board and the baton.**
+**Current phase: 2 — Board and the baton (complete, 2026-09-18). Next: Phase 3.**
 
 ## Phase 1 — Auth, projects, roles (`phase-1-auth-projects-roles.md`)
 - [x] Core layer: `Result`/`DataError` (core/domain/util), `SessionManager` interface + DataStore impl, `UiText`/`ObserveAsEvents` (core/presentation/util), `CoreModule` Koin wiring, `App.kt` + `startKoin`. `AppDatabase` deferred until the first Room entity exists (Room rejects `@Database` with zero entities).
@@ -91,10 +91,28 @@ done/left. Update it after every session or completed task.
   permanently...") and removed it, all tab counts returned to 0. The earlier "task creation fails
   silently" finding (previous session) was a **false alarm** — root cause was adb tap coordinates
   computed from the scaled screenshot-display size instead of raw device pixels (1080×2340), landing
-  taps on the wrong elements; not an app bug. **Not yet exercised:** hand-off offer/accept/decline
-  and the Default-role read-only board, both of which need a second project member — this project
-  has only 1 member (Rudra Sharma, Leader). Revisit once a second account or synthetic membership
-  is available.
+  taps on the wrong elements; not an app bug.
+  **Full golden path completed 2026-09-18 (session 2)** after adding a second real member
+  (`FAIQUA NAEEM`, Default role, joined via invite code): hand-off offer/accept confirmed
+  (TODO→DOING, holder changes, baton trail records "Offered to X — waiting" then the acceptance);
+  hand-off offer/decline confirmed (holder stays with offerer, status stays TODO, baton trail
+  records "X declined — <reason>"); Default-role read-only board confirmed (no FAB, no "Add the
+  first task" CTA); permission gating on task detail confirmed (a non-holder without `editAnyTask`
+  sees zero action buttons — no Hand off/Mark done/Delete). **Two real bugs found and fixed along
+  the way, both deployed to production:**
+  1. `OfflineFirstInviteCodeRepository` never deactivated the previous invite code row in Room when
+     a new one was generated (only Firestore was updated), so `observeActiveForProject`'s
+     `LIMIT 1` query with no `ORDER BY` could return a stale, already-expired code — visible
+     on-device as "Generate new code" appearing to do nothing.
+  2. `joinProject()`'s transaction read `projects/{projectId}` and
+     `projects/{projectId}/roles/{roleId}` before the joiner was a member, but both rules required
+     `isMember(projectId)` — a chicken-and-egg gap that made joining an existing project via invite
+     code impossible for a genuinely new account (previously masked because Phase 1's second-member
+     testing used a synthetic Firestore-seeded member, never a real join). Fixed by splitting
+     `get`/`list` on both rules — `get` now allows any signed-in user (needed for the join
+     transaction; these docs hold no sensitive data), `list` stays member-only.
+  See `specs/logs/2026-09-18-phase-2-device-verification.md` for full details, and
+  `specs/logs/2026-09-18-invite-code-and-join-rules-fix.md` for the two bug fixes.
 
 ## Phase 3 — Notifications, honest offline (`phase-3-notifications-offline.md`)
 - [ ] FCM setup + permission rationale screen

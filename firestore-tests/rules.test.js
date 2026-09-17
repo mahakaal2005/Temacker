@@ -133,8 +133,12 @@ describe("projects/{projectId}", () => {
     await assertSucceeds(asLeader().collection("projects").doc(PROJECT_ID_1).get());
   });
 
-  test("non-member cannot read the project doc", async () => {
-    await assertFails(asOutsider().collection("projects").doc(PROJECT_ID_1).get());
+  test("signed-in non-member CAN get the project doc by known ID (needed for joinProject's transaction)", async () => {
+    await assertSucceeds(asOutsider().collection("projects").doc(PROJECT_ID_1).get());
+  });
+
+  test("non-member cannot list/query projects", async () => {
+    await assertFails(asOutsider().collection("projects").where("ownerUid", "==", LEADER_UID).get());
   });
 
   test("unauthenticated cannot read the project doc", async () => {
@@ -188,10 +192,14 @@ describe("projects/{projectId}/roles/{roleId}", () => {
     );
   });
 
-  test("non-member cannot read roles", async () => {
-    await assertFails(
+  test("signed-in non-member CAN get a role by known ID (needed for joinProject's transaction)", async () => {
+    await assertSucceeds(
       asOutsider().collection(`projects/${PROJECT_ID_1}/roles`).doc(LEADER_ROLE_ID).get()
     );
+  });
+
+  test("non-member cannot list/query roles", async () => {
+    await assertFails(asOutsider().collection(`projects/${PROJECT_ID_1}/roles`).get());
   });
 
   test("initial-batch Leader role can be created for a brand-new project", async () => {
@@ -546,5 +554,292 @@ describe("inviteCodes/{code}", () => {
 
   test("invite code delete is always denied, even with manageInviteCode", async () => {
     await assertFails(asLeader().collection("inviteCodes").doc(CODE).delete());
+  });
+});
+
+const TASK_ID = "task-1";
+
+async function seedTask(overrides = {}) {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await context
+      .firestore()
+      .collection(`projects/${PROJECT_ID_1}/tasks`)
+      .doc(TASK_ID)
+      .set({
+        title: "Print vendor quotes",
+        description: null,
+        holderUid: LEADER_UID,
+        holderDisplayName: "Leader Person",
+        status: "TODO",
+        dueDate: null,
+        timesHandedOver: 0,
+        createdByUid: LEADER_UID,
+        createdByDisplayName: "Leader Person",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        ...overrides
+      });
+  });
+}
+
+describe("projects/{projectId}/tasks/{taskId}", () => {
+  beforeEach(async () => {
+    await seedProjectOne();
+    await seedTask();
+  });
+
+  test("member can read a task", async () => {
+    await assertSucceeds(asMember().collection(`projects/${PROJECT_ID_1}/tasks`).doc(TASK_ID).get());
+  });
+
+  test("non-member cannot read a task", async () => {
+    await assertFails(asOutsider().collection(`projects/${PROJECT_ID_1}/tasks`).doc(TASK_ID).get());
+  });
+
+  test("member with assignTasks can create a task, becoming its holder", async () => {
+    await assertSucceeds(
+      asLeader()
+        .collection(`projects/${PROJECT_ID_1}/tasks`)
+        .doc("task-new")
+        .set({
+          title: "New task",
+          description: null,
+          holderUid: LEADER_UID,
+          holderDisplayName: "Leader Person",
+          status: "TODO",
+          dueDate: null,
+          timesHandedOver: 0,
+          createdByUid: LEADER_UID,
+          createdByDisplayName: "Leader Person",
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        })
+    );
+  });
+
+  test("member without assignTasks cannot create a task", async () => {
+    await assertFails(
+      asMember()
+        .collection(`projects/${PROJECT_ID_1}/tasks`)
+        .doc("task-new-2")
+        .set({
+          title: "New task",
+          description: null,
+          holderUid: MEMBER_UID,
+          holderDisplayName: "Regular Member",
+          status: "TODO",
+          dueDate: null,
+          timesHandedOver: 0,
+          createdByUid: MEMBER_UID,
+          createdByDisplayName: "Regular Member",
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        })
+    );
+  });
+
+  test("cannot create a task claiming someone else as its holder", async () => {
+    await assertFails(
+      asLeader()
+        .collection(`projects/${PROJECT_ID_1}/tasks`)
+        .doc("task-new-3")
+        .set({
+          title: "New task",
+          description: null,
+          holderUid: MEMBER_UID,
+          holderDisplayName: "Regular Member",
+          status: "TODO",
+          dueDate: null,
+          timesHandedOver: 0,
+          createdByUid: LEADER_UID,
+          createdByDisplayName: "Leader Person",
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        })
+    );
+  });
+
+  test("current holder can mark their own task done", async () => {
+    await assertSucceeds(
+      asLeader()
+        .collection(`projects/${PROJECT_ID_1}/tasks`)
+        .doc(TASK_ID)
+        .update({ status: "DONE", updatedAt: Date.now() })
+    );
+  });
+
+  test("non-holder cannot mark a task done", async () => {
+    await assertFails(
+      asMember()
+        .collection(`projects/${PROJECT_ID_1}/tasks`)
+        .doc(TASK_ID)
+        .update({ status: "DONE", updatedAt: Date.now() })
+    );
+  });
+
+  test("member without editAnyTask cannot delete a task, even one they hold", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection(`projects/${PROJECT_ID_1}/tasks`).doc(TASK_ID).update({
+        holderUid: MEMBER_UID,
+        holderDisplayName: "Regular Member"
+      });
+    });
+    await assertFails(asMember().collection(`projects/${PROJECT_ID_1}/tasks`).doc(TASK_ID).delete());
+  });
+
+  test("member with editAnyTask can delete a task they don't hold", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection(`projects/${PROJECT_ID_1}/members`).doc(MEMBER_UID).update({
+        permissions: { ...noPermissions(), editAnyTask: true }
+      });
+    });
+    await assertSucceeds(asMember().collection(`projects/${PROJECT_ID_1}/tasks`).doc(TASK_ID).delete());
+  });
+});
+
+const HANDOFF_ID = "handoff-1";
+
+describe("projects/{projectId}/tasks/{taskId}/handoffs/{handoffId}", () => {
+  beforeEach(async () => {
+    await seedProjectOne();
+    await seedTask();
+  });
+
+  test("current holder can offer a handoff", async () => {
+    await assertSucceeds(
+      asLeader()
+        .collection(`projects/${PROJECT_ID_1}/tasks/${TASK_ID}/handoffs`)
+        .doc(HANDOFF_ID)
+        .set({
+          projectId: PROJECT_ID_1,
+          fromUid: LEADER_UID,
+          fromDisplayName: "Leader Person",
+          toUid: MEMBER_UID,
+          toDisplayName: "Regular Member",
+          note: null,
+          status: "OFFERED",
+          declineReason: null,
+          offeredAt: Date.now(),
+          respondedAt: null
+        })
+    );
+  });
+
+  test("non-holder cannot offer a handoff", async () => {
+    await assertFails(
+      asMember()
+        .collection(`projects/${PROJECT_ID_1}/tasks/${TASK_ID}/handoffs`)
+        .doc(HANDOFF_ID)
+        .set({
+          projectId: PROJECT_ID_1,
+          fromUid: MEMBER_UID,
+          fromDisplayName: "Regular Member",
+          toUid: LEADER_UID,
+          toDisplayName: "Leader Person",
+          note: null,
+          status: "OFFERED",
+          declineReason: null,
+          offeredAt: Date.now(),
+          respondedAt: null
+        })
+    );
+  });
+
+  async function seedHandoff() {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context
+        .firestore()
+        .collection(`projects/${PROJECT_ID_1}/tasks/${TASK_ID}/handoffs`)
+        .doc(HANDOFF_ID)
+        .set({
+          projectId: PROJECT_ID_1,
+          fromUid: LEADER_UID,
+          fromDisplayName: "Leader Person",
+          toUid: MEMBER_UID,
+          toDisplayName: "Regular Member",
+          note: null,
+          status: "OFFERED",
+          declineReason: null,
+          offeredAt: Date.now(),
+          respondedAt: null
+        });
+    });
+  }
+
+  test("offered toUid can accept the handoff", async () => {
+    await seedHandoff();
+    await assertSucceeds(
+      asMember()
+        .collection(`projects/${PROJECT_ID_1}/tasks/${TASK_ID}/handoffs`)
+        .doc(HANDOFF_ID)
+        .update({ status: "ACCEPTED", respondedAt: Date.now() })
+    );
+  });
+
+  test("someone other than the offered toUid cannot accept the handoff", async () => {
+    await seedHandoff();
+    await assertFails(
+      asLeader()
+        .collection(`projects/${PROJECT_ID_1}/tasks/${TASK_ID}/handoffs`)
+        .doc(HANDOFF_ID)
+        .update({ status: "ACCEPTED", respondedAt: Date.now() })
+    );
+  });
+
+  test("handoff delete is always denied", async () => {
+    await seedHandoff();
+    await assertFails(
+      asMember().collection(`projects/${PROJECT_ID_1}/tasks/${TASK_ID}/handoffs`).doc(HANDOFF_ID).delete()
+    );
+  });
+});
+
+describe("projects/{projectId}/events/{eventId}", () => {
+  beforeEach(seedProjectOne);
+
+  test("member can create an event record attributed to themselves", async () => {
+    await assertSucceeds(
+      asLeader()
+        .collection(`projects/${PROJECT_ID_1}/events`)
+        .doc("event-1")
+        .set({
+          type: "TASK_DELETED",
+          taskId: TASK_ID,
+          taskTitle: "Print vendor quotes",
+          byUid: LEADER_UID,
+          byDisplayName: "Leader Person",
+          at: Date.now()
+        })
+    );
+  });
+
+  test("cannot create an event record attributed to someone else", async () => {
+    await assertFails(
+      asLeader()
+        .collection(`projects/${PROJECT_ID_1}/events`)
+        .doc("event-2")
+        .set({
+          type: "TASK_DELETED",
+          taskId: TASK_ID,
+          taskTitle: "Print vendor quotes",
+          byUid: MEMBER_UID,
+          byDisplayName: "Regular Member",
+          at: Date.now()
+        })
+    );
+  });
+
+  test("event records cannot be read by clients", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection(`projects/${PROJECT_ID_1}/events`).doc("event-3").set({
+        type: "TASK_DELETED",
+        taskId: TASK_ID,
+        taskTitle: "Print vendor quotes",
+        byUid: LEADER_UID,
+        byDisplayName: "Leader Person",
+        at: Date.now()
+      });
+    });
+    await assertFails(asLeader().collection(`projects/${PROJECT_ID_1}/events`).doc("event-3").get());
   });
 });

@@ -1,4 +1,4 @@
-# 2026-09-18 — Phase 2 on-device verification (partial)
+# 2026-09-18 — Phase 2 on-device verification (complete)
 
 ## Scope
 
@@ -42,24 +42,41 @@ those raw-pixel bounds — never estimate from a rendered/scaled screenshot.
   and its handoff history will be gone permanently. The record that you deleted it stays in the
   project pulse."), tapped "Delete". Task removed from Board; all tab counts returned to 0.
 
-## Not verified — needs a second project member
+## Second-member setup (session continuation)
 
-- **Hand-off offer → accept** (status TODO → DOING): the connected device's project (`temacker-a0252`,
-  project owned by Rudra Sharma) has only 1 member (Leader). The Team/Roster screen confirmed this
-  ("1 members"). Handing off requires a second member to offer to, and accepting requires signing in
-  as (or synthesizing) that second member.
-- **Decline** (with required reason + quick chips): same blocker — needs a second member to decline
-  an offer.
-- **Default-role read-only board** (no FAB, "ask X for a role" strip): needs a second member with a
-  role lacking `assignTasks`/`editAnyTask`, which doesn't exist in this project yet.
+Added a real second member via the Leader's own invite-code flow rather than a synthetic
+Firestore-seeded row, so hand-off/accept/decline could be tested through the app's real code paths
+end to end. This hit two real, pre-existing bugs — a stale-Room invite-code bug and a
+`joinProject()` Firestore-rules gap that made joining as a genuinely new account impossible — both
+found, fixed, tested (64/64 emulator tests), and deployed to production. Full details in
+`specs/logs/2026-09-18-invite-code-and-join-rules-fix.md`. Second account used: `FAIQUA NAEEM`
+(`faiqua.2428eee2423@kiet.edu`), joined project "VerifyFix" with the Default role (no
+`assignTasks`/`editAnyTask`).
 
-## Next steps
+## Verified after second member joined
 
-To close out the remaining Phase 2 verification, one of:
-1. Generate a fresh invite code (the current one shown in the Board's error banner has expired) and
-   join the project from a second Google account, or
-2. Manually seed a synthetic second member in Firestore (same approach Phase 1 used when a second
-   physical account wasn't available for Reassign Role testing — see
-   `specs/logs/2026-09-15-manage-roles-reassign-fix-and-full-audit.md`).
+- **Default-role read-only board**: signed in as FAIQUA NAEEM, viewed Board — no FAB, no "Add the
+  first task" CTA (both correctly hidden without `assignTasks`).
+- **Hand-off offer**: as Rudra (Leader), created `HandoffTest`, tapped Hand off, selected
+  FAIQUA NAEEM, sent. Baton trail immediately showed "Offered to FAIQUA NAEEM — waiting"; Rudra
+  still shown as holder (correct — offer alone doesn't transfer the baton).
+- **Accept**: signed in as FAIQUA NAEEM, Board showed a "1 handoff waiting on you" strip and the
+  task card carried a "For you" badge — both working. Opened the incoming-handoff screen ("Rudra
+  Sharma wants to hand you 'HandoffTest'"), tapped "Accept the baton". Task moved from
+  To do → Doing, holder changed to FAIQUA NAEEM — confirms the TODO→DOING derivation and the
+  accept-handoff Firestore transaction both work correctly end to end.
+- **Decline**: as Rudra, created a second task `DeclineTest`, handed it off to FAIQUA NAEEM. Signed
+  in as her, opened the incoming-handoff screen, tapped "Decline", selected the "Not my area" quick
+  chip (auto-filled the reason field), tapped "Send decline". Task stayed in To do, holder remained
+  Rudra Sharma (correct — decline never transfers the baton), and the baton trail recorded
+  "FAIQUA NAEEM declined — Not my area".
+- **Permission gating on task detail**: viewing `DeclineTest` (a task she doesn't hold, with no
+  `editAnyTask`) as FAIQUA NAEEM showed zero action buttons — no Hand off, no Mark done, no Delete,
+  no overflow menu options. Confirms gating is enforced per-task, not just on the Board's FAB.
 
-Either path unblocks hand-off/accept/decline and the read-only-board check.
+## Outcome
+
+All Phase 2 golden-path scenarios from the original plan are now verified on-device: create → hand
+off → accept (TODO→DOING) and create → hand off → decline (holder unchanged), mark done
+(→DONE), delete (with `editAnyTask`), and the Default-role read-only board. Phase 2 is complete
+pending only the separately-tracked, deliberately-deferred unit tests.

@@ -5,6 +5,13 @@ rules_version = '2';
 //   projects/{projectId}/roles/{roleId}            — name, permissions{7 bools}, isLeader
 //   projects/{projectId}/members/{userId}          — userId, roleId, roleName, permissions{7 bools}, displayName, photoUrl, joinedAt
 //   inviteCodes/{code}                             — projectId, expiresAt, isActive
+//   projects/{projectId}/tasks/{taskId}            — title, description, holderUid, holderDisplayName,
+//                                                     status, dueDate, timesHandedOver, createdByUid,
+//                                                     createdByDisplayName, createdAt, updatedAt
+//   projects/{projectId}/tasks/{taskId}/handoffs/{handoffId} — projectId, fromUid, fromDisplayName,
+//                                                     toUid, toDisplayName, note, status, declineReason,
+//                                                     offeredAt, respondedAt
+//   projects/{projectId}/events/{eventId}          — type, taskId, taskTitle, byUid, byDisplayName, at
 //
 // Known gap: createProjectWithLeader() writes projects/roles/members in one WriteBatch. Firestore
 // evaluates each write in a batch against the pre-batch database state, so the project/role/member
@@ -41,6 +48,10 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/projects/$(projectId)/roles/$(roleId)).data;
     }
 
+    function taskDoc(projectId, taskId) {
+      return get(/databases/$(database)/documents/projects/$(projectId)/tasks/$(taskId)).data;
+    }
+
     function fullPermissions() {
       return {
         'manageRoles': true, 'manageInviteCode': true, 'removeMembers': true,
@@ -56,7 +67,14 @@ service cloud.firestore {
     }
 
     match /projects/{projectId} {
-      allow read: if isMember(projectId);
+      // get is split from list: joinProject()'s transaction reads the project doc by known ID
+      // (from the invite code) before the joiner is a member — a genuine chicken-and-egg gap that
+      // was never exercised with a real second account until now. Project docs hold no sensitive
+      // data beyond name/ownerUid/defaultRoleId, so allowing get for any signed-in user (same trust
+      // boundary already accepted for inviteCodes' allow get) closes it without a real exposure.
+      // list stays member-only since nothing in the app queries projects by anything but a known ID.
+      allow get: if isSignedIn();
+      allow list: if isMember(projectId);
       allow create: if isSignedIn() &&
         !projectExists(projectId) &&
         request.resource.data.ownerUid == request.auth.uid;
@@ -64,7 +82,12 @@ service cloud.firestore {
       allow update, delete: if false;
 
       match /roles/{roleId} {
-        allow read: if isMember(projectId);
+        // Same join-transaction gap as the project doc above: joinProject() reads the default
+        // role by known ID before the joiner is a member. get loosened to any signed-in user
+        // (role docs hold only name/permissions/isLeader, nothing sensitive); list (Roster/Manage
+        // Roles' full role-list query) stays member-only.
+        allow get: if isSignedIn();
+        allow list: if isMember(projectId);
         allow create: if
           // Initial Leader + Default role pair, written by createProjectWithLeader()'s batch.
           (!projectExists(projectId) &&
@@ -110,6 +133,64 @@ service cloud.firestore {
         // Remove-member roster action — never the Leader. No "leave project" feature yet, so no self-delete.
         allow delete: if hasPermission(projectId, 'removeMembers') && resource.data.roleName != 'Leader';
       }
+
+      match /tasks/{taskId} {
+        allow read: if isMember(projectId);
+        // Creating a task makes you its initial holder — see specs/office/phase-2-board-baton.md.
+        allow create: if hasPermission(projectId, 'assignTasks') &&
+          request.resource.data.holderUid == request.auth.uid &&
+          request.resource.data.createdByUid == request.auth.uid &&
+          request.resource.data.status == 'TODO' &&
+          request.resource.data.timesHandedOver == 0;
+        // Only two client-driven update shapes exist: the holder marking their own task done, or a
+        // handoff's toUid accepting and becoming the new holder (see acceptHandoff/markTaskDone in
+        // FirestoreTaskRemoteDataSource.kt). Nothing else may change holderUid/timesHandedOver.
+        allow update: if isMember(projectId) && (
+          (request.auth.uid == resource.data.holderUid &&
+            request.resource.data.status == 'DONE' &&
+            request.resource.data.holderUid == resource.data.holderUid &&
+            request.resource.data.timesHandedOver == resource.data.timesHandedOver) ||
+          (request.auth.uid == request.resource.data.holderUid &&
+            request.auth.uid != resource.data.holderUid &&
+            request.resource.data.timesHandedOver == resource.data.timesHandedOver + 1)
+        ) && request.resource.data.title == resource.data.title &&
+          request.resource.data.createdByUid == resource.data.createdByUid;
+        // Deletion is permissioned regardless of who holds the task (approved design decision, see
+        // specs/office/implementation-plan.md's task-permissions section).
+        allow delete: if hasPermission(projectId, 'editAnyTask');
+
+        match /handoffs/{handoffId} {
+          allow read: if isMember(projectId);
+          // Only the task's current holder may offer a handoff — "handing back never needs permission".
+          allow create: if isMember(projectId) &&
+            request.auth.uid == taskDoc(projectId, taskId).holderUid &&
+            request.resource.data.fromUid == request.auth.uid &&
+            request.resource.data.status == 'OFFERED' &&
+            request.resource.data.projectId == projectId;
+          // Only the offered toUid may accept/decline, and only while still OFFERED.
+          allow update: if isMember(projectId) &&
+            resource.data.status == 'OFFERED' &&
+            request.auth.uid == resource.data.toUid &&
+            (request.resource.data.status == 'ACCEPTED' || request.resource.data.status == 'DECLINED') &&
+            request.resource.data.toUid == resource.data.toUid &&
+            request.resource.data.fromUid == resource.data.fromUid;
+          allow delete: if false;
+        }
+      }
+
+      match /events/{eventId} {
+        // Write-only until Phase 4's Pulse tab needs to read it (specs/office/phase-4-team-truth.md).
+        allow read: if false;
+        allow create: if isMember(projectId) && request.resource.data.byUid == request.auth.uid;
+        allow update, delete: if false;
+      }
+    }
+
+    // observePendingHandoffs()'s collectionGroup("handoffs") query spans every task in a project, so
+    // the nested rule's isMember(projectId)/taskDoc() checks above are unresolvable per candidate doc
+    // (projectId/taskId vary) — same class of issue as the members collectionGroup fix below.
+    match /{path=**}/handoffs/{handoffId} {
+      allow list: if resource.data.toUid == request.auth.uid;
     }
 
     // observeUserProjects()'s collectionGroup("members") query spans all projects, so the nested
