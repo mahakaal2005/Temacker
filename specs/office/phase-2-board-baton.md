@@ -1,6 +1,7 @@
 # Phase 2 — Board and the Baton
 
-Status: not started
+Status: implemented, pending on-device verification and Firestore rules deploy (see
+`specs/office/progress.md`).
 
 Task board with a holder + handoff model: one person holds a task at a time and explicitly hands it
 to someone else, who accepts or declines. Not a status-column kanban.
@@ -48,3 +49,13 @@ Notifications/push, inbox badge, offline-queue visibility screen (Phase 3), team
 
 Mark this phase complete here, tick it off in `specs/office/progress.md`, and log the session in
 `specs/logs/` (CLAUDE.md rule 4).
+
+**Implemented 2026-09-17** — all screens, data/domain layers, DI, nav, and Firestore rules built and
+compiling (`./gradlew clean assembleDebug lintDebug` green; 62/62 Firestore rules tests passing).
+Firestore rules deployed to production (2026-09-17, `temacker-a0252`). On-device golden path partially
+verified 2026-09-18 (create/mark-done/delete confirmed working; hand-off/accept/decline and the
+Default-role read-only board need a second project member, not yet available). Two things remain
+before this phase can be marked fully complete: unit tests for handoff transitions (deferred, matching
+Phase 1's precedent), and the second-member-dependent verification above. See
+`specs/logs/2026-09-17-phase-2-implementation.md` and `specs/logs/2026-09-18-phase-2-device-verification.md`
+for the full session logs.

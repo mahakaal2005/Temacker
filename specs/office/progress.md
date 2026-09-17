@@ -83,13 +83,18 @@ done/left. Update it after every session or completed task.
 - [ ] Unit tests for handoff transitions and status derivation (`OfferHandoff`/`AcceptHandoff`/
   `DeclineHandoff`, `TODO→DOING→DONE`) — **deferred, matching Phase 1's precedent of deferring
   ViewModel unit tests** (2026-09-17); flagged to the user rather than assumed.
-- [ ] On-device golden-path verification (create → hand off → accept → mark done → delete →
-  read-only board for Default role) — **blocked on task creation failure**. Build passes,
-  Firestore rules tests pass (62/62), rules deployed to production. Device testing on 2026-09-18
-  found task creation fails silently — Firestore rule requires `createdByUid == request.auth.uid`,
-  but `FirestoreTaskRemoteDataSource.createTask()` correctly sets it. Root cause likely in
-  `ObserveCurrentProjectMemberUseCase` data load or a permission/auth state gap.
-  Flagged for investigation in next session.
+- [x] **On-device golden-path verification (2026-09-18), see `specs/logs/2026-09-18-phase-2-device-verification.md`:**
+  create → mark done → delete all confirmed working on the connected physical device via adb-driven
+  UI automation. Task created as TODO, held by creator (Rudra Sharma); "Mark done" flipped it straight
+  to DONE (no intermediate handoff, correctly bypassing DOING since status derives from holder
+  history); delete showed the correct confirmation copy ("...handoff history will be gone
+  permanently...") and removed it, all tab counts returned to 0. The earlier "task creation fails
+  silently" finding (previous session) was a **false alarm** — root cause was adb tap coordinates
+  computed from the scaled screenshot-display size instead of raw device pixels (1080×2340), landing
+  taps on the wrong elements; not an app bug. **Not yet exercised:** hand-off offer/accept/decline
+  and the Default-role read-only board, both of which need a second project member — this project
+  has only 1 member (Rudra Sharma, Leader). Revisit once a second account or synthetic membership
+  is available.
 
 ## Phase 3 — Notifications, honest offline (`phase-3-notifications-offline.md`)
 - [ ] FCM setup + permission rationale screen

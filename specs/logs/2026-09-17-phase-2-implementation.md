@@ -94,11 +94,9 @@ redeploy succeeded against `temacker-a0252`.
 - ViewModel/use-case unit tests (`OfferHandoff`/`AcceptHandoff`/`DeclineHandoff` transitions,
   `TODO→DOING→DONE` derivation) — deferred, matching Phase 1's precedent of deferring this class of
   test. Flagged to the user rather than assumed; revisit if Phase 2 needs to close this debt.
-- **On-device golden-path verification (2026-09-18, blocked)** — task creation fails silently.
-  Device testing via adb: New task screen loaded; form filled (title "Code Review", details
-  "Review..."); submitted → navigated back to Board but task never appeared (still showing (0) on
-  all tabs). No error displayed in UI. Firestore rule requires `createdByUid == request.auth.uid`;
-  code correctly sets this to `holderUid` (task creator is initial holder). Root cause: likely
-  `ObserveCurrentProjectMemberUseCase` not returning member info with correct uid/permissions, or
-  auth token/user state mismatch. Next session should investigate: (1) member data loading,
-  (2) current user's assignTasks permission, (3) session manager uid vs. Firestore auth uid.
+- **On-device golden-path verification (2026-09-18)** — **corrected below.** The "task creation
+  fails silently" finding logged here was a false alarm caused by wrong adb tap coordinates
+  (computed from scaled screenshot display size instead of raw device pixels), not an app bug.
+  Create/mark-done/delete all verified working on 2026-09-18 — see
+  `specs/logs/2026-09-18-phase-2-device-verification.md`. Hand-off/accept/decline and the
+  Default-role read-only board still need a second project member to test.
