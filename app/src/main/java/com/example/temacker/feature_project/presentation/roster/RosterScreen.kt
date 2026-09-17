@@ -352,6 +352,68 @@ private fun RosterScreenPreview() {
 
 @Preview(showBackground = true)
 @Composable
+private fun RosterScreenLoadingPreview() {
+    TemackerTheme {
+        RosterScreen(
+            state = RosterState(isLoading = true),
+            onAction = {},
+            onNavigateToHome = {},
+            onNavigateToRoster = {},
+            onNavigateToProfile = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun RosterScreenInviteSheetPreview() {
+    TemackerTheme {
+        RosterScreen(
+            state = RosterState(
+                isLoading = false,
+                canManageInvite = true,
+                members = listOf(
+                    Membership("p1", "u1", "r1", "Leader", RolePermissions.ALL_GRANTED, "Priya Raman", null, 0)
+                ),
+                isInviteSheetVisible = true,
+                inviteCode = "AB12CD34"
+            ),
+            onAction = {},
+            onNavigateToHome = {},
+            onNavigateToRoster = {},
+            onNavigateToProfile = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun RosterScreenReassignDialogPreview() {
+    TemackerTheme {
+        RosterScreen(
+            state = RosterState(
+                isLoading = false,
+                canManageRoles = true,
+                members = listOf(
+                    Membership("p1", "u1", "r1", "Leader", RolePermissions.ALL_GRANTED, "Priya Raman", null, 0),
+                    Membership("p1", "u2", "r2", "Editor", RolePermissions(), "Daniel Osei", null, 0)
+                ),
+                roles = listOf(
+                    Role("r1", "p1", "Leader", RolePermissions.ALL_GRANTED, isLeader = true),
+                    Role("r2", "p1", "Editor", RolePermissions(), isLeader = false)
+                ),
+                reassignTargetUserId = "u2"
+            ),
+            onAction = {},
+            onNavigateToHome = {},
+            onNavigateToRoster = {},
+            onNavigateToProfile = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
 private fun RosterScreenErrorPreview() {
     TemackerTheme {
         RosterScreen(
