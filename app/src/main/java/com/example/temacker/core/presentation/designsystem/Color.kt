@@ -12,7 +12,6 @@ val Teal = Color(0xFF2FBFA8)
 val Coral = Color(0xFFE2536B)
 
 // Derived surfaces.
-val Stone = Color(0xFFEFECE4)
 val AmberWash = Color(0xFFFDF3E3)
 val TealWash = Color(0xFFE6F8F4)
 val CoralWash = Color(0xFFFDEDF0)

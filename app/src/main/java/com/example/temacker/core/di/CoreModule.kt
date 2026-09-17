@@ -39,8 +39,6 @@ val coreModule = module {
     single { FirebaseAuth.getInstance() }
     single { CredentialManager.create(androidContext()) }
 
-    // createdAtStart: must register its ActivityLifecycleCallbacks before MainActivity is
-    // created, not lazily on first Koin injection (which happens after Login is on screen —
-    // too late to have caught MainActivity's one and only onActivityResumed call).
+    // createdAtStart: must register its ActivityLifecycleCallbacks before MainActivity's onActivityResumed fires.
     single(createdAtStart = true) { CurrentActivityHolder(androidApplication()) }
 }

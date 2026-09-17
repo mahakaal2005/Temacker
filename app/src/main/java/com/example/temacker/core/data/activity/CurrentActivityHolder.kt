@@ -5,9 +5,7 @@ import android.app.Application
 import android.os.Bundle
 import java.lang.ref.WeakReference
 
-// Credential Manager needs an Activity context to attach its bottom sheet — Koin's
-// androidContext() only ever gives the Application context, which Credential Manager
-// silently fails against on some OEMs/Android versions.
+// Credential Manager needs an Activity context (Koin's androidContext() only gives Application) to attach its bottom sheet.
 class CurrentActivityHolder(app: Application) : Application.ActivityLifecycleCallbacks {
 
     private var current: WeakReference<Activity>? = null
