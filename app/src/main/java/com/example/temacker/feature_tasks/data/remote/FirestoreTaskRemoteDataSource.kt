@@ -1,0 +1,216 @@
+package com.example.temacker.feature_tasks.data.remote
+
+import com.example.temacker.core.data.firebase.safeFirestoreCall
+import com.example.temacker.core.data.firebase.snapshots
+import com.example.temacker.core.domain.util.DataError
+import com.example.temacker.core.domain.util.EmptyResult
+import com.example.temacker.core.domain.util.Result
+import com.example.temacker.feature_tasks.data.mapper.toFirestoreMap
+import com.example.temacker.feature_tasks.data.mapper.toHandoff
+import com.example.temacker.feature_tasks.data.mapper.toTask
+import com.example.temacker.feature_tasks.domain.model.Handoff
+import com.example.temacker.feature_tasks.domain.model.HandoffStatus
+import com.example.temacker.feature_tasks.domain.model.Task
+import com.example.temacker.feature_tasks.domain.model.TaskStatus
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.tasks.await
+
+class FirestoreTaskRemoteDataSource(
+    private val firestore: FirebaseFirestore
+) : TaskRemoteDataSource {
+
+    private fun tasksRef(projectId: String) =
+        firestore.collection("projects").document(projectId).collection("tasks")
+
+    private fun handoffsRef(projectId: String, taskId: String) =
+        tasksRef(projectId).document(taskId).collection("handoffs")
+
+    private fun eventsRef(projectId: String) =
+        firestore.collection("projects").document(projectId).collection("events")
+
+    override fun observeTasks(projectId: String): Flow<List<Task>> =
+        tasksRef(projectId).snapshots().map { snapshot -> snapshot.documents.mapNotNull { it.toTask(projectId) } }
+
+    override fun observeTask(projectId: String, taskId: String): Flow<Task?> =
+        tasksRef(projectId).document(taskId).snapshots().map { it.toTask(projectId) }
+
+    override fun observeHandoffs(projectId: String, taskId: String): Flow<List<Handoff>> =
+        handoffsRef(projectId, taskId).snapshots().map { snapshot -> snapshot.documents.mapNotNull { it.toHandoff(taskId) } }
+
+    override fun observePendingHandoffs(projectId: String, toUid: String): Flow<List<Handoff>> =
+        firestore.collectionGroup("handoffs")
+            .whereEqualTo("projectId", projectId)
+            .whereEqualTo("toUid", toUid)
+            .whereEqualTo("status", HandoffStatus.OFFERED.name)
+            .snapshots()
+            .map { snapshot ->
+                snapshot.documents.mapNotNull { doc ->
+                    // taskId is the handoff doc's grandparent id (tasks/{taskId}/handoffs/{id}).
+                    val taskId = doc.reference.parent.parent?.id ?: return@mapNotNull null
+                    doc.toHandoff(taskId)
+                }
+            }
+
+    override suspend fun createTask(
+        projectId: String,
+        title: String,
+        description: String?,
+        dueDate: Long?,
+        holderUid: String,
+        holderDisplayName: String,
+        createdByDisplayName: String
+    ): Result<Task, DataError> = safeFirestoreCall {
+        val ref = tasksRef(projectId).document()
+        val now = System.currentTimeMillis()
+        val task = Task(
+            id = ref.id,
+            projectId = projectId,
+            title = title,
+            description = description,
+            holderUid = holderUid,
+            holderDisplayName = holderDisplayName,
+            status = TaskStatus.TODO,
+            dueDate = dueDate,
+            timesHandedOver = 0,
+            createdByUid = holderUid,
+            createdByDisplayName = createdByDisplayName,
+            createdAt = now,
+            updatedAt = now
+        )
+        ref.set(task.toFirestoreMap()).await()
+        task
+    }
+
+    override suspend fun offerHandoff(
+        projectId: String,
+        taskId: String,
+        toUid: String,
+        toDisplayName: String,
+        note: String?
+    ): Result<Handoff, DataError> = safeFirestoreCall {
+        val taskRef = tasksRef(projectId).document(taskId)
+        val handoffRef = handoffsRef(projectId, taskId).document()
+        firestore.runTransaction { txn ->
+            val taskSnap = txn.get(taskRef)
+            val fromUid = taskSnap.getString("holderUid")
+                ?: throw FirebaseFirestoreException("Task not found", FirebaseFirestoreException.Code.NOT_FOUND)
+            val fromDisplayName = taskSnap.getString("holderDisplayName") ?: fromUid
+            val now = System.currentTimeMillis()
+            val handoff = Handoff(
+                id = handoffRef.id,
+                taskId = taskId,
+                fromUid = fromUid,
+                fromDisplayName = fromDisplayName,
+                toUid = toUid,
+                toDisplayName = toDisplayName,
+                note = note,
+                status = HandoffStatus.OFFERED,
+                declineReason = null,
+                offeredAt = now,
+                respondedAt = null
+            )
+            txn.set(handoffRef, handoff.toFirestoreMap(projectId))
+            handoff
+        }.await()
+    }
+
+    override suspend fun acceptHandoff(projectId: String, taskId: String, handoffId: String): Result<Task, DataError> =
+        safeFirestoreCall {
+            val taskRef = tasksRef(projectId).document(taskId)
+            val handoffRef = handoffsRef(projectId, taskId).document(handoffId)
+            firestore.runTransaction { txn ->
+                val handoffSnap = txn.get(handoffRef)
+                val status = handoffSnap.getString("status")
+                if (status != HandoffStatus.OFFERED.name) {
+                    throw FirebaseFirestoreException("Handoff already resolved", FirebaseFirestoreException.Code.FAILED_PRECONDITION)
+                }
+                val toUid = handoffSnap.getString("toUid")
+                    ?: throw FirebaseFirestoreException("Handoff not found", FirebaseFirestoreException.Code.NOT_FOUND)
+                val toDisplayName = handoffSnap.getString("toDisplayName") ?: toUid
+                val now = System.currentTimeMillis()
+
+                val taskSnap = txn.get(taskRef)
+                val currentStatus = taskSnap.getString("status")?.let { runCatching { TaskStatus.valueOf(it) }.getOrNull() } ?: TaskStatus.TODO
+                val timesHandedOver = ((taskSnap.getLong("timesHandedOver") ?: 0L) + 1).toInt()
+                val newStatus = if (currentStatus == TaskStatus.TODO) TaskStatus.DOING else currentStatus
+
+                txn.update(
+                    handoffRef,
+                    mapOf("status" to HandoffStatus.ACCEPTED.name, "respondedAt" to now)
+                )
+                txn.update(
+                    taskRef,
+                    mapOf(
+                        "holderUid" to toUid,
+                        "holderDisplayName" to toDisplayName,
+                        "status" to newStatus.name,
+                        "timesHandedOver" to timesHandedOver,
+                        "updatedAt" to now
+                    )
+                )
+                taskSnap.toTask(projectId)?.copy(
+                    holderUid = toUid,
+                    holderDisplayName = toDisplayName,
+                    status = newStatus,
+                    timesHandedOver = timesHandedOver,
+                    updatedAt = now
+                ) ?: throw FirebaseFirestoreException("Task not found", FirebaseFirestoreException.Code.NOT_FOUND)
+            }.await()
+        }
+
+    override suspend fun declineHandoff(projectId: String, taskId: String, handoffId: String, reason: String): Result<Handoff, DataError> =
+        safeFirestoreCall {
+            val handoffRef = handoffsRef(projectId, taskId).document(handoffId)
+            firestore.runTransaction { txn ->
+                val handoffSnap = txn.get(handoffRef)
+                val status = handoffSnap.getString("status")
+                if (status != HandoffStatus.OFFERED.name) {
+                    throw FirebaseFirestoreException("Handoff already resolved", FirebaseFirestoreException.Code.FAILED_PRECONDITION)
+                }
+                val now = System.currentTimeMillis()
+                txn.update(
+                    handoffRef,
+                    mapOf("status" to HandoffStatus.DECLINED.name, "declineReason" to reason, "respondedAt" to now)
+                )
+                handoffSnap.toHandoff(taskId)?.copy(status = HandoffStatus.DECLINED, declineReason = reason, respondedAt = now)
+                    ?: throw FirebaseFirestoreException("Handoff not found", FirebaseFirestoreException.Code.NOT_FOUND)
+            }.await()
+        }
+
+    override suspend fun markTaskDone(projectId: String, taskId: String): Result<Task, DataError> = safeFirestoreCall {
+        val taskRef = tasksRef(projectId).document(taskId)
+        val now = System.currentTimeMillis()
+        taskRef.update(mapOf("status" to TaskStatus.DONE.name, "updatedAt" to now)).await()
+        taskRef.get().await().toTask(projectId)
+            ?: throw FirebaseFirestoreException("Task not found", FirebaseFirestoreException.Code.NOT_FOUND)
+    }
+
+    // Handoff subcollection docs under the deleted task are not cascade-deleted — same accepted gap
+    // as roles/members cascade-delete (specs/office/progress.md, audit item #7): no bulk-delete-by-
+    // parent feature exists yet, and an orphaned handoff can't surface anywhere a user would see it.
+    override suspend fun deleteTask(projectId: String, taskId: String, byUid: String, byDisplayName: String): EmptyResult<DataError> =
+        safeFirestoreCall {
+            val taskRef = tasksRef(projectId).document(taskId)
+            val taskSnap = taskRef.get().await()
+            val title = taskSnap.getString("title") ?: "Untitled task"
+            val eventRef = eventsRef(projectId).document()
+            val batch = firestore.batch()
+            batch.delete(taskRef)
+            batch.set(
+                eventRef,
+                mapOf(
+                    "type" to "TASK_DELETED",
+                    "taskId" to taskId,
+                    "taskTitle" to title,
+                    "byUid" to byUid,
+                    "byDisplayName" to byDisplayName,
+                    "at" to System.currentTimeMillis()
+                )
+            )
+            batch.commit().await()
+            Unit
+        }
+}

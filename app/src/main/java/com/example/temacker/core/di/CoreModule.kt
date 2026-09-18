@@ -26,6 +26,8 @@ val coreModule = module {
     single { get<AppDatabase>().roleDao() }
     single { get<AppDatabase>().membershipDao() }
     single { get<AppDatabase>().inviteCodeDao() }
+    single { get<AppDatabase>().taskDao() }
+    single { get<AppDatabase>().handoffDao() }
 
     single { FirebaseFirestore.getInstance() }
 
