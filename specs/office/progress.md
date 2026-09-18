@@ -43,6 +43,15 @@ done/left. Update it after every session or completed task.
 - [x] **Fixed (2026-09-15):** `observeUserProjects()` always returned empty — it read a `projectId` field off member docs that `MembershipMapper` never writes (implicit in the doc path); now derives it from `it.reference.parent.parent?.id`. Also, `createProjectWithLeader()` now returns the Leader `Membership` alongside `Project` so `OfflineFirstProjectRepository.createProject()` can seed the local `membershipDao` row immediately (previously only `joinProject()` did this) — without it, a freshly created project never appeared in the UI until something else happened to populate that row.
 
 ## Phase 2 — Board and the baton (`phase-2-board-baton.md`)
+- [x] **Commit gap found and fixed (2026-09-18):** this file marked Phase 2 complete while the entire
+  `feature_tasks` module (55 files), the bottom-nav shell rewrite, both cross-feature providers,
+  `AppDatabase` v3, and the architecture doc rewrite were sitting uncommitted — only the Firestore
+  rules/tests and two device-verification bugfixes had actually landed in git. Verified
+  `./gradlew assembleDebug lintDebug` passed on the uncommitted tree, then split it into 5 atomic
+  commits matching the repo's existing style: `96d5b24` (docs: architecture rewrite), `d310726` (feat:
+  feature_tasks domain+data layer), `b2a86df` (feat: cross-feature providers), `fc55a26` (feat:
+  feature_tasks screens), `b9a648f` (refactor: bottom nav shell). Re-verified build/lint clean at HEAD
+  after the split.
 - [x] Rewrite architecture doc's Data Model + Phase Roadmap to holder/handoff model (2026-09-17). Also
   added two new cross-feature contracts to §8 (`ProjectMemberProvider`, `CurrentProjectProvider` in
   `core/domain`, implemented in `feature_project/data`) — `feature_tasks` needs the member list,
