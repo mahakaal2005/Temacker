@@ -8,6 +8,10 @@ import com.example.temacker.feature_project.data.remote.InviteCodeRemoteDataSour
 import com.example.temacker.feature_project.data.remote.MembershipRemoteDataSource
 import com.example.temacker.feature_project.data.remote.ProjectRemoteDataSource
 import com.example.temacker.feature_project.data.remote.RoleRemoteDataSource
+import com.example.temacker.core.domain.repository.CurrentProjectProvider
+import com.example.temacker.core.domain.repository.ProjectMemberProvider
+import com.example.temacker.feature_project.data.repository.MembershipProjectMemberProvider
+import com.example.temacker.feature_project.data.repository.ProjectCurrentProjectProvider
 import com.example.temacker.feature_project.data.repository.OfflineFirstInviteCodeRepository
 import com.example.temacker.feature_project.data.repository.OfflineFirstMembershipRepository
 import com.example.temacker.feature_project.data.repository.OfflineFirstProjectRepository
@@ -32,7 +36,6 @@ import com.example.temacker.feature_project.domain.use_case.RemoveMemberUseCase
 import com.example.temacker.feature_project.domain.use_case.UpdateRoleUseCase
 import com.example.temacker.feature_project.presentation.create_project.CreateProjectViewModel
 import com.example.temacker.feature_project.presentation.gate.ProjectGateViewModel
-import com.example.temacker.feature_project.presentation.home.HomeViewModel
 import com.example.temacker.feature_project.presentation.join_project.JoinProjectViewModel
 import com.example.temacker.feature_project.presentation.manage_roles.ManageRolesViewModel
 import com.example.temacker.feature_project.presentation.no_project.NoProjectViewModel
@@ -53,6 +56,8 @@ val projectModule = module {
     singleOf(::OfflineFirstRoleRepository) { bind<RoleRepository>() }
     singleOf(::OfflineFirstMembershipRepository) { bind<MembershipRepository>() }
     singleOf(::OfflineFirstInviteCodeRepository) { bind<InviteCodeRepository>() }
+    singleOf(::MembershipProjectMemberProvider) { bind<ProjectMemberProvider>() }
+    singleOf(::ProjectCurrentProjectProvider) { bind<CurrentProjectProvider>() }
 
     factoryOf(::ObserveUserProjectsUseCase)
     factoryOf(::CreateProjectUseCase)
@@ -73,7 +78,6 @@ val projectModule = module {
     viewModelOf(::NoProjectViewModel)
     viewModelOf(::CreateProjectViewModel)
     viewModelOf(::JoinProjectViewModel)
-    viewModelOf(::HomeViewModel)
     viewModelOf(::RosterViewModel)
     viewModelOf(::ManageRolesViewModel)
 }
