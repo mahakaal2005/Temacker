@@ -27,9 +27,12 @@ import com.example.temacker.feature_project.domain.use_case.GenerateInviteCodeUs
 import com.example.temacker.feature_project.domain.use_case.JoinProjectUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveActiveInviteCodeUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveCurrentMembershipUseCase
+import com.example.temacker.feature_project.domain.use_case.ObserveLoadUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveMembersUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveProjectUseCase
+import com.example.temacker.feature_project.domain.use_case.ObservePulseUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveRolesUseCase
+import com.example.temacker.feature_project.domain.use_case.ObserveStuckHandoffsUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveUserProjectsUseCase
 import com.example.temacker.feature_project.domain.use_case.ReassignMemberRoleUseCase
 import com.example.temacker.feature_project.domain.use_case.RemoveMemberUseCase
@@ -73,6 +76,9 @@ val projectModule = module {
     factoryOf(::ReassignMemberRoleUseCase)
     factoryOf(::GenerateInviteCodeUseCase)
     factoryOf(::ObserveActiveInviteCodeUseCase)
+    factoryOf(::ObserveLoadUseCase)
+    factoryOf(::ObserveStuckHandoffsUseCase)
+    factoryOf(::ObservePulseUseCase)
 
     viewModelOf(::ProjectGateViewModel)
     viewModelOf(::NoProjectViewModel)

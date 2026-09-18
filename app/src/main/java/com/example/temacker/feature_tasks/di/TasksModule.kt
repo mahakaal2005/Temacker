@@ -1,8 +1,10 @@
 package com.example.temacker.feature_tasks.di
 
+import com.example.temacker.core.domain.repository.TeamInsightsProvider
 import com.example.temacker.feature_tasks.data.remote.FirestoreTaskRemoteDataSource
 import com.example.temacker.feature_tasks.data.remote.TaskRemoteDataSource
 import com.example.temacker.feature_tasks.data.repository.OfflineFirstTaskRepository
+import com.example.temacker.feature_tasks.data.repository.TaskTeamInsightsProvider
 import com.example.temacker.feature_tasks.domain.repository.TaskRepository
 import com.example.temacker.feature_tasks.domain.use_case.AcceptHandoffUseCase
 import com.example.temacker.feature_tasks.domain.use_case.CreateTaskUseCase
@@ -33,6 +35,7 @@ import org.koin.dsl.module
 val tasksModule = module {
     singleOf(::FirestoreTaskRemoteDataSource) { bind<TaskRemoteDataSource>() }
     singleOf(::OfflineFirstTaskRepository) { bind<TaskRepository>() }
+    singleOf(::TaskTeamInsightsProvider) { bind<TeamInsightsProvider>() }
 
     factoryOf(::ObserveCurrentProjectIdUseCase)
     factoryOf(::ObserveCurrentProjectMemberUseCase)
