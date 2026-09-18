@@ -99,7 +99,8 @@ async function seedProjectOne() {
       permissions: fullPermissions(),
       displayName: "Leader Person",
       photoUrl: null,
-      joinedAt: Date.now()
+      joinedAt: Date.now(),
+      isLeader: true
     });
     await db.collection(`projects/${PROJECT_ID_1}/members`).doc(MEMBER_UID).set({
       userId: MEMBER_UID,
@@ -108,7 +109,8 @@ async function seedProjectOne() {
       permissions: noPermissions(),
       displayName: "Regular Member",
       photoUrl: null,
-      joinedAt: Date.now()
+      joinedAt: Date.now(),
+      isLeader: false
     });
   });
 }
@@ -319,7 +321,8 @@ describe("projects/{projectId}/members/{userId}", () => {
           permissions: fullPermissions(),
           displayName: "New Owner",
           photoUrl: null,
-          joinedAt: Date.now()
+          joinedAt: Date.now(),
+          isLeader: true
         })
     );
   });
@@ -353,7 +356,8 @@ describe("projects/{projectId}/members/{userId}", () => {
           permissions: noPermissions(),
           displayName: "Joiner",
           photoUrl: null,
-          joinedAt: Date.now()
+          joinedAt: Date.now(),
+          isLeader: false
         })
     );
   });
@@ -371,6 +375,24 @@ describe("projects/{projectId}/members/{userId}", () => {
           displayName: "Joiner",
           photoUrl: null,
           joinedAt: Date.now()
+        })
+    );
+  });
+
+  test("joining with a spoofed isLeader=true is denied", async () => {
+    await assertFails(
+      asOutsider()
+        .collection(`projects/${PROJECT_ID_1}/members`)
+        .doc(OUTSIDER_UID)
+        .set({
+          userId: OUTSIDER_UID,
+          roleId: DEFAULT_ROLE_ID,
+          roleName: "Default",
+          permissions: noPermissions(),
+          displayName: "Joiner",
+          photoUrl: null,
+          joinedAt: Date.now(),
+          isLeader: true
         })
     );
   });
@@ -414,7 +436,16 @@ describe("projects/{projectId}/members/{userId}", () => {
       asLeader()
         .collection(`projects/${PROJECT_ID_1}/members`)
         .doc(MEMBER_UID)
-        .update({ roleId: "role-manager", roleName: "Manager", permissions: managerPermissions() })
+        .update({ roleId: "role-manager", roleName: "Manager", permissions: managerPermissions(), isLeader: false })
+    );
+  });
+
+  test("reassigning with a spoofed isLeader=true is denied", async () => {
+    await assertFails(
+      asLeader()
+        .collection(`projects/${PROJECT_ID_1}/members`)
+        .doc(MEMBER_UID)
+        .update({ roleId: "role-manager", roleName: "Manager", permissions: managerPermissions(), isLeader: true })
     );
   });
 

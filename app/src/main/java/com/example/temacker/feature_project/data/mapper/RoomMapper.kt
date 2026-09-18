@@ -10,8 +10,8 @@ import com.example.temacker.feature_project.domain.model.Project
 import com.example.temacker.feature_project.domain.model.Role
 import com.example.temacker.feature_project.domain.model.RolePermissions
 
-fun Project.toEntity() = ProjectEntity(id, name, ownerUid, createdAt)
-fun ProjectEntity.toDomain() = Project(id, name, ownerUid, createdAt)
+fun Project.toEntity() = ProjectEntity(id, name, ownerUid, createdAt, isArchived, predecessorProjectId)
+fun ProjectEntity.toDomain() = Project(id, name, ownerUid, createdAt, isArchived, predecessorProjectId)
 
 fun Role.toEntity() = RoleEntity(
     id = id,
@@ -49,7 +49,8 @@ fun Membership.toEntity() = MembershipEntity(
     manageTags = permissions.manageTags,
     displayName = displayName,
     photoUrl = photoUrl,
-    joinedAt = joinedAt
+    joinedAt = joinedAt,
+    isLeader = isLeader
 )
 
 fun MembershipEntity.toDomain() = Membership(
@@ -60,7 +61,8 @@ fun MembershipEntity.toDomain() = Membership(
     permissions = RolePermissions(manageRoles, manageInviteCode, removeMembers, deleteProject, assignTasks, editAnyTask, manageTags),
     displayName = displayName,
     photoUrl = photoUrl,
-    joinedAt = joinedAt
+    joinedAt = joinedAt,
+    isLeader = isLeader
 )
 
 fun InviteCode.toEntity() = InviteCodeEntity(code, projectId, expiresAt, isActive)

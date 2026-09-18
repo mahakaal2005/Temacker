@@ -209,7 +209,7 @@ private fun MemberRow(
     onReassignClick: () -> Unit,
     onRemoveClick: () -> Unit
 ) {
-    val isLeader = member.roleName == "Leader"
+    val isLeader = member.isLeader
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Surface(shape = CircleShape, color = if (isLeader) AmberWash else TealWash, modifier = Modifier.size(40.dp)) {
             Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -334,8 +334,8 @@ private fun RosterScreenPreview() {
                 canRemoveMembers = true,
                 canManageRoles = true,
                 members = listOf(
-                    Membership("p1", "u1", "r1", "Leader", RolePermissions.ALL_GRANTED, "Priya Raman", null, 0),
-                    Membership("p1", "u2", "r2", "Editor", RolePermissions(), "Daniel Osei", null, 0)
+                    Membership("p1", "u1", "r1", "Leader", RolePermissions.ALL_GRANTED, "Priya Raman", null, 0, isLeader = true),
+                    Membership("p1", "u2", "r2", "Editor", RolePermissions(), "Daniel Osei", null, 0, isLeader = false)
                 ),
                 roles = listOf(
                     Role("r1", "p1", "Leader", RolePermissions.ALL_GRANTED, isLeader = true),
@@ -373,7 +373,7 @@ private fun RosterScreenInviteSheetPreview() {
                 isLoading = false,
                 canManageInvite = true,
                 members = listOf(
-                    Membership("p1", "u1", "r1", "Leader", RolePermissions.ALL_GRANTED, "Priya Raman", null, 0)
+                    Membership("p1", "u1", "r1", "Leader", RolePermissions.ALL_GRANTED, "Priya Raman", null, 0, isLeader = true)
                 ),
                 isInviteSheetVisible = true,
                 inviteCode = "AB12CD34"
@@ -395,8 +395,8 @@ private fun RosterScreenReassignDialogPreview() {
                 isLoading = false,
                 canManageRoles = true,
                 members = listOf(
-                    Membership("p1", "u1", "r1", "Leader", RolePermissions.ALL_GRANTED, "Priya Raman", null, 0),
-                    Membership("p1", "u2", "r2", "Editor", RolePermissions(), "Daniel Osei", null, 0)
+                    Membership("p1", "u1", "r1", "Leader", RolePermissions.ALL_GRANTED, "Priya Raman", null, 0, isLeader = true),
+                    Membership("p1", "u2", "r2", "Editor", RolePermissions(), "Daniel Osei", null, 0, isLeader = false)
                 ),
                 roles = listOf(
                     Role("r1", "p1", "Leader", RolePermissions.ALL_GRANTED, isLeader = true),
@@ -422,7 +422,7 @@ private fun RosterScreenErrorPreview() {
                 canRemoveMembers = true,
                 canManageRoles = true,
                 members = listOf(
-                    Membership("p1", "u1", "r1", "Leader", RolePermissions.ALL_GRANTED, "Priya Raman", null, 0)
+                    Membership("p1", "u1", "r1", "Leader", RolePermissions.ALL_GRANTED, "Priya Raman", null, 0, isLeader = true)
                 ),
                 error = UiText.DynamicString("Couldn't remove member. Check your connection and try again.")
             ),

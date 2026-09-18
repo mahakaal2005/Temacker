@@ -111,7 +111,8 @@ service cloud.firestore {
             // Creator claims the Leader role for a brand-new project.
             (!projectExists(projectId) &&
               request.resource.data.roleName == 'Leader' &&
-              request.resource.data.permissions == fullPermissions()) ||
+              request.resource.data.permissions == fullPermissions() &&
+              request.resource.data.isLeader == true) ||
             // Joining an existing project via a valid invite code — role/permissions must match
             // the real role doc (join_project's transaction reads the project's defaultRoleId),
             // and the referenced role must not be Leader (that's only claimable on project creation).
@@ -119,7 +120,8 @@ service cloud.firestore {
               exists(/databases/$(database)/documents/projects/$(projectId)/roles/$(request.resource.data.roleId)) &&
               roleDoc(projectId, request.resource.data.roleId).isLeader == false &&
               request.resource.data.roleName == roleDoc(projectId, request.resource.data.roleId).name &&
-              request.resource.data.permissions == roleDoc(projectId, request.resource.data.roleId).permissions)
+              request.resource.data.permissions == roleDoc(projectId, request.resource.data.roleId).permissions &&
+              request.resource.data.isLeader == false)
           );
         // Reassign-role screen: only touches roleId/roleName/permissions, never the member's identity,
         // never the Leader's own membership, and never assigns the Leader role to someone else.
@@ -129,7 +131,8 @@ service cloud.firestore {
           exists(/databases/$(database)/documents/projects/$(projectId)/roles/$(request.resource.data.roleId)) &&
           roleDoc(projectId, request.resource.data.roleId).isLeader == false &&
           request.resource.data.roleName == roleDoc(projectId, request.resource.data.roleId).name &&
-          request.resource.data.permissions == roleDoc(projectId, request.resource.data.roleId).permissions;
+          request.resource.data.permissions == roleDoc(projectId, request.resource.data.roleId).permissions &&
+          request.resource.data.isLeader == false;
         // Remove-member roster action — never the Leader. No "leave project" feature yet, so no self-delete.
         allow delete: if hasPermission(projectId, 'removeMembers') && resource.data.roleName != 'Leader';
       }

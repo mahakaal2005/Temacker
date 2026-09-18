@@ -46,7 +46,7 @@ class OfflineFirstProjectRepository(
 
         membershipDao.observeByUser(uid)
             .map { rows -> rows.map { it.projectId } }
-            .flatMapLatest { projectIds -> projectDao.observeByIds(projectIds) }
+            .flatMapLatest { projectIds -> projectDao.observeActiveByIds(projectIds) }
             .map { entities -> entities.map { it.toDomain() } }
             .collect { send(Result.Success(it)) }
 

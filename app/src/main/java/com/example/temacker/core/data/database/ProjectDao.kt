@@ -13,6 +13,10 @@ interface ProjectDao {
     @Query("SELECT * FROM projects WHERE id IN (:ids)")
     fun observeByIds(ids: List<String>): Flow<List<ProjectEntity>>
 
+    // Succession archives the old project cycle — active screens observe this, not observeByIds.
+    @Query("SELECT * FROM projects WHERE id IN (:ids) AND isArchived = 0")
+    fun observeActiveByIds(ids: List<String>): Flow<List<ProjectEntity>>
+
     @Query("SELECT * FROM projects WHERE id = :id")
     fun observeById(id: String): Flow<ProjectEntity?>
 }

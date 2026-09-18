@@ -1,5 +1,6 @@
 package com.example.temacker.core.data.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 
@@ -18,5 +19,6 @@ data class MembershipEntity(
     val manageTags: Boolean,
     val displayName: String,
     val photoUrl: String?,
-    val joinedAt: Long
+    val joinedAt: Long,
+    @ColumnInfo(defaultValue = "0") val isLeader: Boolean = false
 )

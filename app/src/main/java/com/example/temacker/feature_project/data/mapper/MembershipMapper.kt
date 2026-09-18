@@ -12,6 +12,7 @@ fun DocumentSnapshot.toMembership(projectId: String): Membership? {
     val displayName = getString("displayName") ?: return null
     val photoUrl = getString("photoUrl")
     val joinedAt = getLong("joinedAt") ?: 0L
+    val isLeader = getBoolean("isLeader") ?: false
     return Membership(
         projectId = projectId,
         userId = userId,
@@ -20,7 +21,8 @@ fun DocumentSnapshot.toMembership(projectId: String): Membership? {
         permissions = permissions,
         displayName = displayName,
         photoUrl = photoUrl,
-        joinedAt = joinedAt
+        joinedAt = joinedAt,
+        isLeader = isLeader
     )
 }
 
@@ -31,5 +33,6 @@ fun Membership.toFirestoreMap(): Map<String, Any?> = mapOf(
     "permissions" to permissions.toFirestoreMap(),
     "displayName" to displayName,
     "photoUrl" to photoUrl,
-    "joinedAt" to joinedAt
+    "joinedAt" to joinedAt,
+    "isLeader" to isLeader
 )

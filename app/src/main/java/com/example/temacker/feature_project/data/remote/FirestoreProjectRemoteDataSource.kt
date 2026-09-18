@@ -59,7 +59,8 @@ class FirestoreProjectRemoteDataSource(
             permissions = leaderRole.permissions,
             displayName = ownerDisplayName,
             photoUrl = ownerPhotoUrl,
-            joinedAt = createdAt
+            joinedAt = createdAt,
+            isLeader = true
         )
         // defaultRoleId is a data-layer join key for the join-project transaction, not part of the domain model.
         val projectFields = project.toFirestoreMap() + mapOf("defaultRoleId" to defaultRole.id)

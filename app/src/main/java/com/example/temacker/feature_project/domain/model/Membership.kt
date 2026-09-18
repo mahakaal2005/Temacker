@@ -10,5 +10,6 @@ data class Membership(
     val permissions: RolePermissions,
     val displayName: String,
     val photoUrl: String?,
-    val joinedAt: Long
+    val joinedAt: Long,
+    val isLeader: Boolean
 )
