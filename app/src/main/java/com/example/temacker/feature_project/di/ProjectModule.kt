@@ -36,6 +36,7 @@ import com.example.temacker.feature_project.domain.use_case.ObserveStuckHandoffs
 import com.example.temacker.feature_project.domain.use_case.ObserveUserProjectsUseCase
 import com.example.temacker.feature_project.domain.use_case.ReassignMemberRoleUseCase
 import com.example.temacker.feature_project.domain.use_case.RemoveMemberUseCase
+import com.example.temacker.feature_project.domain.use_case.TriggerSuccessionUseCase
 import com.example.temacker.feature_project.domain.use_case.UpdateRoleUseCase
 import com.example.temacker.feature_project.presentation.create_project.CreateProjectViewModel
 import com.example.temacker.feature_project.presentation.gate.ProjectGateViewModel
@@ -79,6 +80,7 @@ val projectModule = module {
     factoryOf(::ObserveLoadUseCase)
     factoryOf(::ObserveStuckHandoffsUseCase)
     factoryOf(::ObservePulseUseCase)
+    factoryOf(::TriggerSuccessionUseCase)
 
     viewModelOf(::ProjectGateViewModel)
     viewModelOf(::NoProjectViewModel)

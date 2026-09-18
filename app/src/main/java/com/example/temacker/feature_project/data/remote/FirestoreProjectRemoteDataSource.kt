@@ -5,11 +5,14 @@ import com.example.temacker.core.data.firebase.snapshots
 import com.example.temacker.core.domain.util.DataError
 import com.example.temacker.core.domain.util.Result
 import com.example.temacker.feature_project.data.mapper.toFirestoreMap
+import com.example.temacker.feature_project.data.mapper.toMembership
 import com.example.temacker.feature_project.data.mapper.toProject
+import com.example.temacker.feature_project.data.mapper.toRole
 import com.example.temacker.feature_project.domain.model.Membership
 import com.example.temacker.feature_project.domain.model.Project
 import com.example.temacker.feature_project.domain.model.Role
 import com.example.temacker.feature_project.domain.model.RolePermissions
+import com.example.temacker.feature_project.domain.model.SuccessionResult
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -74,6 +77,75 @@ class FirestoreProjectRemoteDataSource(
             .await()
 
         project to leaderMembership
+    }
+
+    // Not a transaction: reads happen first (plain gets), then one WriteBatch commits every copy —
+    // matching createProjectWithLeader's style. Accepted gap: a role/member edited on the old
+    // project between the reads and the commit won't be reflected in the copy (same class of
+    // tradeoff as the batch's existing 500-write cap on very large rosters).
+    override suspend fun succeedProject(
+        oldProjectId: String,
+        newProjectName: String,
+        leaderUid: String
+    ): Result<SuccessionResult, DataError> = safeFirestoreCall {
+        val oldProjectRef = firestore.collection(PROJECTS).document(oldProjectId)
+        val oldDefaultRoleId = oldProjectRef.get().await().getString("defaultRoleId")
+        val oldRoles = oldProjectRef.collection(ROLES).get().await().documents.mapNotNull { it.toRole(oldProjectId) }
+        val oldMembers = oldProjectRef.collection(MEMBERS).get().await().documents.mapNotNull { it.toMembership(oldProjectId) }
+
+        val newProjectRef = firestore.collection(PROJECTS).document()
+        val createdAt = System.currentTimeMillis()
+        val newProject = Project(
+            id = newProjectRef.id,
+            name = newProjectName,
+            ownerUid = leaderUid,
+            createdAt = createdAt,
+            isArchived = false,
+            predecessorProjectId = oldProjectId
+        )
+
+        // Old roleId -> new roleId, so copied memberships point at the copied roles.
+        val roleIdMap = mutableMapOf<String, String>()
+        var newDefaultRoleId: String? = null
+        val newRoles = oldRoles.map { oldRole ->
+            val newRoleRef = newProjectRef.collection(ROLES).document()
+            roleIdMap[oldRole.id] = newRoleRef.id
+            if (oldRole.id == oldDefaultRoleId) newDefaultRoleId = newRoleRef.id
+            Role(id = newRoleRef.id, projectId = newProject.id, name = oldRole.name, permissions = oldRole.permissions, isLeader = oldRole.isLeader)
+        }
+
+        val newMemberships = oldMembers.mapNotNull { oldMembership ->
+            val newRoleId = roleIdMap[oldMembership.roleId] ?: return@mapNotNull null
+            Membership(
+                projectId = newProject.id,
+                userId = oldMembership.userId,
+                roleId = newRoleId,
+                roleName = oldMembership.roleName,
+                permissions = oldMembership.permissions,
+                displayName = oldMembership.displayName,
+                photoUrl = oldMembership.photoUrl,
+                joinedAt = oldMembership.joinedAt,
+                isLeader = oldMembership.isLeader
+            )
+        }
+
+        val batch = firestore.batch()
+        newRoles.forEach { role ->
+            // predecessorProjectId is rule-validation-only — not part of the Role domain model, never read back.
+            batch.set(newProjectRef.collection(ROLES).document(role.id), role.toFirestoreMap() + mapOf("predecessorProjectId" to oldProjectId))
+        }
+        newMemberships.forEach { membership ->
+            batch.set(
+                newProjectRef.collection(MEMBERS).document(membership.userId),
+                membership.toFirestoreMap() + mapOf("predecessorProjectId" to oldProjectId)
+            )
+        }
+        val newProjectFields = newProject.toFirestoreMap() + mapOf("defaultRoleId" to (newDefaultRoleId ?: ""))
+        batch.set(newProjectRef, newProjectFields)
+        batch.update(oldProjectRef, mapOf("isArchived" to true))
+        batch.commit().await()
+
+        SuccessionResult(newProject, newRoles, newMemberships)
     }
 
     companion object {

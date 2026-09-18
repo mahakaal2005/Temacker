@@ -4,6 +4,7 @@ import com.example.temacker.core.domain.util.DataError
 import com.example.temacker.core.domain.util.Result
 import com.example.temacker.feature_project.domain.model.Membership
 import com.example.temacker.feature_project.domain.model.Project
+import com.example.temacker.feature_project.domain.model.SuccessionResult
 import kotlinx.coroutines.flow.Flow
 
 interface ProjectRemoteDataSource {
@@ -21,4 +22,13 @@ interface ProjectRemoteDataSource {
         ownerDisplayName: String,
         ownerPhotoUrl: String?
     ): Result<Pair<Project, Membership>, DataError>
+
+    // Succession: archives oldProjectId and creates a new project inheriting its full roster
+    // (roles + memberships, remapped to new IDs). leaderUid becomes the new project's owner —
+    // caller (TriggerSuccessionUseCase) has already verified they're the old project's Leader.
+    suspend fun succeedProject(
+        oldProjectId: String,
+        newProjectName: String,
+        leaderUid: String
+    ): Result<SuccessionResult, DataError>
 }

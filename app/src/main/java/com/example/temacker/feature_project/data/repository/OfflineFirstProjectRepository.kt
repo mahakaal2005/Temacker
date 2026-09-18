@@ -1,7 +1,10 @@
 package com.example.temacker.feature_project.data.repository
 
+import androidx.room.withTransaction
+import com.example.temacker.core.data.database.AppDatabase
 import com.example.temacker.core.data.database.MembershipDao
 import com.example.temacker.core.data.database.ProjectDao
+import com.example.temacker.core.data.database.RoleDao
 import com.example.temacker.core.data.firebase.toFirestoreDataError
 import com.example.temacker.core.domain.session.SessionManager
 import com.example.temacker.core.domain.util.DataError
@@ -25,7 +28,9 @@ import com.example.temacker.core.domain.util.map as resultMap
 @OptIn(ExperimentalCoroutinesApi::class)
 class OfflineFirstProjectRepository(
     private val remote: ProjectRemoteDataSource,
+    private val appDatabase: AppDatabase,
     private val projectDao: ProjectDao,
+    private val roleDao: RoleDao,
     private val membershipDao: MembershipDao,
     private val sessionManager: SessionManager
 ) : ProjectRepository {
@@ -79,4 +84,21 @@ class OfflineFirstProjectRepository(
             }
             .resultMap { (project, _) -> project }
     }
+
+    override suspend fun succeedProject(
+        oldProjectId: String,
+        newProjectName: String,
+        leaderUid: String
+    ): Result<Project, DataError> =
+        remote.succeedProject(oldProjectId, newProjectName, leaderUid)
+            .onSuccess { result ->
+                // One transaction so there's never a frame with zero non-archived projects for the user.
+                appDatabase.withTransaction {
+                    projectDao.upsertAll(listOf(result.newProject.toEntity()))
+                    roleDao.upsertAll(result.newRoles.map { it.toEntity() })
+                    membershipDao.upsertAll(result.newMemberships.map { it.toEntity() })
+                    projectDao.archive(oldProjectId)
+                }
+            }
+            .resultMap { it.newProject }
 }
