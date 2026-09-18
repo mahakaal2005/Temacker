@@ -4,7 +4,7 @@ Read this first, every session, before touching code — it's the current status
 detail lives in each phase's spec file (`specs/office/phase-N-*.md`); this file only tracks
 done/left. Update it after every session or completed task.
 
-**Current phase: 2 — Board and the baton (complete, 2026-09-18). Next: Phase 3.**
+**Current phase: 4 — Truth about the team (implemented, pending on-device verification, 2026-09-18). Next: on-device golden path for Phase 4, then Phase 3 (still unstarted — Phase 4 was pulled forward per explicit user request; see phase-4-team-truth.md's note).**
 
 ## Phase 1 — Auth, projects, roles (`phase-1-auth-projects-roles.md`)
 - [x] Core layer: `Result`/`DataError` (core/domain/util), `SessionManager` interface + DataStore impl, `UiText`/`ObserveAsEvents` (core/presentation/util), `CoreModule` Koin wiring, `App.kt` + `startKoin`. `AppDatabase` deferred until the first Room entity exists (Room rejects `@Database` with zero entities).
@@ -130,9 +130,31 @@ done/left. Update it after every session or completed task.
 - [ ] Offline queue screen (WorkManager)
 
 ## Phase 4 — Truth about the team (`phase-4-team-truth.md`)
-- [ ] Load / Stuck / Pulse tabs inside Team
-- [ ] Aggregation use cases
-- [ ] Succession (end-of-cycle) flow
+Built ahead of Phase 3 per explicit user request (2026-09-18) — normally blocked on Phase 3's data
+existing first, per this file's own note; accepted since the underlying Phase 1/2 handoff/task data
+Load/Stuck/Pulse read already exists and doesn't depend on notifications.
+- [x] Domain model: `Project.isArchived`/`predecessorProjectId`, `Membership.isLeader` (denormalized,
+  replaces the old `roleName == "Leader"` string-compare), `Event`/`EventEntity`/`EventDao` (Room
+  mirror — the architecture doc's old "no Room mirror for events" line needs updating, not done yet).
+- [x] `TeamInsightsProvider` cross-feature contract (feature_tasks owns the impl, feature_project
+  consumes — first contract flowing this direction, see `TaskTeamInsightsProvider`).
+- [x] Load / Stuck / Pulse tabs inside Team — `TeamScreen` (TabRow host, Roster re-hosted as a tab)
+  + `LoadScreen`/`StuckScreen`/`PulseScreen`, each full MVI with loading/empty/error/populated previews.
+- [x] Aggregation use cases (`ObserveLoadUseCase`/`ObserveStuckHandoffsUseCase`/`ObservePulseUseCase`).
+- [x] Succession (end-of-cycle) flow — `TriggerSuccessionUseCase` (Leader-only, archives the old
+  project, clones the full roster including custom roles into a new project via one Firestore batch
+  + one Room transaction), `SuccessionScreen` (name → confirm → submit, nav-graph-gated to Leader).
+- [x] Firestore rules: events read/type-allowlist, archival-flip update rule (`hasLeaderRole`,
+  diff-key-restricted), roster-copy create rules for roles/members (gated on a rule-validation-only
+  `predecessorProjectId` field) — 78/78 `npm run test:rules` passing, including 15 new succession tests.
+- [ ] Unit tests for the aggregation use cases/ViewModels and `TriggerSuccessionUseCase` — deferred,
+  matching the explicit precedent set in Phase 1/2 (rules tests + preview coverage only). If this
+  should change for Phase 4 specifically, say so — the plan flagged this as an open question that was
+  never explicitly answered.
+- [ ] **On-device golden path not yet run** — no emulator/device was available this session. Needs:
+  succession as Leader (old project disappears, custom-role roster carries over), Load/Stuck/Pulse
+  populated from real Phase 2 handoff history, non-Leader cannot see/trigger Succession. Don't trust
+  this phase as done until that's run — see CLAUDE.md rule 16.
 
 ## Phase 5 — v1.0, used by others (`phase-5-v1-others.md`)
 - [ ] Invited-member first-run screen

@@ -437,6 +437,30 @@ ViewModel duplicates `observeUserProjects().firstOrNull()?.id` inline. Elevated 
 implemented by `feature_project/data/repository/ProjectCurrentProjectProvider.kt` wrapping
 `ProjectRepository`, bound in `ProjectModule.kt`.
 
+**Fourth contract (Phase 4), first one flowing feature_tasks → feature_project:** the Team screen's
+Load/Stuck/Pulse tabs (`feature_project`) need aggregated Task/Handoff/Event data that lives entirely
+in `feature_tasks`. Same shape, reverse ownership:
+
+```kotlin
+// core/domain/repository/TeamInsightsProvider.kt
+interface TeamInsightsProvider {
+    fun observeLoad(projectId: String): Flow<Result<List<HolderLoad>, DataError>>
+    fun observeStuckHandoffs(projectId: String, thresholdMillis: Long = 24 * 60 * 60 * 1000L): Flow<Result<List<StuckHandoff>, DataError>>
+    fun observePulse(projectId: String, limit: Int = 50): Flow<Result<List<TeamEvent>, DataError>>
+}
+```
+
+Implemented by `feature_tasks/data/repository/TaskTeamInsightsProvider.kt`, bound in
+`feature_tasks/di/TasksModule.kt` via `bind<TeamInsightsProvider>()`. `feature_project`'s
+`ObserveLoadUseCase`/`ObserveStuckHandoffsUseCase`/`ObservePulseUseCase` inject it from `core/domain`
+only. **Deliberate exception to "repository is the API surface":** the impl reads `TaskDao`/
+`HandoffDao`/`EventDao` directly rather than going through `TaskRepository` — the aggregation queries
+(group-by-holder, joined stuck-handoff lookup) have no single-entity repository equivalent, and adding
+them to `TaskRepository`'s public interface would leak Team-screen-specific shapes into the core task
+contract. `observePulse()` runs its own Firestore→Room sync `channelFlow` (same shape as
+`OfflineFirstTaskRepository.observeBoard()`) rather than a redundant `OfflineFirstEventRepository` for
+a feed only Pulse consumes.
+
 ---
 
 ## 9. Presentation: MVI inside MVVM
@@ -593,10 +617,13 @@ spot.
 ## Data Model (Firestore collections, mirrored as Room entities)
 
 - **User** — `uid`, `displayName`, `email`, `photoUrl`
-- **Project** — `id`, `name`, `ownerUid`, `createdAt`
+- **Project** — `id`, `name`, `ownerUid`, `createdAt`, `isArchived` (Phase 4, default `false` —
+  succession flips this `true` and the project stops appearing in `observeUserProjects()`, filtered at
+  the Room-query level via `ProjectDao.observeActiveByIds`), `predecessorProjectId` (Phase 4, nullable
+  — set on a succession-created project, pointing at the project it inherited its roster from).
 - **InviteCode** — `code`, `projectId`, `expiresAt` (nullable), `isActive`
-- **Role** (`projects/{projectId}/roles/{roleId}`) — `id`, `projectId`, `name`, `permissions` (booleans: `manageRoles`, `manageInviteCode`, `removeMembers`, `deleteProject`, `assignTasks`, `editAnyTask`, `manageTags`). A system `Leader` role is auto-created per project: all permissions `true`, immutable, assigned to the creator, cannot be edited/deleted/reassigned away by anyone else.
-- **Membership** (`projects/{projectId}/members/{userId}`) — `projectId`, `userId`, `roleId`, and a **denormalized `permissions` snapshot** copied from the role at assignment time (refreshed whenever the member's role changes). Firestore security rules read this snapshot rather than chaining a lookup to the role document.
+- **Role** (`projects/{projectId}/roles/{roleId}`) — `id`, `projectId`, `name`, `permissions` (booleans: `manageRoles`, `manageInviteCode`, `removeMembers`, `deleteProject`, `assignTasks`, `editAnyTask`, `manageTags`), `isLeader`. A system `Leader` role is auto-created per project: all permissions `true`, immutable, assigned to the creator, cannot be edited/deleted/reassigned away by anyone else.
+- **Membership** (`projects/{projectId}/members/{userId}`) — `projectId`, `userId`, `roleId`, a **denormalized `permissions` snapshot** copied from the role at assignment time (refreshed whenever the member's role changes), and a **denormalized `isLeader`** (Phase 4 — replaces the old `roleName == "Leader"` string-compare with a real field succession's Leader-only guard can trust). Firestore security rules read these snapshots rather than chaining a lookup to the role document.
 - **Task** (`projects/{projectId}/tasks/{taskId}`, Phase 2+) — holder/handoff model, not a status-column
   model. `id`, `projectId`, `title`, `description` (nullable), `holderUid`, `holderDisplayName`
   (denormalized), `status` (`TODO`/`DOING`/`DONE` — derived, never set directly by the client: `TODO`
@@ -609,16 +636,30 @@ spot.
   `status` (`OFFERED`/`ACCEPTED`/`DECLINED`), `declineReason` (nullable), `offeredAt`, `respondedAt`
   (nullable). Only the task's current `holderUid` may create one (offer); only the offer's `toUid` may
   update it (accept/decline), and only while `status == OFFERED`.
-- **Event** (`projects/{projectId}/events/{eventId}`, Phase 2+, write-only until Phase 4 reads it) —
-  a project-scoped, append-only, attributable audit record. `id`, `projectId`, `type` (`TASK_DELETED`
-  to start), `taskId`, `taskTitle` (denormalized), `byUid`, `byDisplayName`, `at`. No Room mirror —
-  fire-and-forget, not user-visible state.
+- **Event** (`projects/{projectId}/events/{eventId}`, Phase 2+) —
+  a project-scoped, append-only, attributable audit record. `id`, `projectId`, `type`
+  (`TASK_CREATED`/`TASK_DELETED`/`HANDOFF_OFFERED`/`HANDOFF_ACCEPTED`/`HANDOFF_DECLINED`/
+  `TASK_MARKED_DONE`), `taskId`, `taskTitle` (denormalized), `byUid`, `byDisplayName`, `at`. **Phase 4
+  update:** now mirrored to Room (`EventEntity`/`EventDao`) and read by the Pulse tab — the original
+  "no Room mirror, fire-and-forget" design held only while events were write-only.
 
 ## Firestore Security Rules
 
 - Only project members can read project subcollections.
 - Writes to `roles`, `inviteCode`, member removal, and project deletion each require the corresponding boolean on the requesting user's own `membership.permissions` snapshot to be `true`.
 - The Leader role's membership doc is never writable by any other member.
+- **Phase 4 — succession:** `projects/{projectId}` gains one narrow `update` branch — only the real
+  Leader (`hasLeaderRole(projectId)`, reading the denormalized `Membership.isLeader`), only flipping
+  `isArchived` `false → true`, and only that field (`affectedKeys().hasOnly(['isArchived'])`). Every
+  other project field stays immutable, as before. Creating a succeeded project's `roles`/`members`
+  docs reuses the existing "brand-new project" bootstrap branches, extended with a case gated on a
+  rule-validation-only `predecessorProjectId` field (never part of the Role/Membership domain models)
+  checked against `hasLeaderRole` of the project being succeeded — this is also where the members rule's
+  usual `request.auth.uid == userId` requirement is deliberately dropped, since the Leader writes every
+  copied member's doc, not just their own. See `firestore.rules`' `hasLeaderRole` and the roles/members
+  `allow create` blocks for the exact conditions, and their header comment for the accepted trust
+  boundary (same-batch writes can't cross-validate each other's data, so the copied `roleId` on a
+  member doc can't be checked against the sibling role doc created in the same batch).
 
 ## Feature ↔ Package Mapping
 
