@@ -41,9 +41,13 @@ import com.example.temacker.feature_project.domain.use_case.UpdateRoleUseCase
 import com.example.temacker.feature_project.presentation.create_project.CreateProjectViewModel
 import com.example.temacker.feature_project.presentation.gate.ProjectGateViewModel
 import com.example.temacker.feature_project.presentation.join_project.JoinProjectViewModel
+import com.example.temacker.feature_project.presentation.load.LoadViewModel
 import com.example.temacker.feature_project.presentation.manage_roles.ManageRolesViewModel
 import com.example.temacker.feature_project.presentation.no_project.NoProjectViewModel
+import com.example.temacker.feature_project.presentation.pulse.PulseViewModel
 import com.example.temacker.feature_project.presentation.roster.RosterViewModel
+import com.example.temacker.feature_project.presentation.stuck.StuckViewModel
+import com.example.temacker.feature_project.presentation.succession.SuccessionViewModel
 import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
@@ -88,4 +92,8 @@ val projectModule = module {
     viewModelOf(::JoinProjectViewModel)
     viewModelOf(::RosterViewModel)
     viewModelOf(::ManageRolesViewModel)
+    viewModelOf(::LoadViewModel)
+    viewModelOf(::StuckViewModel)
+    viewModelOf(::PulseViewModel)
+    viewModelOf(::SuccessionViewModel)
 }

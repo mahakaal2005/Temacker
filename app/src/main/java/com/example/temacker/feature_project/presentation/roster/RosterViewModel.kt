@@ -83,7 +83,8 @@ class RosterViewModel(
                             it.copy(
                                 canManageInvite = membership?.permissions?.manageInviteCode == true,
                                 canRemoveMembers = membership?.permissions?.removeMembers == true,
-                                canManageRoles = membership?.permissions?.manageRoles == true
+                                canManageRoles = membership?.permissions?.manageRoles == true,
+                                isLeader = membership?.isLeader == true
                             )
                         }
                     }

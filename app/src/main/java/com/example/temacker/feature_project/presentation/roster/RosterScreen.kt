@@ -30,25 +30,15 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.temacker.core.presentation.components.AppDestination
-import com.example.temacker.core.presentation.components.AppScaffold
 import com.example.temacker.core.presentation.designsystem.AmberInk
 import com.example.temacker.core.presentation.designsystem.AmberWash
 import com.example.temacker.core.presentation.designsystem.Ink500
@@ -56,123 +46,73 @@ import com.example.temacker.core.presentation.designsystem.Line
 import com.example.temacker.core.presentation.designsystem.TealInk
 import com.example.temacker.core.presentation.designsystem.TealWash
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
-import com.example.temacker.core.presentation.util.ObserveAsEvents
 import com.example.temacker.core.presentation.util.UiText
 import com.example.temacker.feature_project.domain.model.Membership
 import com.example.temacker.feature_project.domain.model.Role
 import com.example.temacker.feature_project.domain.model.RolePermissions
-import org.koin.androidx.compose.koinViewModel
 
+// Roster's own tab inside the Team screen (TabRow/HorizontalPager host) — no longer owns a
+// top-level AppScaffold/bottom nav, see feature_project/presentation/team/TeamScreen.kt.
 @Composable
-fun RosterRoot(
-    onNavigateToBoard: () -> Unit,
-    onNavigateToTeam: () -> Unit,
-    onNavigateToYou: () -> Unit,
-    onNavigateToManageRoles: () -> Unit,
-    viewModel: RosterViewModel = koinViewModel()
-) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-    val clipboard = LocalClipboardManager.current
-
-    ObserveAsEvents(viewModel.events) { event ->
-        when (event) {
-            RosterEvent.NavigateToManageRoles -> onNavigateToManageRoles()
-        }
-    }
-
-    RosterScreen(
-        state = state,
-        onAction = { action ->
-            if (action is RosterAction.OnCopyCodeClick) {
-                state.inviteCode?.let { clipboard.setText(AnnotatedString(it)) }
-            }
-            viewModel.onAction(action)
-        },
-        onNavigateToBoard = onNavigateToBoard,
-        onNavigateToTeam = onNavigateToTeam,
-        onNavigateToYou = onNavigateToYou
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun RosterScreen(
+fun RosterTabContent(
     state: RosterState,
-    onAction: (RosterAction) -> Unit,
-    onNavigateToBoard: () -> Unit,
-    onNavigateToTeam: () -> Unit,
-    onNavigateToYou: () -> Unit
+    onAction: (RosterAction) -> Unit
 ) {
-    AppScaffold(
-        selected = AppDestination.TEAM,
-        onSelect = { destination ->
-            when (destination) {
-                AppDestination.BOARD -> onNavigateToBoard()
-                AppDestination.TEAM -> onNavigateToTeam()
-                AppDestination.YOU -> onNavigateToYou()
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("${state.members.size} members", style = MaterialTheme.typography.labelSmall, color = Ink500)
+                if (state.canManageRoles) {
+                    TextButton(onClick = { onAction(RosterAction.OnManageRolesClick) }) {
+                        Text("Manage roles →")
+                    }
+                }
+                if (state.canManageInvite) {
+                    IconButton(onClick = { onAction(RosterAction.OnInviteClick) }) {
+                        Icon(Icons.Default.PersonAdd, contentDescription = "Invite member")
+                    }
+                }
             }
-        }
-    ) { padding ->
-        Surface(modifier = Modifier.fillMaxSize().padding(padding), color = MaterialTheme.colorScheme.background) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                TopAppBar(
-                    title = { Text("Roster") },
-                    actions = {
-                        if (state.canManageInvite) {
-                            IconButton(onClick = { onAction(RosterAction.OnInviteClick) }) {
-                                Icon(Icons.Default.PersonAdd, contentDescription = "Invite member")
-                            }
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-                )
 
-                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("${state.members.size} members", style = MaterialTheme.typography.labelSmall, color = Ink500)
-                    if (state.canManageRoles) {
-                        TextButton(onClick = { onAction(RosterAction.OnManageRolesClick) }, modifier = Modifier.padding(start = 0.dp)) {
-                            Text("Manage roles →")
-                        }
+            state.error?.let { error ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = error.asString(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.weight(1f)
+                    )
+                    TextButton(onClick = { onAction(RosterAction.OnErrorDismissed) }) {
+                        Text("Dismiss")
                     }
                 }
+            }
 
-                state.error?.let { error ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = error.asString(),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.weight(1f)
+            if (state.isLoading) {
+                Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+                }
+            } else {
+                LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
+                    items(state.members, key = { it.userId }) { member ->
+                        MemberRow(
+                            member = member,
+                            canAct = state.canRemoveMembers || state.canManageRoles,
+                            isMenuOpen = state.menuForUserId == member.userId,
+                            canReassign = state.canManageRoles,
+                            canRemove = state.canRemoveMembers,
+                            onMoreClick = { onAction(RosterAction.OnMemberMoreClick(member.userId)) },
+                            onDismissMenu = { onAction(RosterAction.OnDismissMemberMenu) },
+                            onReassignClick = { onAction(RosterAction.OnReassignRoleClick(member.userId)) },
+                            onRemoveClick = { onAction(RosterAction.OnRemoveMemberClick(member.userId)) }
                         )
-                        TextButton(onClick = { onAction(RosterAction.OnErrorDismissed) }) {
-                            Text("Dismiss")
-                        }
-                    }
-                }
-
-                if (state.isLoading) {
-                    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                    }
-                } else {
-                    LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
-                        items(state.members, key = { it.userId }) { member ->
-                            MemberRow(
-                                member = member,
-                                canAct = state.canRemoveMembers || state.canManageRoles,
-                                isMenuOpen = state.menuForUserId == member.userId,
-                                canReassign = state.canManageRoles,
-                                canRemove = state.canRemoveMembers,
-                                onMoreClick = { onAction(RosterAction.OnMemberMoreClick(member.userId)) },
-                                onDismissMenu = { onAction(RosterAction.OnDismissMemberMenu) },
-                                onReassignClick = { onAction(RosterAction.OnReassignRoleClick(member.userId)) },
-                                onRemoveClick = { onAction(RosterAction.OnRemoveMemberClick(member.userId)) }
-                            )
-                            HorizontalDivider(color = Line)
-                        }
+                        HorizontalDivider(color = Line)
                     }
                 }
             }
@@ -325,9 +265,9 @@ private fun ReassignRoleDialog(
 
 @Preview(showBackground = true)
 @Composable
-private fun RosterScreenPreview() {
+private fun RosterTabContentPreview() {
     TemackerTheme {
-        RosterScreen(
+        RosterTabContent(
             state = RosterState(
                 isLoading = false,
                 canManageInvite = true,
@@ -342,33 +282,24 @@ private fun RosterScreenPreview() {
                     Role("r2", "p1", "Editor", RolePermissions(), isLeader = false)
                 )
             ),
-            onAction = {},
-            onNavigateToBoard = {},
-            onNavigateToTeam = {},
-            onNavigateToYou = {}
+            onAction = {}
         )
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-private fun RosterScreenLoadingPreview() {
+private fun RosterTabContentLoadingPreview() {
     TemackerTheme {
-        RosterScreen(
-            state = RosterState(isLoading = true),
-            onAction = {},
-            onNavigateToBoard = {},
-            onNavigateToTeam = {},
-            onNavigateToYou = {}
-        )
+        RosterTabContent(state = RosterState(isLoading = true), onAction = {})
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-private fun RosterScreenInviteSheetPreview() {
+private fun RosterTabContentInviteSheetPreview() {
     TemackerTheme {
-        RosterScreen(
+        RosterTabContent(
             state = RosterState(
                 isLoading = false,
                 canManageInvite = true,
@@ -378,19 +309,16 @@ private fun RosterScreenInviteSheetPreview() {
                 isInviteSheetVisible = true,
                 inviteCode = "AB12CD34"
             ),
-            onAction = {},
-            onNavigateToBoard = {},
-            onNavigateToTeam = {},
-            onNavigateToYou = {}
+            onAction = {}
         )
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-private fun RosterScreenReassignDialogPreview() {
+private fun RosterTabContentReassignDialogPreview() {
     TemackerTheme {
-        RosterScreen(
+        RosterTabContent(
             state = RosterState(
                 isLoading = false,
                 canManageRoles = true,
@@ -404,19 +332,16 @@ private fun RosterScreenReassignDialogPreview() {
                 ),
                 reassignTargetUserId = "u2"
             ),
-            onAction = {},
-            onNavigateToBoard = {},
-            onNavigateToTeam = {},
-            onNavigateToYou = {}
+            onAction = {}
         )
     }
 }
 
 @Preview(showBackground = true)
 @Composable
-private fun RosterScreenErrorPreview() {
+private fun RosterTabContentErrorPreview() {
     TemackerTheme {
-        RosterScreen(
+        RosterTabContent(
             state = RosterState(
                 isLoading = false,
                 canRemoveMembers = true,
@@ -426,10 +351,7 @@ private fun RosterScreenErrorPreview() {
                 ),
                 error = UiText.DynamicString("Couldn't remove member. Check your connection and try again.")
             ),
-            onAction = {},
-            onNavigateToBoard = {},
-            onNavigateToTeam = {},
-            onNavigateToYou = {}
+            onAction = {}
         )
     }
 }

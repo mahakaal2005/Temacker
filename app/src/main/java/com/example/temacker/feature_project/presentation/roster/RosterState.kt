@@ -13,6 +13,7 @@ data class RosterState(
     val canManageInvite: Boolean = false,
     val canRemoveMembers: Boolean = false,
     val canManageRoles: Boolean = false,
+    val isLeader: Boolean = false,
     val inviteCode: String? = null,
     val isInviteSheetVisible: Boolean = false,
     val isLoading: Boolean = true,

@@ -1,0 +1,223 @@
+package com.example.temacker.feature_project.presentation.succession
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.temacker.core.presentation.designsystem.AmberInk
+import com.example.temacker.core.presentation.designsystem.AmberWash
+import com.example.temacker.core.presentation.designsystem.Ink500
+import com.example.temacker.core.presentation.designsystem.TemackerTheme
+import com.example.temacker.core.presentation.util.ObserveAsEvents
+import com.example.temacker.core.presentation.util.UiText
+import org.koin.androidx.compose.koinViewModel
+
+@Composable
+fun SuccessionRoot(
+    onNavigateBack: () -> Unit,
+    onNavigateToTeam: () -> Unit,
+    viewModel: SuccessionViewModel = koinViewModel()
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+
+    ObserveAsEvents(viewModel.events) { event ->
+        when (event) {
+            SuccessionEvent.NavigateBack -> onNavigateBack()
+            SuccessionEvent.NavigateToTeam -> onNavigateToTeam()
+        }
+    }
+
+    SuccessionScreen(state = state, onAction = viewModel::onAction)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SuccessionScreen(state: SuccessionState, onAction: (SuccessionAction) -> Unit) {
+    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            TopAppBar(
+                title = { Text("Start new cycle") },
+                navigationIcon = {
+                    IconButton(onClick = { onAction(SuccessionAction.OnBackClick) }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+            )
+
+            when (state.step) {
+                SuccessionStep.NAME -> NameStep(state, onAction)
+                SuccessionStep.CONFIRM -> ConfirmStep(state, onAction)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ColumnScope.NameStep(state: SuccessionState, onAction: (SuccessionAction) -> Unit) {
+    Column(modifier = Modifier.padding(horizontal = 20.dp).weight(1f)) {
+        Text(
+            text = "NEW CYCLE",
+            style = MaterialTheme.typography.labelSmall,
+            color = Ink500,
+            modifier = Modifier.padding(vertical = 14.dp)
+        )
+        OutlinedTextField(
+            value = state.newProjectName,
+            onValueChange = { onAction(SuccessionAction.OnNameChange(it)) },
+            label = { Text("New cycle name") },
+            singleLine = true,
+            supportingText = { Text("Everyone on the current roster carries over automatically.") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        state.error?.let { error ->
+            Text(
+                text = error.asString(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        }
+    }
+
+    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
+        Button(
+            onClick = { onAction(SuccessionAction.OnContinueClick) },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ),
+            modifier = Modifier.fillMaxWidth().height(56.dp)
+        ) {
+            Text("Continue")
+        }
+    }
+}
+
+@Composable
+private fun ColumnScope.ConfirmStep(state: SuccessionState, onAction: (SuccessionAction) -> Unit) {
+    Column(modifier = Modifier.padding(horizontal = 20.dp).weight(1f)) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = AmberWash),
+            modifier = Modifier.fillMaxWidth().padding(top = 14.dp)
+        ) {
+            Row(modifier = Modifier.padding(16.dp)) {
+                Icon(Icons.Default.Warning, contentDescription = null, tint = AmberInk, modifier = Modifier.height(20.dp))
+                Text(
+                    text = "\"${state.newProjectName}\" will inherit the full current roster. " +
+                        "The current project will be archived and can't be un-archived. This can't be undone.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = AmberInk,
+                    modifier = Modifier.padding(start = 12.dp)
+                )
+            }
+        }
+
+        state.error?.let { error ->
+            Text(
+                text = error.asString(),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        }
+    }
+
+    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 20.dp)) {
+        Button(
+            onClick = { onAction(SuccessionAction.OnConfirmClick) },
+            enabled = !state.isSubmitting,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError
+            ),
+            modifier = Modifier.fillMaxWidth().height(56.dp)
+        ) {
+            if (state.isSubmitting) {
+                CircularProgressIndicator(modifier = Modifier.height(20.dp), color = MaterialTheme.colorScheme.onError)
+            } else {
+                Text("Archive and start \"${state.newProjectName}\"")
+            }
+        }
+        OutlinedButton(
+            onClick = { onAction(SuccessionAction.OnBackToNameClick) },
+            enabled = !state.isSubmitting,
+            modifier = Modifier.fillMaxWidth().padding(top = 10.dp)
+        ) {
+            Text("Back")
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun SuccessionScreenNamePreview() {
+    TemackerTheme {
+        SuccessionScreen(state = SuccessionState(step = SuccessionStep.NAME), onAction = {})
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun SuccessionScreenConfirmPreview() {
+    TemackerTheme {
+        SuccessionScreen(
+            state = SuccessionState(newProjectName = "Hackathon Cycle 2", step = SuccessionStep.CONFIRM),
+            onAction = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun SuccessionScreenSubmittingPreview() {
+    TemackerTheme {
+        SuccessionScreen(
+            state = SuccessionState(newProjectName = "Hackathon Cycle 2", step = SuccessionStep.CONFIRM, isSubmitting = true),
+            onAction = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun SuccessionScreenErrorPreview() {
+    TemackerTheme {
+        SuccessionScreen(
+            state = SuccessionState(
+                newProjectName = "Hackathon Cycle 2",
+                step = SuccessionStep.CONFIRM,
+                error = UiText.DynamicString("Couldn't start the new cycle. Check your connection and try again.")
+            ),
+            onAction = {}
+        )
+    }
+}

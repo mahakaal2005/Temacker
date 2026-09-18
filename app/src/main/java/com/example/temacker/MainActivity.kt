@@ -14,7 +14,7 @@ import com.example.temacker.feature_auth.presentation.navigation.authGraph
 import com.example.temacker.feature_profile.presentation.navigation.ProfileRoute
 import com.example.temacker.feature_profile.presentation.navigation.profileGraph
 import com.example.temacker.feature_project.presentation.navigation.ProjectGateRoute
-import com.example.temacker.feature_project.presentation.navigation.RosterRoute
+import com.example.temacker.feature_project.presentation.navigation.TeamRoute
 import com.example.temacker.feature_project.presentation.navigation.projectGraph
 import com.example.temacker.feature_tasks.presentation.navigation.BoardRoute
 import com.example.temacker.feature_tasks.presentation.navigation.tasksGraph
@@ -50,12 +50,12 @@ private fun TemackerApp() {
         )
         tasksGraph(
             navController = navController,
-            onNavigateToTeam = { navController.navigate(RosterRoute) { launchSingleTop = true } },
+            onNavigateToTeam = { navController.navigate(TeamRoute) { launchSingleTop = true } },
             onNavigateToYou = { navController.navigate(ProfileRoute) { launchSingleTop = true } }
         )
         profileGraph(
             onNavigateToBoard = { navController.navigate(BoardRoute) { launchSingleTop = true } },
-            onNavigateToTeam = { navController.navigate(RosterRoute) { launchSingleTop = true } },
+            onNavigateToTeam = { navController.navigate(TeamRoute) { launchSingleTop = true } },
             onNavigateToLogin = {
                 navController.navigate(LoginRoute) {
                     popUpTo(0) { inclusive = true }

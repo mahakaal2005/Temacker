@@ -8,7 +8,8 @@ import com.example.temacker.feature_project.presentation.gate.ProjectGateRoot
 import com.example.temacker.feature_project.presentation.join_project.JoinProjectRoot
 import com.example.temacker.feature_project.presentation.manage_roles.ManageRolesRoot
 import com.example.temacker.feature_project.presentation.no_project.NoProjectRoot
-import com.example.temacker.feature_project.presentation.roster.RosterRoot
+import com.example.temacker.feature_project.presentation.succession.SuccessionRoot
+import com.example.temacker.feature_project.presentation.team.TeamRoot
 
 // onNavigateToBoard/onNavigateToProfile are callbacks so feature_project never imports
 // feature_tasks/feature_profile (architecture §4). Board is Phase 2's first bottom-nav tab,
@@ -45,15 +46,21 @@ fun NavGraphBuilder.projectGraph(
             onNavigateToHome = onNavigateToBoard
         )
     }
-    composable<RosterRoute> {
-        RosterRoot(
+    composable<TeamRoute> {
+        TeamRoot(
             onNavigateToBoard = onNavigateToBoard,
-            onNavigateToTeam = {},
             onNavigateToYou = onNavigateToProfile,
-            onNavigateToManageRoles = { navController.navigate(ManageRolesRoute) }
+            onNavigateToManageRoles = { navController.navigate(ManageRolesRoute) },
+            onNavigateToSuccession = { navController.navigate(SuccessionRoute) }
         )
     }
     composable<ManageRolesRoute> {
         ManageRolesRoot(onNavigateBack = { navController.popBackStack() })
+    }
+    composable<SuccessionRoute> {
+        SuccessionRoot(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToTeam = { navController.popBackStack() }
+        )
     }
 }
