@@ -402,6 +402,41 @@ class CreateTaskUseCase(
 }
 ```
 
+**Second contract (Phase 2):** `feature_tasks` needs a member list (hand-off picker) and the current
+user's own task-related permission flags — data that lives entirely inside `feature_project`'s
+domain today. Same pattern, but the implementation stays where the real data already is instead of
+migrating `Membership` wholesale into `core`:
+
+```kotlin
+// core/domain/model/ProjectMember.kt — a trimmed, feature-agnostic view. NOT feature_project's
+// full RolePermissions — core can never import a feature's domain.
+data class ProjectMember(
+    val uid: String,
+    val displayName: String,
+    val photoUrl: String?,
+    val roleName: String,
+    val canAssignTasks: Boolean,
+    val canEditAnyTask: Boolean
+)
+
+// core/domain/repository/ProjectMemberProvider.kt
+interface ProjectMemberProvider {
+    fun observeMembers(projectId: String): Flow<Result<List<ProjectMember>, DataError>>
+    fun observeCurrentMember(projectId: String): Flow<Result<ProjectMember?, DataError>>
+}
+```
+
+Implemented by an adapter living in `feature_project/data/` (mapping `Membership` + `Role` →
+`ProjectMember`), bound to the core interface in `feature_project/di/ProjectModule.kt` via
+`bind<ProjectMemberProvider>()`. `feature_tasks` injects `ProjectMemberProvider` from `core/domain`
+only — it never imports `feature_project`.
+
+**Third contract (Phase 2):** every screen needs "the user's current project id" — today each Phase 1
+ViewModel duplicates `observeUserProjects().firstOrNull()?.id` inline. Elevated the same way:
+`core/domain/repository/CurrentProjectProvider.kt` (`observeCurrentProjectId(): Flow<Result<String?, DataError>>`),
+implemented by `feature_project/data/repository/ProjectCurrentProjectProvider.kt` wrapping
+`ProjectRepository`, bound in `ProjectModule.kt`.
+
 ---
 
 ## 9. Presentation: MVI inside MVVM
@@ -562,7 +597,22 @@ spot.
 - **InviteCode** — `code`, `projectId`, `expiresAt` (nullable), `isActive`
 - **Role** (`projects/{projectId}/roles/{roleId}`) — `id`, `projectId`, `name`, `permissions` (booleans: `manageRoles`, `manageInviteCode`, `removeMembers`, `deleteProject`, `assignTasks`, `editAnyTask`, `manageTags`). A system `Leader` role is auto-created per project: all permissions `true`, immutable, assigned to the creator, cannot be edited/deleted/reassigned away by anyone else.
 - **Membership** (`projects/{projectId}/members/{userId}`) — `projectId`, `userId`, `roleId`, and a **denormalized `permissions` snapshot** copied from the role at assignment time (refreshed whenever the member's role changes). Firestore security rules read this snapshot rather than chaining a lookup to the role document.
-- **Task** (Phase 2+) — `id`, `projectId`, `title`, `description`, `assigneeIds`, `tagIds`, `status`, `dueDate`, `priority`, `createdAt`, `updatedAt`.
+- **Task** (`projects/{projectId}/tasks/{taskId}`, Phase 2+) — holder/handoff model, not a status-column
+  model. `id`, `projectId`, `title`, `description` (nullable), `holderUid`, `holderDisplayName`
+  (denormalized), `status` (`TODO`/`DOING`/`DONE` — derived, never set directly by the client: `TODO`
+  at creation, flips to `DOING` the first time a handoff is accepted, `DONE` only via the holder's
+  explicit "Mark done" action), `dueDate` (nullable), `timesHandedOver` (Int), `createdByUid`, `createdByDisplayName` (denormalized),
+  `createdAt`, `updatedAt`. One person holds a task at a time; they explicitly hand it to someone else,
+  who accepts or declines.
+- **Handoff** (`projects/{projectId}/tasks/{taskId}/handoffs/{handoffId}`, Phase 2+) — the baton
+  trail. `id`, `taskId`, `fromUid`, `fromDisplayName`, `toUid`, `toDisplayName`, `note` (nullable),
+  `status` (`OFFERED`/`ACCEPTED`/`DECLINED`), `declineReason` (nullable), `offeredAt`, `respondedAt`
+  (nullable). Only the task's current `holderUid` may create one (offer); only the offer's `toUid` may
+  update it (accept/decline), and only while `status == OFFERED`.
+- **Event** (`projects/{projectId}/events/{eventId}`, Phase 2+, write-only until Phase 4 reads it) —
+  a project-scoped, append-only, attributable audit record. `id`, `projectId`, `type` (`TASK_DELETED`
+  to start), `taskId`, `taskTitle` (denormalized), `byUid`, `byDisplayName`, `at`. No Room mirror —
+  fire-and-forget, not user-visible state.
 
 ## Firestore Security Rules
 
@@ -582,9 +632,19 @@ spot.
 ## Phase Roadmap
 
 1. **Phase 1 — Auth + Projects + Roles.** Identity and permission foundation. See `specs/office/phase-1-auth-projects-roles.md`.
-2. **Phase 2 — Task board.** Backlog/In Progress/Review/Done, tags, assignment.
-3. **Phase 3 — Home screen stats.**
-4. **Phase 4 — Polish.** Due dates, priority, comments, notifications.
+2. **Phase 2 — Board and the baton.** Holder/handoff task model: one person holds a task and
+   explicitly hands it to someone else, who accepts or declines. Board (To do/Doing/Done tabs), task
+   detail + baton trail, hand-off sheet, incoming/decline, read-only board for the default role,
+   delete-with-attributable-event. First bottom nav (Board · Team · You). See
+   `specs/office/phase-2-board-baton.md`.
+3. **Phase 3 — Notifications, honest offline.** FCM setup, lock-screen notification style, inbox nav
+   destination + badge, offline queue screen. See `specs/office/phase-3-notifications-offline.md`.
+4. **Phase 4 — Truth about the team.** Load/Stuck/Pulse tabs inside Team, aggregation use cases
+   (reading the `events` collection), succession flow. See `specs/office/phase-4-team-truth.md`.
+5. **Phase 5 — v1.0, used by others.** Invited-member first-run screen, role explainer. See
+   `specs/office/phase-5-v1-others.md`.
+6. **Phase 6 — Sustainability.** Your data (export + delete-account), plan & limits screen. See
+   `specs/office/phase-6-sustainability.md`.
 
 Each phase gets its own spec in `specs/office/` before implementation starts (CLAUDE.md rule 3).
 
