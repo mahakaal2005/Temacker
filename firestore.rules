@@ -48,6 +48,10 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/projects/$(projectId)/roles/$(roleId)).data;
     }
 
+    function hasLeaderRole(projectId) {
+      return isMember(projectId) && membership(projectId).isLeader == true;
+    }
+
     function taskDoc(projectId, taskId) {
       return get(/databases/$(database)/documents/projects/$(projectId)/tasks/$(taskId)).data;
     }
@@ -78,8 +82,14 @@ service cloud.firestore {
       allow create: if isSignedIn() &&
         !projectExists(projectId) &&
         request.resource.data.ownerUid == request.auth.uid;
-      // No edit/delete-project screen in Phase 1 (spec: create/join only) — deny until that feature exists.
-      allow update, delete: if false;
+      // Succession's archival flip — only the real Leader, only isArchived, only false -> true.
+      // Every other field (including a second archival, or un-archiving) stays immutable.
+      allow update: if hasLeaderRole(projectId) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isArchived']) &&
+        resource.data.isArchived == false &&
+        request.resource.data.isArchived == true;
+      // No delete-project screen in Phase 1 (spec: create/join only) — deny until that feature exists.
+      allow delete: if false;
 
       match /roles/{roleId} {
         // Same join-transaction gap as the project doc above: joinProject() reads the default
@@ -94,7 +104,14 @@ service cloud.firestore {
             ((request.resource.data.isLeader == true && request.resource.data.permissions == fullPermissions()) ||
              (request.resource.data.isLeader == false && request.resource.data.permissions == noPermissions()))) ||
           // Manage-roles screen, on an existing project.
-          (projectExists(projectId) && hasPermission(projectId, 'manageRoles') && request.resource.data.isLeader == false);
+          (projectExists(projectId) && hasPermission(projectId, 'manageRoles') && request.resource.data.isLeader == false) ||
+          // Succession's roster copy: any role shape (including custom roles Phase 1's
+          // CreateRoleUseCase already allows on existing projects — a pre-existing gap this
+          // surfaces, not causes), gated on the caller genuinely being Leader of the project
+          // being succeeded. predecessorProjectId is rule-validation-only, not in the Role model.
+          (!projectExists(projectId) &&
+            'predecessorProjectId' in request.resource.data &&
+            hasLeaderRole(request.resource.data.predecessorProjectId));
         allow update: if hasPermission(projectId, 'manageRoles') &&
           resource.data.isLeader == false &&
           request.resource.data.isLeader == false;
@@ -105,23 +122,31 @@ service cloud.firestore {
         // Roster's direct query (membersRef(projectId).snapshots(), no collectionGroup) has a
         // concrete projectId, so isMember(projectId) is resolvable once for the whole result set.
         allow get, list: if isMember(projectId) || resource.data.userId == request.auth.uid;
-        allow create: if isSignedIn() && request.auth.uid == userId &&
-          request.resource.data.userId == request.auth.uid &&
+        allow create: if isSignedIn() && request.resource.data.userId == userId &&
           (
-            // Creator claims the Leader role for a brand-new project.
-            (!projectExists(projectId) &&
+            // Creator claims the Leader role for a brand-new project — only for their own uid.
+            (!projectExists(projectId) && request.auth.uid == userId &&
               request.resource.data.roleName == 'Leader' &&
               request.resource.data.permissions == fullPermissions() &&
               request.resource.data.isLeader == true) ||
-            // Joining an existing project via a valid invite code — role/permissions must match
-            // the real role doc (join_project's transaction reads the project's defaultRoleId),
-            // and the referenced role must not be Leader (that's only claimable on project creation).
-            (projectExists(projectId) &&
+            // Joining an existing project via a valid invite code — only for their own uid — role/
+            // permissions must match the real role doc (join_project's transaction reads the
+            // project's defaultRoleId), and the referenced role must not be Leader (that's only
+            // claimable on project creation).
+            (projectExists(projectId) && request.auth.uid == userId &&
               exists(/databases/$(database)/documents/projects/$(projectId)/roles/$(request.resource.data.roleId)) &&
               roleDoc(projectId, request.resource.data.roleId).isLeader == false &&
               request.resource.data.roleName == roleDoc(projectId, request.resource.data.roleId).name &&
               request.resource.data.permissions == roleDoc(projectId, request.resource.data.roleId).permissions &&
-              request.resource.data.isLeader == false)
+              request.resource.data.isLeader == false) ||
+            // Succession's roster copy: the new project's Leader (auth.uid) writes every copied
+            // member doc, not just their own — the one case where request.auth.uid == userId is
+            // deliberately dropped, gated on the caller genuinely being Leader of the project
+            // being succeeded. Can't cross-check roleId against the copied role doc (same-batch
+            // writes evaluate against pre-batch state) — accepted trust boundary, see plan §5.
+            (!projectExists(projectId) &&
+              'predecessorProjectId' in request.resource.data &&
+              hasLeaderRole(request.resource.data.predecessorProjectId))
           );
         // Reassign-role screen: only touches roleId/roleName/permissions, never the member's identity,
         // never the Leader's own membership, and never assigns the Leader role to someone else.

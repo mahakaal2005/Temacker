@@ -75,7 +75,9 @@ async function seedProjectOne() {
     await db.collection("projects").doc(PROJECT_ID_1).set({
       name: "Project One",
       ownerUid: OWNER_UID,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      isArchived: false,
+      predecessorProjectId: null
     });
     await db.collection(`projects/${PROJECT_ID_1}/roles`).doc(LEADER_ROLE_ID).set({
       name: "Leader",
@@ -174,9 +176,36 @@ describe("projects/{projectId}", () => {
     );
   });
 
-  test("update on an existing project is always denied, even for the owner", async () => {
+  test("updating any field other than isArchived is always denied, even for the Leader", async () => {
     await assertFails(
       asLeader().collection("projects").doc(PROJECT_ID_1).update({ name: "Renamed" })
+    );
+  });
+
+  test("the Leader can archive the project (succession)", async () => {
+    await assertSucceeds(
+      asLeader().collection("projects").doc(PROJECT_ID_1).update({ isArchived: true })
+    );
+  });
+
+  test("a non-Leader member cannot archive the project", async () => {
+    await assertFails(
+      asMember().collection("projects").doc(PROJECT_ID_1).update({ isArchived: true })
+    );
+  });
+
+  test("archiving cannot be bundled with another field change", async () => {
+    await assertFails(
+      asLeader().collection("projects").doc(PROJECT_ID_1).update({ isArchived: true, name: "Renamed" })
+    );
+  });
+
+  test("un-archiving is denied", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection("projects").doc(PROJECT_ID_1).update({ isArchived: true });
+    });
+    await assertFails(
+      asLeader().collection("projects").doc(PROJECT_ID_1).update({ isArchived: false })
     );
   });
 
@@ -292,6 +321,39 @@ describe("projects/{projectId}/roles/{roleId}", () => {
   test("the Leader role can never be deleted", async () => {
     await assertFails(
       asLeader().collection(`projects/${PROJECT_ID_1}/roles`).doc(LEADER_ROLE_ID).delete()
+    );
+  });
+
+  test("succession's Leader can copy a custom role (non-bootstrap shape) into a new project", async () => {
+    await assertSucceeds(
+      asLeader().collection("projects/new-cycle/roles").doc("r-manager").set({
+        name: "Manager",
+        permissions: managerPermissions(),
+        isLeader: false,
+        predecessorProjectId: PROJECT_ID_1
+      })
+    );
+  });
+
+  test("succession role copy is denied for someone who isn't the predecessor project's Leader", async () => {
+    await assertFails(
+      asMember().collection("projects/new-cycle-2/roles").doc("r-manager").set({
+        name: "Manager",
+        permissions: managerPermissions(),
+        isLeader: false,
+        predecessorProjectId: PROJECT_ID_1
+      })
+    );
+  });
+
+  test("succession role copy is denied when claiming leadership of a project the caller isn't Leader of", async () => {
+    await assertFails(
+      asOutsider().collection("projects/new-cycle-3/roles").doc("r-manager").set({
+        name: "Manager",
+        permissions: managerPermissions(),
+        isLeader: false,
+        predecessorProjectId: PROJECT_ID_1
+      })
     );
   });
 });
@@ -505,6 +567,63 @@ describe("projects/{projectId}/members/{userId}", () => {
   test("the Leader can never be removed, even by someone with removeMembers", async () => {
     await assertFails(
       asLeader().collection(`projects/${PROJECT_ID_1}/members`).doc(LEADER_UID).delete()
+    );
+  });
+
+  test("succession's Leader can write another member's copied membership doc on the new project", async () => {
+    await assertSucceeds(
+      asLeader()
+        .collection("projects/new-cycle/members")
+        .doc(MEMBER_UID)
+        .set({
+          userId: MEMBER_UID,
+          roleId: "r-default",
+          roleName: "Default",
+          permissions: noPermissions(),
+          displayName: "Regular Member",
+          photoUrl: null,
+          joinedAt: Date.now(),
+          isLeader: false,
+          predecessorProjectId: PROJECT_ID_1
+        })
+    );
+  });
+
+  test("succession member copy is denied for someone who isn't the predecessor project's Leader", async () => {
+    await assertFails(
+      asMember()
+        .collection("projects/new-cycle-2/members")
+        .doc(OUTSIDER_UID)
+        .set({
+          userId: OUTSIDER_UID,
+          roleId: "r-default",
+          roleName: "Default",
+          permissions: noPermissions(),
+          displayName: "Outsider",
+          photoUrl: null,
+          joinedAt: Date.now(),
+          isLeader: false,
+          predecessorProjectId: PROJECT_ID_1
+        })
+    );
+  });
+
+  test("succession member copy is denied when claiming leadership of a project the caller isn't Leader of", async () => {
+    await assertFails(
+      asOutsider()
+        .collection("projects/new-cycle-3/members")
+        .doc(MEMBER_UID)
+        .set({
+          userId: MEMBER_UID,
+          roleId: "r-default",
+          roleName: "Default",
+          permissions: noPermissions(),
+          displayName: "Regular Member",
+          photoUrl: null,
+          joinedAt: Date.now(),
+          isLeader: false,
+          predecessorProjectId: PROJECT_ID_1
+        })
     );
   });
 });
