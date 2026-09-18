@@ -860,7 +860,7 @@ describe("projects/{projectId}/events/{eventId}", () => {
     );
   });
 
-  test("event records cannot be read by clients", async () => {
+  test("a member can read the project's events (Pulse tab)", async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
       await context.firestore().collection(`projects/${PROJECT_ID_1}/events`).doc("event-3").set({
         type: "TASK_DELETED",
@@ -871,6 +871,36 @@ describe("projects/{projectId}/events/{eventId}", () => {
         at: Date.now()
       });
     });
-    await assertFails(asLeader().collection(`projects/${PROJECT_ID_1}/events`).doc("event-3").get());
+    await assertSucceeds(asLeader().collection(`projects/${PROJECT_ID_1}/events`).doc("event-3").get());
+  });
+
+  test("a non-member cannot read the project's events", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection(`projects/${PROJECT_ID_1}/events`).doc("event-4").set({
+        type: "TASK_DELETED",
+        taskId: TASK_ID,
+        taskTitle: "Print vendor quotes",
+        byUid: LEADER_UID,
+        byDisplayName: "Leader Person",
+        at: Date.now()
+      });
+    });
+    await assertFails(asOutsider().collection(`projects/${PROJECT_ID_1}/events`).doc("event-4").get());
+  });
+
+  test("creating an event with an unrecognized type is denied", async () => {
+    await assertFails(
+      asLeader()
+        .collection(`projects/${PROJECT_ID_1}/events`)
+        .doc("event-5")
+        .set({
+          type: "SOMETHING_MADE_UP",
+          taskId: TASK_ID,
+          taskTitle: "Print vendor quotes",
+          byUid: LEADER_UID,
+          byDisplayName: "Leader Person",
+          at: Date.now()
+        })
+    );
   });
 });

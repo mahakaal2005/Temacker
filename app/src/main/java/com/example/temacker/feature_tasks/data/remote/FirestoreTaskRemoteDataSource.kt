@@ -5,15 +5,20 @@ import com.example.temacker.core.data.firebase.snapshots
 import com.example.temacker.core.domain.util.DataError
 import com.example.temacker.core.domain.util.EmptyResult
 import com.example.temacker.core.domain.util.Result
+import com.example.temacker.feature_tasks.data.mapper.eventFirestoreMap
+import com.example.temacker.feature_tasks.data.mapper.toEvent
 import com.example.temacker.feature_tasks.data.mapper.toFirestoreMap
 import com.example.temacker.feature_tasks.data.mapper.toHandoff
 import com.example.temacker.feature_tasks.data.mapper.toTask
+import com.example.temacker.feature_tasks.domain.model.Event
+import com.example.temacker.feature_tasks.domain.model.EventType
 import com.example.temacker.feature_tasks.domain.model.Handoff
 import com.example.temacker.feature_tasks.domain.model.HandoffStatus
 import com.example.temacker.feature_tasks.domain.model.Task
 import com.example.temacker.feature_tasks.domain.model.TaskStatus
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.Query
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
@@ -39,6 +44,13 @@ class FirestoreTaskRemoteDataSource(
 
     override fun observeHandoffs(projectId: String, taskId: String): Flow<List<Handoff>> =
         handoffsRef(projectId, taskId).snapshots().map { snapshot -> snapshot.documents.mapNotNull { it.toHandoff(taskId) } }
+
+    override fun observeEvents(projectId: String, limit: Int): Flow<List<Event>> =
+        eventsRef(projectId)
+            .orderBy("at", Query.Direction.DESCENDING)
+            .limit(limit.toLong())
+            .snapshots()
+            .map { snapshot -> snapshot.documents.mapNotNull { it.toEvent(projectId) } }
 
     override fun observePendingHandoffs(projectId: String, toUid: String): Flow<List<Handoff>> =
         firestore.collectionGroup("handoffs")
@@ -80,7 +92,11 @@ class FirestoreTaskRemoteDataSource(
             createdAt = now,
             updatedAt = now
         )
-        ref.set(task.toFirestoreMap()).await()
+        firestore.batch()
+            .set(ref, task.toFirestoreMap())
+            .set(eventsRef(projectId).document(), eventFirestoreMap(EventType.TASK_CREATED, task.id, title, holderUid, createdByDisplayName))
+            .commit()
+            .await()
         task
     }
 
@@ -98,6 +114,7 @@ class FirestoreTaskRemoteDataSource(
             val fromUid = taskSnap.getString("holderUid")
                 ?: throw FirebaseFirestoreException("Task not found", FirebaseFirestoreException.Code.NOT_FOUND)
             val fromDisplayName = taskSnap.getString("holderDisplayName") ?: fromUid
+            val taskTitle = taskSnap.getString("title") ?: "Untitled task"
             val now = System.currentTimeMillis()
             val handoff = Handoff(
                 id = handoffRef.id,
@@ -113,6 +130,7 @@ class FirestoreTaskRemoteDataSource(
                 respondedAt = null
             )
             txn.set(handoffRef, handoff.toFirestoreMap(projectId))
+            txn.set(eventsRef(projectId).document(), eventFirestoreMap(EventType.HANDOFF_OFFERED, taskId, taskTitle, fromUid, fromDisplayName))
             handoff
         }.await()
     }
@@ -136,6 +154,7 @@ class FirestoreTaskRemoteDataSource(
                 val currentStatus = taskSnap.getString("status")?.let { runCatching { TaskStatus.valueOf(it) }.getOrNull() } ?: TaskStatus.TODO
                 val timesHandedOver = ((taskSnap.getLong("timesHandedOver") ?: 0L) + 1).toInt()
                 val newStatus = if (currentStatus == TaskStatus.TODO) TaskStatus.DOING else currentStatus
+                val taskTitle = taskSnap.getString("title") ?: "Untitled task"
 
                 txn.update(
                     handoffRef,
@@ -151,6 +170,7 @@ class FirestoreTaskRemoteDataSource(
                         "updatedAt" to now
                     )
                 )
+                txn.set(eventsRef(projectId).document(), eventFirestoreMap(EventType.HANDOFF_ACCEPTED, taskId, taskTitle, toUid, toDisplayName))
                 taskSnap.toTask(projectId)?.copy(
                     holderUid = toUid,
                     holderDisplayName = toDisplayName,
@@ -163,6 +183,7 @@ class FirestoreTaskRemoteDataSource(
 
     override suspend fun declineHandoff(projectId: String, taskId: String, handoffId: String, reason: String): Result<Handoff, DataError> =
         safeFirestoreCall {
+            val taskRef = tasksRef(projectId).document(taskId)
             val handoffRef = handoffsRef(projectId, taskId).document(handoffId)
             firestore.runTransaction { txn ->
                 val handoffSnap = txn.get(handoffRef)
@@ -170,23 +191,34 @@ class FirestoreTaskRemoteDataSource(
                 if (status != HandoffStatus.OFFERED.name) {
                     throw FirebaseFirestoreException("Handoff already resolved", FirebaseFirestoreException.Code.FAILED_PRECONDITION)
                 }
+                val toUid = handoffSnap.getString("toUid")
+                    ?: throw FirebaseFirestoreException("Handoff not found", FirebaseFirestoreException.Code.NOT_FOUND)
+                val toDisplayName = handoffSnap.getString("toDisplayName") ?: toUid
+                val taskTitle = txn.get(taskRef).getString("title") ?: "Untitled task"
                 val now = System.currentTimeMillis()
                 txn.update(
                     handoffRef,
                     mapOf("status" to HandoffStatus.DECLINED.name, "declineReason" to reason, "respondedAt" to now)
                 )
+                txn.set(eventsRef(projectId).document(), eventFirestoreMap(EventType.HANDOFF_DECLINED, taskId, taskTitle, toUid, toDisplayName))
                 handoffSnap.toHandoff(taskId)?.copy(status = HandoffStatus.DECLINED, declineReason = reason, respondedAt = now)
                     ?: throw FirebaseFirestoreException("Handoff not found", FirebaseFirestoreException.Code.NOT_FOUND)
             }.await()
         }
 
-    override suspend fun markTaskDone(projectId: String, taskId: String): Result<Task, DataError> = safeFirestoreCall {
-        val taskRef = tasksRef(projectId).document(taskId)
-        val now = System.currentTimeMillis()
-        taskRef.update(mapOf("status" to TaskStatus.DONE.name, "updatedAt" to now)).await()
-        taskRef.get().await().toTask(projectId)
-            ?: throw FirebaseFirestoreException("Task not found", FirebaseFirestoreException.Code.NOT_FOUND)
-    }
+    override suspend fun markTaskDone(projectId: String, taskId: String, byUid: String, byDisplayName: String): Result<Task, DataError> =
+        safeFirestoreCall {
+            val taskRef = tasksRef(projectId).document(taskId)
+            val now = System.currentTimeMillis()
+            val taskTitle = taskRef.get().await().getString("title") ?: "Untitled task"
+            firestore.batch()
+                .update(taskRef, mapOf("status" to TaskStatus.DONE.name, "updatedAt" to now))
+                .set(eventsRef(projectId).document(), eventFirestoreMap(EventType.TASK_MARKED_DONE, taskId, taskTitle, byUid, byDisplayName))
+                .commit()
+                .await()
+            taskRef.get().await().toTask(projectId)
+                ?: throw FirebaseFirestoreException("Task not found", FirebaseFirestoreException.Code.NOT_FOUND)
+        }
 
     // Handoff subcollection docs under the deleted task are not cascade-deleted — same accepted gap
     // as roles/members cascade-delete (specs/office/progress.md, audit item #7): no bulk-delete-by-
@@ -194,23 +226,12 @@ class FirestoreTaskRemoteDataSource(
     override suspend fun deleteTask(projectId: String, taskId: String, byUid: String, byDisplayName: String): EmptyResult<DataError> =
         safeFirestoreCall {
             val taskRef = tasksRef(projectId).document(taskId)
-            val taskSnap = taskRef.get().await()
-            val title = taskSnap.getString("title") ?: "Untitled task"
-            val eventRef = eventsRef(projectId).document()
-            val batch = firestore.batch()
-            batch.delete(taskRef)
-            batch.set(
-                eventRef,
-                mapOf(
-                    "type" to "TASK_DELETED",
-                    "taskId" to taskId,
-                    "taskTitle" to title,
-                    "byUid" to byUid,
-                    "byDisplayName" to byDisplayName,
-                    "at" to System.currentTimeMillis()
-                )
-            )
-            batch.commit().await()
+            val title = taskRef.get().await().getString("title") ?: "Untitled task"
+            firestore.batch()
+                .delete(taskRef)
+                .set(eventsRef(projectId).document(), eventFirestoreMap(EventType.TASK_DELETED, taskId, title, byUid, byDisplayName))
+                .commit()
+                .await()
             Unit
         }
 }

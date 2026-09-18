@@ -88,7 +88,9 @@ class TaskDetailViewModel(
                 _state.update { it.copy(isMenuVisible = false) }
                 viewModelScope.launch {
                     val projectId = currentProjectId ?: return@launch
-                    markTaskDone(projectId, taskId).onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+                    val uid = currentUid ?: return@launch
+                    val displayName = _state.value.task?.holderDisplayName ?: return@launch
+                    markTaskDone(projectId, taskId, uid, displayName).onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
                 }
             }
             TaskDetailAction.OnDeleteClick -> _state.update { it.copy(isMenuVisible = false, isDeleteConfirmVisible = true) }

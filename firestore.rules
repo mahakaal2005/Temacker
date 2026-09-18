@@ -182,9 +182,13 @@ service cloud.firestore {
       }
 
       match /events/{eventId} {
-        // Write-only until Phase 4's Pulse tab needs to read it (specs/office/phase-4-team-truth.md).
-        allow read: if false;
-        allow create: if isMember(projectId) && request.resource.data.byUid == request.auth.uid;
+        // Phase 4's Pulse tab reads this now — member-only, matching every other project subcollection.
+        allow read: if isMember(projectId);
+        allow create: if isMember(projectId) &&
+          request.resource.data.byUid == request.auth.uid &&
+          request.resource.data.type in [
+            'TASK_CREATED', 'TASK_DELETED', 'HANDOFF_OFFERED', 'HANDOFF_ACCEPTED', 'HANDOFF_DECLINED', 'TASK_MARKED_DONE'
+          ];
         allow update, delete: if false;
       }
     }

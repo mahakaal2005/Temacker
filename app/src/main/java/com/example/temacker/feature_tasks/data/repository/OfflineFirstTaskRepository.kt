@@ -115,8 +115,8 @@ class OfflineFirstTaskRepository(
             .onSuccess { handoffDao.upsertAll(listOf(it.toEntity(projectId))) }
             .asEmptyResult()
 
-    override suspend fun markTaskDone(projectId: String, taskId: String): EmptyResult<DataError> =
-        remote.markTaskDone(projectId, taskId)
+    override suspend fun markTaskDone(projectId: String, taskId: String, byUid: String, byDisplayName: String): EmptyResult<DataError> =
+        remote.markTaskDone(projectId, taskId, byUid, byDisplayName)
             .onSuccess { taskDao.upsertAll(listOf(it.toEntity())) }
             .asEmptyResult()
 

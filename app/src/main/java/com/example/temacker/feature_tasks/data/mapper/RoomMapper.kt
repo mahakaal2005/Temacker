@@ -1,7 +1,10 @@
 package com.example.temacker.feature_tasks.data.mapper
 
+import com.example.temacker.core.data.database.EventEntity
 import com.example.temacker.core.data.database.HandoffEntity
 import com.example.temacker.core.data.database.TaskEntity
+import com.example.temacker.feature_tasks.domain.model.Event
+import com.example.temacker.feature_tasks.domain.model.EventType
 import com.example.temacker.feature_tasks.domain.model.Handoff
 import com.example.temacker.feature_tasks.domain.model.HandoffStatus
 import com.example.temacker.feature_tasks.domain.model.Task
@@ -66,4 +69,26 @@ fun HandoffEntity.toDomain() = Handoff(
     declineReason = declineReason,
     offeredAt = offeredAt,
     respondedAt = respondedAt
+)
+
+fun Event.toEntity() = EventEntity(
+    id = id,
+    projectId = projectId,
+    type = type.name,
+    taskId = taskId,
+    taskTitle = taskTitle,
+    byUid = byUid,
+    byDisplayName = byDisplayName,
+    at = at
+)
+
+fun EventEntity.toDomain() = Event(
+    id = id,
+    projectId = projectId,
+    type = EventType.valueOf(type),
+    taskId = taskId,
+    taskTitle = taskTitle,
+    byUid = byUid,
+    byDisplayName = byDisplayName,
+    at = at
 )

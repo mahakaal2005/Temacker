@@ -3,6 +3,7 @@ package com.example.temacker.feature_tasks.data.remote
 import com.example.temacker.core.domain.util.DataError
 import com.example.temacker.core.domain.util.EmptyResult
 import com.example.temacker.core.domain.util.Result
+import com.example.temacker.feature_tasks.domain.model.Event
 import com.example.temacker.feature_tasks.domain.model.Handoff
 import com.example.temacker.feature_tasks.domain.model.Task
 import kotlinx.coroutines.flow.Flow
@@ -12,6 +13,8 @@ interface TaskRemoteDataSource {
     fun observeTask(projectId: String, taskId: String): Flow<Task?>
     fun observeHandoffs(projectId: String, taskId: String): Flow<List<Handoff>>
     fun observePendingHandoffs(projectId: String, toUid: String): Flow<List<Handoff>>
+    // Team "Pulse" tab's activity feed.
+    fun observeEvents(projectId: String, limit: Int): Flow<List<Event>>
 
     suspend fun createTask(
         projectId: String,
@@ -33,6 +36,6 @@ interface TaskRemoteDataSource {
 
     suspend fun acceptHandoff(projectId: String, taskId: String, handoffId: String): Result<Task, DataError>
     suspend fun declineHandoff(projectId: String, taskId: String, handoffId: String, reason: String): Result<Handoff, DataError>
-    suspend fun markTaskDone(projectId: String, taskId: String): Result<Task, DataError>
+    suspend fun markTaskDone(projectId: String, taskId: String, byUid: String, byDisplayName: String): Result<Task, DataError>
     suspend fun deleteTask(projectId: String, taskId: String, byUid: String, byDisplayName: String): EmptyResult<DataError>
 }

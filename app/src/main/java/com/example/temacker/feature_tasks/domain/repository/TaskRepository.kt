@@ -34,6 +34,6 @@ interface TaskRepository {
 
     suspend fun acceptHandoff(projectId: String, taskId: String, handoffId: String): EmptyResult<DataError>
     suspend fun declineHandoff(projectId: String, taskId: String, handoffId: String, reason: String): EmptyResult<DataError>
-    suspend fun markTaskDone(projectId: String, taskId: String): EmptyResult<DataError>
+    suspend fun markTaskDone(projectId: String, taskId: String, byUid: String, byDisplayName: String): EmptyResult<DataError>
     suspend fun deleteTask(projectId: String, taskId: String, byUid: String, byDisplayName: String): EmptyResult<DataError>
 }

@@ -28,6 +28,7 @@ val coreModule = module {
     single { get<AppDatabase>().inviteCodeDao() }
     single { get<AppDatabase>().taskDao() }
     single { get<AppDatabase>().handoffDao() }
+    single { get<AppDatabase>().eventDao() }
 
     single { FirebaseFirestore.getInstance() }
 
