@@ -11,11 +11,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.font.FontWeight
 import com.example.temacker.core.presentation.designsystem.Ink500
 
-// Shared by Home/Roster/Profile — the three Phase 1 bottom-nav destinations (Board joins in Phase 2).
+// Shared by Board/Team/You — Phase 2 renames Home->Board (feature_tasks) and relabels
+// Roster->Team, Profile->You per specs/office/phase-2-board-baton.md.
 enum class AppDestination(val label: String, val glyph: String) {
-    HOME("Home", "H"),
-    ROSTER("Roster", "R"),
-    PROFILE("Profile", "P")
+    BOARD("Board", "B"),
+    TEAM("Team", "T"),
+    YOU("You", "Y")
 }
 
 @Composable

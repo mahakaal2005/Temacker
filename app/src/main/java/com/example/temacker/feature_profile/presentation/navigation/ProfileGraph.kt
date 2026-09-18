@@ -4,17 +4,17 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.example.temacker.feature_profile.presentation.profile.ProfileRoot
 
-// onNavigateToHome/onNavigateToRoster/onNavigateToLogin are callbacks so feature_profile never
-// imports feature_project or feature_auth (architecture §4).
+// onNavigateToBoard/onNavigateToTeam/onNavigateToLogin are callbacks so feature_profile never
+// imports feature_tasks/feature_project/feature_auth (architecture §4).
 fun NavGraphBuilder.profileGraph(
-    onNavigateToHome: () -> Unit,
-    onNavigateToRoster: () -> Unit,
+    onNavigateToBoard: () -> Unit,
+    onNavigateToTeam: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
     composable<ProfileRoute> {
         ProfileRoot(
-            onNavigateToHome = onNavigateToHome,
-            onNavigateToRoster = onNavigateToRoster,
+            onNavigateToBoard = onNavigateToBoard,
+            onNavigateToTeam = onNavigateToTeam,
             onNavigateToLogin = onNavigateToLogin
         )
     }

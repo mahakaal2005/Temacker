@@ -46,8 +46,8 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun ProfileRoot(
-    onNavigateToHome: () -> Unit,
-    onNavigateToRoster: () -> Unit,
+    onNavigateToBoard: () -> Unit,
+    onNavigateToTeam: () -> Unit,
     onNavigateToLogin: () -> Unit,
     viewModel: ProfileViewModel = koinViewModel()
 ) {
@@ -62,8 +62,8 @@ fun ProfileRoot(
     ProfileScreen(
         state = state,
         onAction = viewModel::onAction,
-        onNavigateToHome = onNavigateToHome,
-        onNavigateToRoster = onNavigateToRoster
+        onNavigateToBoard = onNavigateToBoard,
+        onNavigateToTeam = onNavigateToTeam
     )
 }
 
@@ -72,16 +72,16 @@ fun ProfileRoot(
 fun ProfileScreen(
     state: ProfileState,
     onAction: (ProfileAction) -> Unit,
-    onNavigateToHome: () -> Unit,
-    onNavigateToRoster: () -> Unit
+    onNavigateToBoard: () -> Unit,
+    onNavigateToTeam: () -> Unit
 ) {
     AppScaffold(
-        selected = AppDestination.PROFILE,
+        selected = AppDestination.YOU,
         onSelect = { destination ->
             when (destination) {
-                AppDestination.HOME -> onNavigateToHome()
-                AppDestination.ROSTER -> onNavigateToRoster()
-                AppDestination.PROFILE -> Unit
+                AppDestination.BOARD -> onNavigateToBoard()
+                AppDestination.TEAM -> onNavigateToTeam()
+                AppDestination.YOU -> Unit
             }
         }
     ) { padding ->
@@ -231,8 +231,8 @@ private fun ProfileScreenPreview() {
                 isLoading = false
             ),
             onAction = {},
-            onNavigateToHome = {},
-            onNavigateToRoster = {}
+            onNavigateToBoard = {},
+            onNavigateToTeam = {}
         )
     }
 }
@@ -241,7 +241,7 @@ private fun ProfileScreenPreview() {
 @Composable
 private fun ProfileScreenLoadingPreview() {
     TemackerTheme {
-        ProfileScreen(state = ProfileState(isLoading = true), onAction = {}, onNavigateToHome = {}, onNavigateToRoster = {})
+        ProfileScreen(state = ProfileState(isLoading = true), onAction = {}, onNavigateToBoard = {}, onNavigateToTeam = {})
     }
 }
 
@@ -260,8 +260,8 @@ private fun ProfileScreenErrorPreview() {
                 error = UiText.DynamicString("Couldn't sync with the server. Showing your last known data.")
             ),
             onAction = {},
-            onNavigateToHome = {},
-            onNavigateToRoster = {}
+            onNavigateToBoard = {},
+            onNavigateToTeam = {}
         )
     }
 }

@@ -5,6 +5,7 @@ import com.example.temacker.core.di.coreModule
 import com.example.temacker.feature_auth.di.authModule
 import com.example.temacker.feature_profile.di.profileModule
 import com.example.temacker.feature_project.di.projectModule
+import com.example.temacker.feature_tasks.di.tasksModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 
@@ -17,6 +18,7 @@ class App : Application() {
                 coreModule,
                 authModule,
                 projectModule,
+                tasksModule,
                 profileModule
             )
         }

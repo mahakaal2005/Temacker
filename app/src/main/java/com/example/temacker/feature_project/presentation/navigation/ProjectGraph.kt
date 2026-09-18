@@ -5,22 +5,22 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import com.example.temacker.feature_project.presentation.create_project.CreateProjectRoot
 import com.example.temacker.feature_project.presentation.gate.ProjectGateRoot
-import com.example.temacker.feature_project.presentation.home.HomeRoot
 import com.example.temacker.feature_project.presentation.join_project.JoinProjectRoot
 import com.example.temacker.feature_project.presentation.manage_roles.ManageRolesRoot
 import com.example.temacker.feature_project.presentation.no_project.NoProjectRoot
 import com.example.temacker.feature_project.presentation.roster.RosterRoot
 
-// onNavigateToProfile is a callback so feature_project never imports feature_profile (architecture §4).
+// onNavigateToBoard/onNavigateToProfile are callbacks so feature_project never imports
+// feature_tasks/feature_profile (architecture §4). Board is Phase 2's first bottom-nav tab,
+// replacing Home — see specs/office/phase-2-board-baton.md.
 fun NavGraphBuilder.projectGraph(
     navController: NavController,
+    onNavigateToBoard: () -> Unit,
     onNavigateToProfile: () -> Unit
 ) {
     composable<ProjectGateRoute> {
         ProjectGateRoot(
-            onNavigateToHome = {
-                navController.navigate(HomeRoute) { popUpTo(ProjectGateRoute) { inclusive = true } }
-            },
+            onNavigateToHome = onNavigateToBoard,
             onNavigateToNoProject = {
                 navController.navigate(NoProjectRoute) { popUpTo(ProjectGateRoute) { inclusive = true } }
             }
@@ -36,31 +36,20 @@ fun NavGraphBuilder.projectGraph(
     composable<CreateProjectRoute> {
         CreateProjectRoot(
             onNavigateBack = { navController.popBackStack() },
-            onNavigateToHome = {
-                navController.navigate(HomeRoute) { popUpTo(NoProjectRoute) { inclusive = true } }
-            }
+            onNavigateToHome = onNavigateToBoard
         )
     }
     composable<JoinProjectRoute> {
         JoinProjectRoot(
             onNavigateBack = { navController.popBackStack() },
-            onNavigateToHome = {
-                navController.navigate(HomeRoute) { popUpTo(NoProjectRoute) { inclusive = true } }
-            }
-        )
-    }
-    composable<HomeRoute> {
-        HomeRoot(
-            onNavigateToHome = {},
-            onNavigateToRoster = { navController.navigate(RosterRoute) { launchSingleTop = true } },
-            onNavigateToProfile = onNavigateToProfile
+            onNavigateToHome = onNavigateToBoard
         )
     }
     composable<RosterRoute> {
         RosterRoot(
-            onNavigateToHome = { navController.navigate(HomeRoute) { launchSingleTop = true } },
-            onNavigateToRoster = {},
-            onNavigateToProfile = onNavigateToProfile,
+            onNavigateToBoard = onNavigateToBoard,
+            onNavigateToTeam = {},
+            onNavigateToYou = onNavigateToProfile,
             onNavigateToManageRoles = { navController.navigate(ManageRolesRoute) }
         )
     }

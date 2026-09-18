@@ -65,9 +65,9 @@ import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun RosterRoot(
-    onNavigateToHome: () -> Unit,
-    onNavigateToRoster: () -> Unit,
-    onNavigateToProfile: () -> Unit,
+    onNavigateToBoard: () -> Unit,
+    onNavigateToTeam: () -> Unit,
+    onNavigateToYou: () -> Unit,
     onNavigateToManageRoles: () -> Unit,
     viewModel: RosterViewModel = koinViewModel()
 ) {
@@ -88,9 +88,9 @@ fun RosterRoot(
             }
             viewModel.onAction(action)
         },
-        onNavigateToHome = onNavigateToHome,
-        onNavigateToRoster = onNavigateToRoster,
-        onNavigateToProfile = onNavigateToProfile
+        onNavigateToBoard = onNavigateToBoard,
+        onNavigateToTeam = onNavigateToTeam,
+        onNavigateToYou = onNavigateToYou
     )
 }
 
@@ -99,17 +99,17 @@ fun RosterRoot(
 fun RosterScreen(
     state: RosterState,
     onAction: (RosterAction) -> Unit,
-    onNavigateToHome: () -> Unit,
-    onNavigateToRoster: () -> Unit,
-    onNavigateToProfile: () -> Unit
+    onNavigateToBoard: () -> Unit,
+    onNavigateToTeam: () -> Unit,
+    onNavigateToYou: () -> Unit
 ) {
     AppScaffold(
-        selected = AppDestination.ROSTER,
+        selected = AppDestination.TEAM,
         onSelect = { destination ->
             when (destination) {
-                AppDestination.HOME -> onNavigateToHome()
-                AppDestination.ROSTER -> onNavigateToRoster()
-                AppDestination.PROFILE -> onNavigateToProfile()
+                AppDestination.BOARD -> onNavigateToBoard()
+                AppDestination.TEAM -> onNavigateToTeam()
+                AppDestination.YOU -> onNavigateToYou()
             }
         }
     ) { padding ->
@@ -343,9 +343,9 @@ private fun RosterScreenPreview() {
                 )
             ),
             onAction = {},
-            onNavigateToHome = {},
-            onNavigateToRoster = {},
-            onNavigateToProfile = {}
+            onNavigateToBoard = {},
+            onNavigateToTeam = {},
+            onNavigateToYou = {}
         )
     }
 }
@@ -357,9 +357,9 @@ private fun RosterScreenLoadingPreview() {
         RosterScreen(
             state = RosterState(isLoading = true),
             onAction = {},
-            onNavigateToHome = {},
-            onNavigateToRoster = {},
-            onNavigateToProfile = {}
+            onNavigateToBoard = {},
+            onNavigateToTeam = {},
+            onNavigateToYou = {}
         )
     }
 }
@@ -379,9 +379,9 @@ private fun RosterScreenInviteSheetPreview() {
                 inviteCode = "AB12CD34"
             ),
             onAction = {},
-            onNavigateToHome = {},
-            onNavigateToRoster = {},
-            onNavigateToProfile = {}
+            onNavigateToBoard = {},
+            onNavigateToTeam = {},
+            onNavigateToYou = {}
         )
     }
 }
@@ -405,9 +405,9 @@ private fun RosterScreenReassignDialogPreview() {
                 reassignTargetUserId = "u2"
             ),
             onAction = {},
-            onNavigateToHome = {},
-            onNavigateToRoster = {},
-            onNavigateToProfile = {}
+            onNavigateToBoard = {},
+            onNavigateToTeam = {},
+            onNavigateToYou = {}
         )
     }
 }
@@ -427,9 +427,9 @@ private fun RosterScreenErrorPreview() {
                 error = UiText.DynamicString("Couldn't remove member. Check your connection and try again.")
             ),
             onAction = {},
-            onNavigateToHome = {},
-            onNavigateToRoster = {},
-            onNavigateToProfile = {}
+            onNavigateToBoard = {},
+            onNavigateToTeam = {},
+            onNavigateToYou = {}
         )
     }
 }

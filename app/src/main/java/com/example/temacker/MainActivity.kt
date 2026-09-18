@@ -13,10 +13,11 @@ import com.example.temacker.feature_auth.presentation.navigation.SplashRoute
 import com.example.temacker.feature_auth.presentation.navigation.authGraph
 import com.example.temacker.feature_profile.presentation.navigation.ProfileRoute
 import com.example.temacker.feature_profile.presentation.navigation.profileGraph
-import com.example.temacker.feature_project.presentation.navigation.HomeRoute
 import com.example.temacker.feature_project.presentation.navigation.ProjectGateRoute
 import com.example.temacker.feature_project.presentation.navigation.RosterRoute
 import com.example.temacker.feature_project.presentation.navigation.projectGraph
+import com.example.temacker.feature_tasks.presentation.navigation.BoardRoute
+import com.example.temacker.feature_tasks.presentation.navigation.tasksGraph
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,11 +45,17 @@ private fun TemackerApp() {
         )
         projectGraph(
             navController = navController,
+            onNavigateToBoard = { navController.navigate(BoardRoute) { launchSingleTop = true } },
             onNavigateToProfile = { navController.navigate(ProfileRoute) { launchSingleTop = true } }
         )
+        tasksGraph(
+            navController = navController,
+            onNavigateToTeam = { navController.navigate(RosterRoute) { launchSingleTop = true } },
+            onNavigateToYou = { navController.navigate(ProfileRoute) { launchSingleTop = true } }
+        )
         profileGraph(
-            onNavigateToHome = { navController.navigate(HomeRoute) { launchSingleTop = true } },
-            onNavigateToRoster = { navController.navigate(RosterRoute) { launchSingleTop = true } },
+            onNavigateToBoard = { navController.navigate(BoardRoute) { launchSingleTop = true } },
+            onNavigateToTeam = { navController.navigate(RosterRoute) { launchSingleTop = true } },
             onNavigateToLogin = {
                 navController.navigate(LoginRoute) {
                     popUpTo(0) { inclusive = true }
