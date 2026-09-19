@@ -12,6 +12,7 @@ rules_version = '2';
 //                                                     toUid, toDisplayName, note, status, declineReason,
 //                                                     offeredAt, respondedAt
 //   projects/{projectId}/events/{eventId}          — type, taskId, taskTitle, byUid, byDisplayName, at
+//   users/{uid}/fcmTokens/{token}                  — token, updatedAt (owner-only, Phase 3)
 //
 // Known gap: createProjectWithLeader() writes projects/roles/members in one WriteBatch. Firestore
 // evaluates each write in a batch against the pre-batch database state, so the project/role/member
@@ -223,8 +224,10 @@ service cloud.firestore {
     // observePendingHandoffs()'s collectionGroup("handoffs") query spans every task in a project, so
     // the nested rule's isMember(projectId)/taskDoc() checks above are unresolvable per candidate doc
     // (projectId/taskId vary) — same class of issue as the members collectionGroup fix below.
+    // The fromUid branch serves the Inbox's "handoffs I offered" query (Phase 3); both branches are
+    // resource.data-only, so each query is provable from its own filter.
     match /{path=**}/handoffs/{handoffId} {
-      allow list: if resource.data.toUid == request.auth.uid;
+      allow list: if resource.data.toUid == request.auth.uid || resource.data.fromUid == request.auth.uid;
     }
 
     // observeUserProjects()'s collectionGroup("members") query spans all projects, so the nested
@@ -235,6 +238,11 @@ service cloud.firestore {
     // is what actually authorizes that query; the nested block above still governs direct access.
     match /{path=**}/members/{userId} {
       allow list: if resource.data.userId == request.auth.uid;
+    }
+
+    match /users/{uid}/fcmTokens/{token} {
+      // Push tokens are owner-only; Cloud Functions read and prune them via the Admin SDK.
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
     }
 
     match /inviteCodes/{code} {

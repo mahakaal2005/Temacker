@@ -1035,3 +1035,86 @@ describe("projects/{projectId}/events/{eventId}", () => {
     );
   });
 });
+
+describe("Phase 3 — fcmTokens", () => {
+  const tokenDoc = (db, uid, token) => db.collection(`users/${uid}/fcmTokens`).doc(token);
+
+  test("a user can create and read their own token doc", async () => {
+    await assertSucceeds(tokenDoc(asMember(), MEMBER_UID, "tok-1").set({ token: "tok-1", updatedAt: Date.now() }));
+    await assertSucceeds(tokenDoc(asMember(), MEMBER_UID, "tok-1").get());
+  });
+
+  test("a user can delete their own token doc", async () => {
+    await assertSucceeds(tokenDoc(asMember(), MEMBER_UID, "tok-2").set({ token: "tok-2", updatedAt: Date.now() }));
+    await assertSucceeds(tokenDoc(asMember(), MEMBER_UID, "tok-2").delete());
+  });
+
+  test("another user cannot write someone else's token doc", async () => {
+    await assertFails(tokenDoc(asOutsider(), MEMBER_UID, "tok-3").set({ token: "tok-3", updatedAt: Date.now() }));
+  });
+
+  test("another user cannot read someone else's token doc", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection(`users/${MEMBER_UID}/fcmTokens`).doc("tok-4").set({ token: "tok-4", updatedAt: Date.now() });
+    });
+    await assertFails(tokenDoc(asOutsider(), MEMBER_UID, "tok-4").get());
+  });
+
+  test("an unauthenticated caller cannot read or write token docs", async () => {
+    await assertFails(tokenDoc(asUnauthenticated(), MEMBER_UID, "tok-5").set({ token: "tok-5", updatedAt: Date.now() }));
+    await assertFails(tokenDoc(asUnauthenticated(), MEMBER_UID, "tok-5").get());
+  });
+});
+
+describe("collectionGroup('handoffs') queries (Inbox)", () => {
+  const seed = async () => {
+    await seedProjectOne();
+    await seedTask();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context
+        .firestore()
+        .collection(`projects/${PROJECT_ID_1}/tasks/${TASK_ID}/handoffs`)
+        .doc(HANDOFF_ID)
+        .set({
+          projectId: PROJECT_ID_1,
+          fromUid: LEADER_UID,
+          fromDisplayName: "Leader Person",
+          toUid: MEMBER_UID,
+          toDisplayName: "Regular Member",
+          note: null,
+          status: "OFFERED",
+          declineReason: null,
+          offeredAt: Date.now(),
+          respondedAt: null
+        });
+    });
+  };
+
+  test("the recipient can list handoffs offered to them", async () => {
+    await seed();
+    await assertSucceeds(
+      asMember().collectionGroup("handoffs").where("projectId", "==", PROJECT_ID_1).where("toUid", "==", MEMBER_UID).get()
+    );
+  });
+
+  test("the offerer can list handoffs they offered", async () => {
+    await seed();
+    await assertSucceeds(
+      asLeader().collectionGroup("handoffs").where("projectId", "==", PROJECT_ID_1).where("fromUid", "==", LEADER_UID).get()
+    );
+  });
+
+  test("a user cannot list handoffs offered by someone else", async () => {
+    await seed();
+    await assertFails(
+      asMember().collectionGroup("handoffs").where("projectId", "==", PROJECT_ID_1).where("fromUid", "==", LEADER_UID).get()
+    );
+  });
+
+  test("an unauthenticated caller cannot list handoffs", async () => {
+    await seed();
+    await assertFails(
+      asUnauthenticated().collectionGroup("handoffs").where("fromUid", "==", LEADER_UID).get()
+    );
+  });
+});
