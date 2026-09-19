@@ -159,8 +159,12 @@ Load/Stuck/Pulse read already exists and doesn't depend on notifications.
   Not exercised on-device: a custom (non-Leader/Default) role carrying over — covered by rules tests only.
   Found + fixed on-device: pre-Phase-4 member/project docs lack `isLeader`/`isArchived` (commit
   "fix: tolerate pre-Phase-4 docs").
-  Noted, not fixed (out of Phase 4 scope): a stale "This code expired" error banner shows on
-  Board/Team/You at launch; SuccessionScreen's Continue button sits under the keyboard until it is dismissed.
+  The stale "This code expired" banner on every screen was two missing Firestore indexes (members
+  collection-group `userId` exemption, handoffs composite `projectId`+`status`+`toUid`), whose
+  FAILED_PRECONDITION errors `toFirestoreDataError()` maps to CONFLICT and the UI shows as that
+  invite-code text. Now tracked in `firestore.indexes.json` and deployed. Note: CONFLICT's generic
+  message is misleading for non-invite errors — worth a dedicated error mapping later.
+  Noted, not fixed: SuccessionScreen's Continue button sits under the keyboard until it is dismissed.
 
 ## Phase 5 — v1.0, used by others (`phase-5-v1-others.md`)
 - [ ] Invited-member first-run screen
