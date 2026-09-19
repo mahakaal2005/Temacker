@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -61,7 +62,8 @@ fun SuccessionRoot(
 @Composable
 fun SuccessionScreen(state: SuccessionState, onAction: (SuccessionAction) -> Unit) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        // imePadding keeps the Continue button above the keyboard.
+        Column(modifier = Modifier.fillMaxSize().imePadding()) {
             TopAppBar(
                 title = { Text("Start new cycle") },
                 navigationIcon = {

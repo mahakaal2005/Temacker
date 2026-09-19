@@ -2,6 +2,8 @@ package com.example.temacker.feature_project.presentation.join_project
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.temacker.R
+import com.example.temacker.core.domain.util.DataError
 import com.example.temacker.core.domain.util.onFailure
 import com.example.temacker.core.domain.util.onSuccess
 import com.example.temacker.core.presentation.util.UiText
@@ -51,7 +53,11 @@ class JoinProjectViewModel(
 
         joinProject(code, user.displayName, user.photoUrl)
             .onSuccess { _events.send(JoinProjectEvent.NavigateToHome) }
-            .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+            .onFailure { error ->
+                // The join transaction reports a bad/expired code as CONFLICT; everywhere else CONFLICT is generic.
+                val text = if (error == DataError.Network.CONFLICT) UiText.StringResource(R.string.error_invite_code_invalid) else error.toUiText()
+                _state.update { it.copy(error = text) }
+            }
         _state.update { it.copy(isLoading = false) }
     }
 }

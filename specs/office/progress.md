@@ -162,9 +162,10 @@ Load/Stuck/Pulse read already exists and doesn't depend on notifications.
   The stale "This code expired" banner on every screen was two missing Firestore indexes (members
   collection-group `userId` exemption, handoffs composite `projectId`+`status`+`toUid`), whose
   FAILED_PRECONDITION errors `toFirestoreDataError()` maps to CONFLICT and the UI shows as that
-  invite-code text. Now tracked in `firestore.indexes.json` and deployed. Note: CONFLICT's generic
-  message is misleading for non-invite errors — worth a dedicated error mapping later.
-  Noted, not fixed: SuccessionScreen's Continue button sits under the keyboard until it is dismissed.
+  invite-code text. Now tracked in `firestore.indexes.json` and deployed. 
+  Follow-ups fixed: CONFLICT now shows a neutral message (invite-specific text only in `JoinProjectViewModel`);
+  SuccessionScreen uses `imePadding()` so Continue rides above the keyboard (verified on-device).
+  `CreateProjectScreen` has the same button-under-keyboard layout — not touched, out of Phase 4 scope.
 
 ## Phase 5 — v1.0, used by others (`phase-5-v1-others.md`)
 - [ ] Invited-member first-run screen

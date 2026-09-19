@@ -9,7 +9,7 @@ fun DataError.toUiText(): UiText {
         DataError.Network.UNAUTHORIZED -> UiText.StringResource(R.string.error_unauthorized)
         DataError.Network.SERVER_ERROR -> UiText.StringResource(R.string.error_server)
         DataError.Network.PERMISSION_DENIED -> UiText.StringResource(R.string.error_permission_denied)
-        DataError.Network.CONFLICT -> UiText.StringResource(R.string.error_invite_code_invalid)
+        DataError.Network.CONFLICT -> UiText.StringResource(R.string.error_conflict)
         DataError.Network.REQUEST_TIMEOUT -> UiText.StringResource(R.string.error_request_timeout)
         DataError.Network.SERIALIZATION -> UiText.StringResource(R.string.error_serialization)
         DataError.Network.TOO_MANY_REQUESTS -> UiText.StringResource(R.string.error_too_many_requests)
