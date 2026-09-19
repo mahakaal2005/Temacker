@@ -7,6 +7,7 @@ import androidx.navigation.toRoute
 import com.example.temacker.feature_tasks.presentation.board.BoardRoot
 import com.example.temacker.feature_tasks.presentation.decline.DeclineRoot
 import com.example.temacker.feature_tasks.presentation.handoff.HandoffRoot
+import com.example.temacker.feature_tasks.presentation.inbox.InboxRoot
 import com.example.temacker.feature_tasks.presentation.incoming.IncomingRoot
 import com.example.temacker.feature_tasks.presentation.new_task.NewTaskRoot
 import com.example.temacker.feature_tasks.presentation.task_detail.TaskDetailRoot
@@ -20,11 +21,21 @@ fun NavGraphBuilder.tasksGraph(
 ) {
     composable<BoardRoute> {
         BoardRoot(
+            onNavigateToInbox = { navController.navigate(InboxRoute) { launchSingleTop = true } },
             onNavigateToTeam = onNavigateToTeam,
             onNavigateToYou = onNavigateToYou,
             onNavigateToNewTask = { navController.navigate(NewTaskRoute) },
             onNavigateToTaskDetail = { taskId -> navController.navigate(TaskDetailRoute(taskId)) },
             onNavigateToIncoming = { taskId, handoffId -> navController.navigate(IncomingRoute(taskId, handoffId)) }
+        )
+    }
+    composable<InboxRoute> {
+        InboxRoot(
+            onNavigateToBoard = { navController.navigate(BoardRoute) { launchSingleTop = true } },
+            onNavigateToTeam = onNavigateToTeam,
+            onNavigateToYou = onNavigateToYou,
+            onNavigateToIncoming = { taskId, handoffId -> navController.navigate(IncomingRoute(taskId, handoffId)) },
+            onNavigateToTaskDetail = { taskId -> navController.navigate(TaskDetailRoute(taskId)) }
         )
     }
     composable<NewTaskRoute> {

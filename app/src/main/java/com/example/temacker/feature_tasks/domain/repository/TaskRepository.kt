@@ -4,6 +4,7 @@ import com.example.temacker.core.domain.util.DataError
 import com.example.temacker.core.domain.util.EmptyResult
 import com.example.temacker.core.domain.util.Result
 import com.example.temacker.feature_tasks.domain.model.Handoff
+import com.example.temacker.feature_tasks.domain.model.InboxEntry
 import com.example.temacker.feature_tasks.domain.model.Task
 import kotlinx.coroutines.flow.Flow
 
@@ -13,6 +14,8 @@ interface TaskRepository {
     fun observeHandoffTrail(projectId: String, taskId: String): Flow<Result<List<Handoff>, DataError>>
     // Handoffs offered to the currently signed-in user — uid resolved internally via SessionManager.
     fun observePendingHandoffs(projectId: String): Flow<Result<List<Handoff>, DataError>>
+    // Handoffs to or from the signed-in user, each with its task title — Inbox splits them by role.
+    fun observeInbox(projectId: String): Flow<Result<List<InboxEntry>, DataError>>
 
     suspend fun createTask(
         projectId: String,

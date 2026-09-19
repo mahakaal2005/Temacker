@@ -15,6 +15,8 @@ import com.example.temacker.feature_tasks.domain.use_case.ObserveBoardUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveCurrentProjectIdUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveCurrentProjectMemberUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveHandoffTrailUseCase
+import com.example.temacker.feature_tasks.domain.use_case.ObserveInboxBadgeCountUseCase
+import com.example.temacker.feature_tasks.domain.use_case.ObserveInboxUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObservePendingHandoffsUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveProjectMembersUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveTaskUseCase
@@ -22,6 +24,8 @@ import com.example.temacker.feature_tasks.domain.use_case.OfferHandoffUseCase
 import com.example.temacker.feature_tasks.presentation.board.BoardViewModel
 import com.example.temacker.feature_tasks.presentation.decline.DeclineViewModel
 import com.example.temacker.feature_tasks.presentation.handoff.HandoffViewModel
+import com.example.temacker.feature_tasks.presentation.inbox.InboxBadgeViewModel
+import com.example.temacker.feature_tasks.presentation.inbox.InboxViewModel
 import com.example.temacker.feature_tasks.presentation.incoming.IncomingViewModel
 import com.example.temacker.feature_tasks.presentation.new_task.NewTaskViewModel
 import com.example.temacker.feature_tasks.presentation.task_detail.TaskDetailViewModel
@@ -44,6 +48,8 @@ val tasksModule = module {
     factoryOf(::ObserveTaskUseCase)
     factoryOf(::ObserveHandoffTrailUseCase)
     factoryOf(::ObservePendingHandoffsUseCase)
+    factoryOf(::ObserveInboxUseCase)
+    factoryOf(::ObserveInboxBadgeCountUseCase)
     factoryOf(::CreateTaskUseCase)
     factoryOf(::OfferHandoffUseCase)
     factoryOf(::AcceptHandoffUseCase)
@@ -52,6 +58,8 @@ val tasksModule = module {
     factoryOf(::DeleteTaskUseCase)
 
     viewModelOf(::BoardViewModel)
+    viewModelOf(::InboxViewModel)
+    viewModelOf(::InboxBadgeViewModel)
     viewModelOf(::NewTaskViewModel)
     // taskId/handoffId are runtime nav params, not resolvable by constructor reference alone —
     // lambda form is the documented fallback (android-di-koin skill).

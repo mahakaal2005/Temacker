@@ -13,6 +13,7 @@ import com.example.temacker.feature_tasks.data.mapper.toDomain
 import com.example.temacker.feature_tasks.data.mapper.toEntity
 import com.example.temacker.feature_tasks.data.remote.TaskRemoteDataSource
 import com.example.temacker.feature_tasks.domain.model.Handoff
+import com.example.temacker.feature_tasks.domain.model.InboxEntry
 import com.example.temacker.feature_tasks.domain.model.Task
 import com.example.temacker.feature_tasks.domain.repository.TaskRepository
 import kotlinx.coroutines.flow.Flow
@@ -82,6 +83,42 @@ class OfflineFirstTaskRepository(
                 }
         }
         handoffDao.observePendingForUser(projectId, uid).map { it.map { e -> e.toDomain() } }.collect { send(Result.Success(it)) }
+    }
+
+    override fun observeInbox(projectId: String): Flow<Result<List<InboxEntry>, DataError>> = channelFlow {
+        val uid = sessionManager.getUid()
+        if (uid == null) {
+            send(Result.Success(emptyList()))
+            return@channelFlow
+        }
+        launch {
+            remote.observePendingHandoffs(projectId, uid)
+                .catch { e -> send(Result.Error(e.toFirestoreDataError())) }
+                .collect { handoffs ->
+                    handoffDao.upsertAll(handoffs.map { it.toEntity(projectId) })
+                    handoffDao.deleteMissingPendingForUser(projectId, uid, handoffs.map { it.id })
+                }
+        }
+        launch {
+            remote.observeSentHandoffs(projectId, uid)
+                .catch { e -> send(Result.Error(e.toFirestoreDataError())) }
+                .collect { handoffs ->
+                    handoffDao.upsertAll(handoffs.map { it.toEntity(projectId) })
+                    handoffDao.deleteMissingSentByUser(projectId, uid, handoffs.map { it.id })
+                }
+        }
+        // The join needs task titles in Room even when the Board was never opened this session.
+        launch {
+            remote.observeTasks(projectId)
+                .catch { e -> send(Result.Error(e.toFirestoreDataError())) }
+                .collect { tasks ->
+                    taskDao.upsertAll(tasks.map { it.toEntity() })
+                    taskDao.deleteMissing(projectId, tasks.map { it.id })
+                }
+        }
+        handoffDao.observeInbox(projectId, uid)
+            .map { rows -> rows.map { InboxEntry(it.handoff.toDomain(), it.taskTitle) } }
+            .collect { send(Result.Success(it)) }
     }
 
     override suspend fun createTask(

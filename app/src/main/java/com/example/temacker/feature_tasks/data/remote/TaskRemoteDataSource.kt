@@ -13,6 +13,8 @@ interface TaskRemoteDataSource {
     fun observeTask(projectId: String, taskId: String): Flow<Task?>
     fun observeHandoffs(projectId: String, taskId: String): Flow<List<Handoff>>
     fun observePendingHandoffs(projectId: String, toUid: String): Flow<List<Handoff>>
+    // Every handoff I offered, any status — the Inbox's "Earlier" section.
+    fun observeSentHandoffs(projectId: String, fromUid: String): Flow<List<Handoff>>
     // Team "Pulse" tab's activity feed.
     fun observeEvents(projectId: String, limit: Int): Flow<List<Event>>
 

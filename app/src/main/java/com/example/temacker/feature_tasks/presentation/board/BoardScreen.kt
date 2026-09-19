@@ -60,6 +60,7 @@ import java.util.Locale
 
 @Composable
 fun BoardRoot(
+    onNavigateToInbox: () -> Unit,
     onNavigateToTeam: () -> Unit,
     onNavigateToYou: () -> Unit,
     onNavigateToNewTask: () -> Unit,
@@ -80,6 +81,7 @@ fun BoardRoot(
     BoardScreen(
         state = state,
         onAction = viewModel::onAction,
+        onNavigateToInbox = onNavigateToInbox,
         onNavigateToTeam = onNavigateToTeam,
         onNavigateToYou = onNavigateToYou
     )
@@ -90,6 +92,7 @@ fun BoardRoot(
 fun BoardScreen(
     state: BoardState,
     onAction: (BoardAction) -> Unit,
+    onNavigateToInbox: () -> Unit,
     onNavigateToTeam: () -> Unit,
     onNavigateToYou: () -> Unit
 ) {
@@ -98,6 +101,7 @@ fun BoardScreen(
         onSelect = { destination ->
             when (destination) {
                 AppDestination.BOARD -> Unit
+                AppDestination.INBOX -> onNavigateToInbox()
                 AppDestination.TEAM -> onNavigateToTeam()
                 AppDestination.YOU -> onNavigateToYou()
             }
@@ -289,7 +293,7 @@ private fun Task.dueLabel(): String? = dueDate?.let {
 @Composable
 private fun BoardScreenLoadingPreview() {
     TemackerTheme {
-        BoardScreen(state = BoardState(isLoading = true), onAction = {}, onNavigateToTeam = {}, onNavigateToYou = {})
+        BoardScreen(state = BoardState(isLoading = true), onAction = {}, onNavigateToInbox = {}, onNavigateToTeam = {}, onNavigateToYou = {})
     }
 }
 
@@ -300,7 +304,7 @@ private fun BoardScreenEmptyPreview() {
         BoardScreen(
             state = BoardState(isLoading = false, canCreateTask = true, selectedTab = TaskStatus.TODO),
             onAction = {},
-            onNavigateToTeam = {},
+            onNavigateToInbox = {}, onNavigateToTeam = {},
             onNavigateToYou = {},
         )
     }
@@ -324,7 +328,7 @@ private fun BoardScreenWithTasksPreview() {
                 )
             ),
             onAction = {},
-            onNavigateToTeam = {},
+            onNavigateToInbox = {}, onNavigateToTeam = {},
             onNavigateToYou = {},
         )
     }

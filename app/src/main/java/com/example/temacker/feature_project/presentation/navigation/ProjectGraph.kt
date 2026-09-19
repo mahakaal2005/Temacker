@@ -17,6 +17,7 @@ import com.example.temacker.feature_project.presentation.team.TeamRoot
 fun NavGraphBuilder.projectGraph(
     navController: NavController,
     onNavigateToBoard: () -> Unit,
+    onNavigateToInbox: () -> Unit,
     onNavigateToProfile: () -> Unit
 ) {
     composable<ProjectGateRoute> {
@@ -49,6 +50,7 @@ fun NavGraphBuilder.projectGraph(
     composable<TeamRoute> {
         TeamRoot(
             onNavigateToBoard = onNavigateToBoard,
+            onNavigateToInbox = onNavigateToInbox,
             onNavigateToYou = onNavigateToProfile,
             onNavigateToManageRoles = { navController.navigate(ManageRolesRoute) },
             onNavigateToSuccession = { navController.navigate(SuccessionRoute) }

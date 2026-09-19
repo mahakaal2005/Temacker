@@ -8,12 +8,14 @@ import com.example.temacker.feature_profile.presentation.profile.ProfileRoot
 // imports feature_tasks/feature_project/feature_auth (architecture §4).
 fun NavGraphBuilder.profileGraph(
     onNavigateToBoard: () -> Unit,
+    onNavigateToInbox: () -> Unit,
     onNavigateToTeam: () -> Unit,
     onNavigateToLogin: () -> Unit
 ) {
     composable<ProfileRoute> {
         ProfileRoot(
             onNavigateToBoard = onNavigateToBoard,
+            onNavigateToInbox = onNavigateToInbox,
             onNavigateToTeam = onNavigateToTeam,
             onNavigateToLogin = onNavigateToLogin
         )

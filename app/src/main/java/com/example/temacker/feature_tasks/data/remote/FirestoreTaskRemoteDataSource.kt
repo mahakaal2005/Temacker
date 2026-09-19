@@ -19,6 +19,7 @@ import com.example.temacker.feature_tasks.domain.model.TaskStatus
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.QuerySnapshot
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
@@ -58,13 +59,20 @@ class FirestoreTaskRemoteDataSource(
             .whereEqualTo("toUid", toUid)
             .whereEqualTo("status", HandoffStatus.OFFERED.name)
             .snapshots()
-            .map { snapshot ->
-                snapshot.documents.mapNotNull { doc ->
-                    // taskId is the handoff doc's grandparent id (tasks/{taskId}/handoffs/{id}).
-                    val taskId = doc.reference.parent.parent?.id ?: return@mapNotNull null
-                    doc.toHandoff(taskId)
-                }
-            }
+            .map { it.toHandoffs() }
+
+    override fun observeSentHandoffs(projectId: String, fromUid: String): Flow<List<Handoff>> =
+        firestore.collectionGroup("handoffs")
+            .whereEqualTo("projectId", projectId)
+            .whereEqualTo("fromUid", fromUid)
+            .snapshots()
+            .map { it.toHandoffs() }
+
+    // taskId is the handoff doc's grandparent id (tasks/{taskId}/handoffs/{id}).
+    private fun QuerySnapshot.toHandoffs(): List<Handoff> = documents.mapNotNull { doc ->
+        val taskId = doc.reference.parent.parent?.id ?: return@mapNotNull null
+        doc.toHandoff(taskId)
+    }
 
     override suspend fun createTask(
         projectId: String,

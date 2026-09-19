@@ -54,6 +54,7 @@ enum class TeamTab(val label: String) {
 @Composable
 fun TeamRoot(
     onNavigateToBoard: () -> Unit,
+    onNavigateToInbox: () -> Unit,
     onNavigateToYou: () -> Unit,
     onNavigateToManageRoles: () -> Unit,
     onNavigateToSuccession: () -> Unit,
@@ -89,6 +90,7 @@ fun TeamRoot(
         onStuckAction = stuckViewModel::onAction,
         onPulseAction = pulseViewModel::onAction,
         onNavigateToBoard = onNavigateToBoard,
+        onNavigateToInbox = onNavigateToInbox,
         onNavigateToYou = onNavigateToYou,
         onNavigateToSuccession = onNavigateToSuccession
     )
@@ -106,6 +108,7 @@ fun TeamScreen(
     onStuckAction: (StuckAction) -> Unit,
     onPulseAction: (PulseAction) -> Unit,
     onNavigateToBoard: () -> Unit,
+    onNavigateToInbox: () -> Unit,
     onNavigateToYou: () -> Unit,
     onNavigateToSuccession: () -> Unit
 ) {
@@ -116,6 +119,7 @@ fun TeamScreen(
         onSelect = { destination ->
             when (destination) {
                 AppDestination.BOARD -> onNavigateToBoard()
+                AppDestination.INBOX -> onNavigateToInbox()
                 AppDestination.TEAM -> Unit
                 AppDestination.YOU -> onNavigateToYou()
             }
@@ -170,6 +174,7 @@ private fun TeamScreenPreview() {
             onStuckAction = {},
             onPulseAction = {},
             onNavigateToBoard = {},
+            onNavigateToInbox = {},
             onNavigateToYou = {},
             onNavigateToSuccession = {}
         )
@@ -190,6 +195,7 @@ private fun TeamScreenNonLeaderPreview() {
             onStuckAction = {},
             onPulseAction = {},
             onNavigateToBoard = {},
+            onNavigateToInbox = {},
             onNavigateToYou = {},
             onNavigateToSuccession = {}
         )

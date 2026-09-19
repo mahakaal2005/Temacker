@@ -47,6 +47,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun ProfileRoot(
     onNavigateToBoard: () -> Unit,
+    onNavigateToInbox: () -> Unit,
     onNavigateToTeam: () -> Unit,
     onNavigateToLogin: () -> Unit,
     viewModel: ProfileViewModel = koinViewModel()
@@ -63,6 +64,7 @@ fun ProfileRoot(
         state = state,
         onAction = viewModel::onAction,
         onNavigateToBoard = onNavigateToBoard,
+        onNavigateToInbox = onNavigateToInbox,
         onNavigateToTeam = onNavigateToTeam
     )
 }
@@ -73,6 +75,7 @@ fun ProfileScreen(
     state: ProfileState,
     onAction: (ProfileAction) -> Unit,
     onNavigateToBoard: () -> Unit,
+    onNavigateToInbox: () -> Unit,
     onNavigateToTeam: () -> Unit
 ) {
     AppScaffold(
@@ -80,6 +83,7 @@ fun ProfileScreen(
         onSelect = { destination ->
             when (destination) {
                 AppDestination.BOARD -> onNavigateToBoard()
+                AppDestination.INBOX -> onNavigateToInbox()
                 AppDestination.TEAM -> onNavigateToTeam()
                 AppDestination.YOU -> Unit
             }
@@ -231,7 +235,7 @@ private fun ProfileScreenPreview() {
                 isLoading = false
             ),
             onAction = {},
-            onNavigateToBoard = {},
+            onNavigateToBoard = {}, onNavigateToInbox = {},
             onNavigateToTeam = {}
         )
     }
@@ -241,7 +245,7 @@ private fun ProfileScreenPreview() {
 @Composable
 private fun ProfileScreenLoadingPreview() {
     TemackerTheme {
-        ProfileScreen(state = ProfileState(isLoading = true), onAction = {}, onNavigateToBoard = {}, onNavigateToTeam = {})
+        ProfileScreen(state = ProfileState(isLoading = true), onAction = {}, onNavigateToBoard = {}, onNavigateToInbox = {}, onNavigateToTeam = {})
     }
 }
 
@@ -260,7 +264,7 @@ private fun ProfileScreenErrorPreview() {
                 error = UiText.DynamicString("Couldn't sync with the server. Showing your last known data.")
             ),
             onAction = {},
-            onNavigateToBoard = {},
+            onNavigateToBoard = {}, onNavigateToInbox = {},
             onNavigateToTeam = {}
         )
     }
