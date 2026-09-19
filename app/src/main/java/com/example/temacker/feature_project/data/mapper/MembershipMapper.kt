@@ -12,7 +12,8 @@ fun DocumentSnapshot.toMembership(projectId: String): Membership? {
     val displayName = getString("displayName") ?: return null
     val photoUrl = getString("photoUrl")
     val joinedAt = getLong("joinedAt") ?: 0L
-    val isLeader = getBoolean("isLeader") ?: false
+    // Pre-Phase-4 docs have no isLeader field — fall back to the roleName only the real Leader holds.
+    val isLeader = getBoolean("isLeader") ?: (roleName == "Leader")
     return Membership(
         projectId = projectId,
         userId = userId,

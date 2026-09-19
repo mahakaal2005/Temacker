@@ -49,7 +49,9 @@ service cloud.firestore {
     }
 
     function hasLeaderRole(projectId) {
-      return isMember(projectId) && membership(projectId).isLeader == true;
+      // Docs created before Phase 4 have no isLeader field — fall back to the roleName only the real Leader ever holds.
+      return isMember(projectId) &&
+        membership(projectId).get('isLeader', membership(projectId).roleName == 'Leader') == true;
     }
 
     function taskDoc(projectId, taskId) {
@@ -86,7 +88,7 @@ service cloud.firestore {
       // Every other field (including a second archival, or un-archiving) stays immutable.
       allow update: if hasLeaderRole(projectId) &&
         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isArchived']) &&
-        resource.data.isArchived == false &&
+        resource.data.get('isArchived', false) == false &&
         request.resource.data.isArchived == true;
       // No delete-project screen in Phase 1 (spec: create/join only) — deny until that feature exists.
       allow delete: if false;

@@ -188,6 +188,18 @@ describe("projects/{projectId}", () => {
     );
   });
 
+  test("a pre-Phase-4 Leader (no isLeader/isArchived fields on their docs) can still archive", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await db.collection("projects").doc(PROJECT_ID_1).set({ name: "Legacy", ownerUid: OWNER_UID, createdAt: Date.now() });
+      await db.collection(`projects/${PROJECT_ID_1}/members`).doc(LEADER_UID).set({
+        userId: LEADER_UID, roleId: LEADER_ROLE_ID, roleName: "Leader", permissions: fullPermissions(),
+        displayName: "Leader Person", photoUrl: null, joinedAt: Date.now()
+      });
+    });
+    await assertSucceeds(asLeader().collection("projects").doc(PROJECT_ID_1).update({ isArchived: true }));
+  });
+
   test("a non-Leader member cannot archive the project", async () => {
     await assertFails(
       asMember().collection("projects").doc(PROJECT_ID_1).update({ isArchived: true })
