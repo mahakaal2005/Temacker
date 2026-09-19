@@ -4,7 +4,7 @@ Read this first, every session, before touching code — it's the current status
 detail lives in each phase's spec file (`specs/office/phase-N-*.md`); this file only tracks
 done/left. Update it after every session or completed task.
 
-**Current phase: 4 — Truth about the team (implemented and verified on-device, 2026-09-19; unit tests still deferred). Phase 3 in progress (2026-09-19): Steps 0-3 done (spec, backend, Inbox + badge, FCM client + rationale); Step 4 (offline outbox) next — see phase-3-notifications-offline.md for the step list (Phase 4 was pulled forward per explicit user request; see phase-4-team-truth.md's note).**
+**Current phase: 4 — Truth about the team (implemented and verified on-device, 2026-09-19; unit tests still deferred). Phase 3 complete (2026-09-19): notifications + offline outbox built and verified on-device, see phase-3-notifications-offline.md (Phase 4 was pulled forward per explicit user request; see phase-4-team-truth.md's note).**
 
 ## Phase 1 — Auth, projects, roles (`phase-1-auth-projects-roles.md`)
 - [x] Core layer: `Result`/`DataError` (core/domain/util), `SessionManager` interface + DataStore impl, `UiText`/`ObserveAsEvents` (core/presentation/util), `CoreModule` Koin wiring, `App.kt` + `startKoin`. `AppDatabase` deferred until the first Room entity exists (Room rejects `@Database` with zero entities).
@@ -130,7 +130,7 @@ Started 2026-09-19, see `specs/logs/2026-09-19-phase-3-backend-and-inbox.md`.
 - [x] FCM setup + permission rationale screen (Step 3) — verified on device, see `specs/logs/2026-09-19-phase-3-fcm-client.md`
 - [x] Lock-screen notification style (Step 3) — BigText, Accept/Decline, private + public version; all five push types verified on device; lock-screen pixels not eyeballed (One UI hides them; posted notification is private + public version)
 - [x] Inbox nav destination + badge (Step 2) — built, 8 unit tests, verified on-device (waiting/earlier sections, badge, open + accept). Rules/index for the "sent by me" query deployed.
-- [ ] Offline queue screen (WorkManager) (Step 4)
+- [x] Offline queue (WorkManager) (Step 4) — Room v6 outbox, connectivity observer, replayer/worker, Board strip + Queued chip + Undo snackbar, queue screen with Retry/Discard; 46 unit tests; verified on device incl. a forced conflict. See `specs/logs/2026-09-19-phase-3-offline-outbox.md`
 
 ## Phase 4 — Truth about the team (`phase-4-team-truth.md`)
 Built ahead of Phase 3 per explicit user request (2026-09-18) — normally blocked on Phase 3's data
