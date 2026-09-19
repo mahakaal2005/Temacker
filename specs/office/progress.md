@@ -4,7 +4,7 @@ Read this first, every session, before touching code — it's the current status
 detail lives in each phase's spec file (`specs/office/phase-N-*.md`); this file only tracks
 done/left. Update it after every session or completed task.
 
-**Current phase: 4 — Truth about the team (implemented and verified on-device, 2026-09-19; unit tests still deferred). Next: Phase 3 (still unstarted — Phase 4 was pulled forward per explicit user request; see phase-4-team-truth.md's note).**
+**Current phase: 4 — Truth about the team (implemented and verified on-device, 2026-09-19; unit tests still deferred). Phase 3 in progress (2026-09-19): Steps 0-2 done (spec, backend, Inbox + badge); Steps 3-4 (FCM client, offline outbox) next — see phase-3-notifications-offline.md for the step list (Phase 4 was pulled forward per explicit user request; see phase-4-team-truth.md's note).**
 
 ## Phase 1 — Auth, projects, roles (`phase-1-auth-projects-roles.md`)
 - [x] Core layer: `Result`/`DataError` (core/domain/util), `SessionManager` interface + DataStore impl, `UiText`/`ObserveAsEvents` (core/presentation/util), `CoreModule` Koin wiring, `App.kt` + `startKoin`. `AppDatabase` deferred until the first Room entity exists (Room rejects `@Database` with zero entities).
@@ -124,10 +124,13 @@ done/left. Update it after every session or completed task.
   `specs/logs/2026-09-18-invite-code-and-join-rules-fix.md` for the two bug fixes.
 
 ## Phase 3 — Notifications, honest offline (`phase-3-notifications-offline.md`)
-- [ ] FCM setup + permission rationale screen
-- [ ] Lock-screen notification style
-- [ ] Inbox nav destination + badge
-- [ ] Offline queue screen (WorkManager)
+Started 2026-09-19, see `specs/logs/2026-09-19-phase-3-backend-and-inbox.md`.
+- [x] Spec + architecture additions agreed and applied (Step 0).
+- [x] Backend (Step 1): fcmTokens rule + 5 tests, `functions/` (`onHandoffWritten`, `nudgeStaleHandoffs`, 9 Jest tests), nudge index — rules/indexes/functions deployed. **Open:** the functions' runtime service account still needs `roles/datastore.user` + `roles/firebasecloudmessaging.admin` (user to grant); until then the trigger fires but fails PERMISSION_DENIED, so no push is sent.
+- [ ] FCM setup + permission rationale screen (Step 3)
+- [ ] Lock-screen notification style (Step 3)
+- [x] Inbox nav destination + badge (Step 2) — built, 8 unit tests, verified on-device (waiting/earlier sections, badge, open + accept). Rules/index for the "sent by me" query deployed.
+- [ ] Offline queue screen (WorkManager) (Step 4)
 
 ## Phase 4 — Truth about the team (`phase-4-team-truth.md`)
 Built ahead of Phase 3 per explicit user request (2026-09-18) — normally blocked on Phase 3's data
