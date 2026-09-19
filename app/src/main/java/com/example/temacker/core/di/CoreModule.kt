@@ -8,8 +8,10 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
 import com.example.temacker.core.data.activity.CurrentActivityHolder
 import com.example.temacker.core.data.database.AppDatabase
+import com.example.temacker.core.data.network.AndroidConnectivityObserver
 import com.example.temacker.core.data.notification.FirebaseFcmTokenRegistrar
 import com.example.temacker.core.data.session.DataStoreSessionManager
+import com.example.temacker.core.domain.network.ConnectivityObserver
 import com.example.temacker.core.domain.notification.PushTokenRegistrar
 import com.example.temacker.core.domain.session.SessionManager
 import com.google.firebase.auth.FirebaseAuth
@@ -32,6 +34,7 @@ val coreModule = module {
     single { get<AppDatabase>().taskDao() }
     single { get<AppDatabase>().handoffDao() }
     single { get<AppDatabase>().eventDao() }
+    single { get<AppDatabase>().pendingWriteDao() }
 
     single { FirebaseFirestore.getInstance() }
 
@@ -41,6 +44,8 @@ val coreModule = module {
         }
     }
     singleOf(::DataStoreSessionManager) { bind<SessionManager>() }
+
+    singleOf(::AndroidConnectivityObserver) { bind<ConnectivityObserver>() }
 
     single { FirebaseAuth.getInstance() }
     single { FirebaseMessaging.getInstance() }

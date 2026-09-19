@@ -36,6 +36,9 @@ interface TaskDao {
     @Query("SELECT * FROM tasks WHERE id = :taskId")
     fun observeOne(taskId: String): Flow<TaskEntity?>
 
+    @Query("SELECT title FROM tasks WHERE id = :taskId")
+    suspend fun getTitle(taskId: String): String?
+
     @Query("DELETE FROM tasks WHERE id = :taskId")
     suspend fun delete(taskId: String)
 

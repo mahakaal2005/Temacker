@@ -11,6 +11,7 @@ import com.example.temacker.feature_tasks.presentation.inbox.InboxRoot
 import com.example.temacker.feature_tasks.presentation.incoming.IncomingRoot
 import com.example.temacker.feature_tasks.presentation.new_task.NewTaskRoot
 import com.example.temacker.feature_tasks.presentation.notification_rationale.NotificationRationaleRoot
+import com.example.temacker.feature_tasks.presentation.queue.QueueRoot
 import com.example.temacker.feature_tasks.presentation.task_detail.TaskDetailRoot
 
 // onNavigateToTeam/onNavigateToYou are callbacks so feature_tasks never imports
@@ -27,8 +28,12 @@ fun NavGraphBuilder.tasksGraph(
             onNavigateToYou = onNavigateToYou,
             onNavigateToNewTask = { navController.navigate(NewTaskRoute) },
             onNavigateToTaskDetail = { taskId -> navController.navigate(TaskDetailRoute(taskId)) },
-            onNavigateToIncoming = { taskId, handoffId -> navController.navigate(IncomingRoute(taskId, handoffId)) }
+            onNavigateToIncoming = { taskId, handoffId -> navController.navigate(IncomingRoute(taskId, handoffId)) },
+            onNavigateToQueue = { navController.navigate(QueueRoute) { launchSingleTop = true } }
         )
+    }
+    composable<QueueRoute> {
+        QueueRoot(onNavigateBack = { navController.popBackStack() })
     }
     composable<InboxRoute> {
         InboxRoot(

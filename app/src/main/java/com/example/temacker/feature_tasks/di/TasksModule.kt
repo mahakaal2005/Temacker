@@ -3,9 +3,19 @@ package com.example.temacker.feature_tasks.di
 import com.example.temacker.core.domain.repository.TeamInsightsProvider
 import com.example.temacker.feature_tasks.data.remote.FirestoreTaskRemoteDataSource
 import com.example.temacker.feature_tasks.data.remote.TaskRemoteDataSource
+import com.example.temacker.feature_tasks.data.repository.OfflineFirstPendingWriteRepository
 import com.example.temacker.feature_tasks.data.repository.OfflineFirstTaskRepository
 import com.example.temacker.feature_tasks.data.repository.TaskTeamInsightsProvider
+import com.example.temacker.feature_tasks.data.worker.PendingWriteReplayer
+import com.example.temacker.feature_tasks.data.worker.PendingWriteScheduler
+import com.example.temacker.feature_tasks.data.worker.WorkManagerPendingWriteScheduler
+import com.example.temacker.feature_tasks.domain.repository.PendingWriteRepository
 import com.example.temacker.feature_tasks.domain.repository.TaskRepository
+import com.example.temacker.feature_tasks.domain.use_case.DiscardPendingWriteUseCase
+import com.example.temacker.feature_tasks.domain.use_case.ObserveConnectivityUseCase
+import com.example.temacker.feature_tasks.domain.use_case.ObservePendingWritesUseCase
+import com.example.temacker.feature_tasks.domain.use_case.RetryPendingWriteUseCase
+import org.koin.android.ext.koin.androidContext
 import com.example.temacker.feature_tasks.domain.use_case.AcceptHandoffUseCase
 import com.example.temacker.feature_tasks.domain.use_case.CreateTaskUseCase
 import com.example.temacker.feature_tasks.domain.use_case.DeclineHandoffUseCase
@@ -28,6 +38,7 @@ import com.example.temacker.feature_tasks.presentation.inbox.InboxBadgeViewModel
 import com.example.temacker.feature_tasks.presentation.inbox.InboxViewModel
 import com.example.temacker.feature_tasks.presentation.incoming.IncomingViewModel
 import com.example.temacker.feature_tasks.presentation.new_task.NewTaskViewModel
+import com.example.temacker.feature_tasks.presentation.queue.QueueViewModel
 import com.example.temacker.feature_tasks.presentation.task_detail.TaskDetailViewModel
 import org.koin.core.module.dsl.bind
 import com.example.temacker.feature_tasks.data.repository.DataStoreNotificationRationaleRepository
@@ -45,10 +56,17 @@ import org.koin.dsl.module
 val tasksModule = module {
     singleOf(::FirestoreTaskRemoteDataSource) { bind<TaskRemoteDataSource>() }
     singleOf(::OfflineFirstTaskRepository) { bind<TaskRepository>() }
+    singleOf(::OfflineFirstPendingWriteRepository) { bind<PendingWriteRepository>() }
+    single<PendingWriteScheduler> { WorkManagerPendingWriteScheduler(androidContext()) }
+    singleOf(::PendingWriteReplayer)
     singleOf(::DataStoreNotificationRationaleRepository) { bind<NotificationRationaleRepository>() }
     singleOf(::TaskTeamInsightsProvider) { bind<TeamInsightsProvider>() }
 
     factoryOf(::ObserveCurrentProjectIdUseCase)
+    factoryOf(::ObserveConnectivityUseCase)
+    factoryOf(::ObservePendingWritesUseCase)
+    factoryOf(::RetryPendingWriteUseCase)
+    factoryOf(::DiscardPendingWriteUseCase)
     factoryOf(::ObserveCurrentProjectMemberUseCase)
     factoryOf(::ObserveProjectMembersUseCase)
     factoryOf(::ObserveBoardUseCase)
@@ -68,6 +86,7 @@ val tasksModule = module {
 
     viewModelOf(::BoardViewModel)
     viewModelOf(::InboxViewModel)
+    viewModelOf(::QueueViewModel)
     viewModelOf(::InboxBadgeViewModel)
     viewModelOf(::NotificationRationaleGateViewModel)
     viewModelOf(::NotificationRationaleViewModel)

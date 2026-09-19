@@ -81,9 +81,11 @@ class FirestoreTaskRemoteDataSource(
         dueDate: Long?,
         holderUid: String,
         holderDisplayName: String,
-        createdByDisplayName: String
+        createdByDisplayName: String,
+        taskId: String?
     ): Result<Task, DataError> = safeFirestoreCall {
-        val ref = tasksRef(projectId).document()
+        // A queued create carries its own id so a replay overwrites the same doc instead of duplicating it.
+        val ref = taskId?.let { tasksRef(projectId).document(it) } ?: tasksRef(projectId).document()
         val now = System.currentTimeMillis()
         val task = Task(
             id = ref.id,

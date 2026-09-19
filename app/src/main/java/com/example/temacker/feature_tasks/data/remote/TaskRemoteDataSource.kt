@@ -25,7 +25,8 @@ interface TaskRemoteDataSource {
         dueDate: Long?,
         holderUid: String,
         holderDisplayName: String,
-        createdByDisplayName: String
+        createdByDisplayName: String,
+        taskId: String? = null
     ): Result<Task, DataError>
 
     suspend fun offerHandoff(

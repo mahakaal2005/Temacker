@@ -23,6 +23,10 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -32,7 +36,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -51,6 +57,9 @@ import com.example.temacker.core.presentation.designsystem.TealWash
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import com.example.temacker.core.presentation.util.ObserveAsEvents
 import com.example.temacker.feature_tasks.domain.model.Handoff
+import com.example.temacker.feature_tasks.domain.model.PendingWrite
+import com.example.temacker.feature_tasks.domain.model.PendingWriteStatus
+import com.example.temacker.feature_tasks.domain.model.PendingWriteType
 import com.example.temacker.feature_tasks.domain.model.Task
 import com.example.temacker.feature_tasks.domain.model.TaskStatus
 import org.koin.androidx.compose.koinViewModel
@@ -66,6 +75,7 @@ fun BoardRoot(
     onNavigateToNewTask: () -> Unit,
     onNavigateToTaskDetail: (String) -> Unit,
     onNavigateToIncoming: (String, String) -> Unit,
+    onNavigateToQueue: () -> Unit,
     viewModel: BoardViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -73,6 +83,7 @@ fun BoardRoot(
     ObserveAsEvents(viewModel.events) { event ->
         when (event) {
             BoardEvent.NavigateToNewTask -> onNavigateToNewTask()
+            BoardEvent.NavigateToQueue -> onNavigateToQueue()
             is BoardEvent.NavigateToTaskDetail -> onNavigateToTaskDetail(event.taskId)
             is BoardEvent.NavigateToIncoming -> onNavigateToIncoming(event.taskId, event.handoffId)
         }
@@ -96,8 +107,20 @@ fun BoardScreen(
     onNavigateToTeam: () -> Unit,
     onNavigateToYou: () -> Unit
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
+    // Undo is offered while the notice is showing; either way the notice is cleared afterwards.
+    LaunchedEffect(state.queuedNotice) {
+        val notice = state.queuedNotice ?: return@LaunchedEffect
+        val result = snackbarHostState.showSnackbar(
+            message = "Queued. It sends when you're online.",
+            actionLabel = "Undo",
+            duration = SnackbarDuration.Long
+        )
+        if (result == SnackbarResult.ActionPerformed) onAction(BoardAction.OnQueuedUndo(notice.writeId)) else onAction(BoardAction.OnQueuedNoticeDismissed)
+    }
     AppScaffold(
         selected = AppDestination.BOARD,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         onSelect = { destination ->
             when (destination) {
                 AppDestination.BOARD -> Unit
@@ -129,10 +152,11 @@ fun BoardScreen(
                     }
                 }
 
+                val boardTasks = state.boardTasks()
                 val tabs = TaskStatus.entries.toList()
                 TabRow(selectedTabIndex = tabs.indexOf(state.selectedTab)) {
                     tabs.forEach { status ->
-                        val count = state.tasks.count { it.status == status }
+                        val count = boardTasks.count { it.status == status }
                         Tab(
                             selected = state.selectedTab == status && !state.isFilteredToPending,
                             onClick = { onAction(BoardAction.OnTabSelected(status)) },
@@ -140,6 +164,12 @@ fun BoardScreen(
                         )
                     }
                 }
+
+                syncStrip(
+                    isOnline = state.isOnline,
+                    queued = state.pendingWrites.count { it.status == PendingWriteStatus.PENDING },
+                    failed = state.pendingWrites.count { it.status == PendingWriteStatus.FAILED }
+                )?.let { SyncStripRow(it, isOffline = !state.isOnline, onClick = { onAction(BoardAction.OnSyncStripClick) }) }
 
                 if (state.pendingHandoffs.isNotEmpty()) {
                     WaitingOnYouStrip(
@@ -156,19 +186,22 @@ fun BoardScreen(
                 } else {
                     val visibleTasks = if (state.isFilteredToPending) {
                         val pendingTaskIds = state.pendingHandoffs.map { it.taskId }.toSet()
-                        state.tasks.filter { it.id in pendingTaskIds }
+                        boardTasks.filter { it.id in pendingTaskIds }
                     } else {
-                        state.tasks.filter { it.status == state.selectedTab }
+                        boardTasks.filter { it.status == state.selectedTab }
                     }
                     if (visibleTasks.isEmpty()) {
                         BoardEmptyState(canCreateTask = state.canCreateTask, onAddClick = { onAction(BoardAction.OnFabClick) })
                     } else {
                         LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
                             items(visibleTasks, key = { it.id }) { task ->
-                                val pendingHandoff = state.pendingHandoffs.firstOrNull { it.taskId == task.id }
+                                val sync = state.pendingWrites.syncStateOf(task.id)
+                                // A queued answer already exists for this offer, so it is no longer "for you".
+                                val pendingHandoff = state.pendingHandoffs.firstOrNull { it.taskId == task.id }.takeIf { sync == null }
                                 TaskCard(
                                     task = task,
                                     isOfferedToYou = pendingHandoff != null,
+                                    sync = sync,
                                     onClick = {
                                         if (pendingHandoff != null) {
                                             onAction(BoardAction.OnIncomingTaskClick(task.id, pendingHandoff.id))
@@ -230,7 +263,7 @@ private fun WaitingOnYouStrip(count: Int, isActive: Boolean, onClick: () -> Unit
 private fun Modifier.clickableRow(onClick: () -> Unit): Modifier = this.clickable(onClick = onClick)
 
 @Composable
-private fun TaskCard(task: Task, isOfferedToYou: Boolean, onClick: () -> Unit) {
+private fun TaskCard(task: Task, isOfferedToYou: Boolean, sync: TaskSyncState?, onClick: () -> Unit) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
@@ -244,6 +277,8 @@ private fun TaskCard(task: Task, isOfferedToYou: Boolean, onClick: () -> Unit) {
                     Surface(color = AmberWash, shape = MaterialTheme.shapes.small) {
                         Text("For you", style = MaterialTheme.typography.labelSmall, color = AmberInk, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                     }
+                } else if (sync != null) {
+                    SyncChip(sync)
                 } else {
                     task.dueLabel()?.let { due ->
                         Text(due, style = MaterialTheme.typography.labelSmall, color = Ink500)
@@ -264,6 +299,34 @@ private fun TaskCard(task: Task, isOfferedToYou: Boolean, onClick: () -> Unit) {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun SyncStripRow(strip: SyncStrip, isOffline: Boolean, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        color = if (isOffline) MaterialTheme.colorScheme.surfaceVariant else AmberWash,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+        shape = MaterialTheme.shapes.small
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Text(strip.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Text(strip.detail, style = MaterialTheme.typography.bodySmall, color = Ink500)
+        }
+    }
+}
+
+@Composable
+private fun SyncChip(sync: TaskSyncState) {
+    val failed = sync == TaskSyncState.NOT_SENT
+    Surface(color = if (failed) MaterialTheme.colorScheme.errorContainer else AmberWash, shape = MaterialTheme.shapes.small) {
+        Text(
+            text = if (failed) "Not sent" else "Queued",
+            style = MaterialTheme.typography.labelSmall,
+            color = if (failed) MaterialTheme.colorScheme.onErrorContainer else AmberInk,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        )
     }
 }
 
@@ -330,6 +393,67 @@ private fun BoardScreenWithTasksPreview() {
             onAction = {},
             onNavigateToInbox = {}, onNavigateToTeam = {},
             onNavigateToYou = {},
+        )
+    }
+}
+
+private val previewTask = Task("t1", "p1", "Sponsor deck — final pass", null, "u2", "Mei-Ling Chow", TaskStatus.TODO, null, 3, "u1", "Priya Raman", 0, 0)
+
+private fun previewWrite(id: Long, type: PendingWriteType, taskId: String, status: PendingWriteStatus, draft: Task? = null) =
+    PendingWrite(id, type, "p1", taskId, "Sponsor deck — final pass", status, 0, null, id, draft)
+
+@Preview(showBackground = true)
+@Composable
+private fun BoardScreenOfflinePreview() {
+    TemackerTheme {
+        BoardScreen(
+            state = BoardState(isLoading = false, isOnline = false, canCreateTask = true, tasks = listOf(previewTask)),
+            onAction = {}, onNavigateToInbox = {}, onNavigateToTeam = {}, onNavigateToYou = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun BoardScreenOfflineQueuedPreview() {
+    TemackerTheme {
+        BoardScreen(
+            state = BoardState(
+                isLoading = false, isOnline = false, canCreateTask = true, tasks = listOf(previewTask),
+                pendingWrites = listOf(
+                    previewWrite(1, PendingWriteType.MARK_DONE, "t1", PendingWriteStatus.PENDING),
+                    previewWrite(2, PendingWriteType.CREATE_TASK, "t2", PendingWriteStatus.PENDING, previewTask.copy(id = "t2", title = "Book the venue", holderDisplayName = "You"))
+                )
+            ),
+            onAction = {}, onNavigateToInbox = {}, onNavigateToTeam = {}, onNavigateToYou = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun BoardScreenSendingPreview() {
+    TemackerTheme {
+        BoardScreen(
+            state = BoardState(
+                isLoading = false, tasks = listOf(previewTask),
+                pendingWrites = listOf(previewWrite(1, PendingWriteType.MARK_DONE, "t1", PendingWriteStatus.PENDING))
+            ),
+            onAction = {}, onNavigateToInbox = {}, onNavigateToTeam = {}, onNavigateToYou = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun BoardScreenFailedPreview() {
+    TemackerTheme {
+        BoardScreen(
+            state = BoardState(
+                isLoading = false, tasks = listOf(previewTask),
+                pendingWrites = listOf(previewWrite(1, PendingWriteType.ACCEPT, "t1", PendingWriteStatus.FAILED))
+            ),
+            onAction = {}, onNavigateToInbox = {}, onNavigateToTeam = {}, onNavigateToYou = {}
         )
     }
 }
