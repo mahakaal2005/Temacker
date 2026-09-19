@@ -151,10 +151,15 @@ Load/Stuck/Pulse read already exists and doesn't depend on notifications.
   matching the explicit precedent set in Phase 1/2 (rules tests + preview coverage only). If this
   should change for Phase 4 specifically, say so — the plan flagged this as an open question that was
   never explicitly answered.
-- [ ] **On-device golden path not yet run** — no emulator/device was available this session. Needs:
-  succession as Leader (old project disappears, custom-role roster carries over), Load/Stuck/Pulse
-  populated from real Phase 2 handoff history, non-Leader cannot see/trigger Succession. Don't trust
-  this phase as done until that's run — see CLAUDE.md rule 16.
+- [~] On-device golden path (physical device, signed in as the non-Leader member, 2026-09-19):
+  verified — Room v3→v5 migration, Roster/Load/Stuck/Pulse tabs render real data, new events
+  (`TASK_MARKED_DONE`) write under the deployed rules and appear in Pulse, Succession affordance hidden
+  for a non-Leader, legacy Leader doc now reads as Leader. Rules deployed to `temacker-a0252`.
+  **Still unverified:** the Leader-side flow (Succession icon → name → confirm → old project archived,
+  roster incl. custom roles carried to new project) — needs the Leader account signed in on a device.
+  Found + fixed on-device: pre-Phase-4 member/project docs lack `isLeader`/`isArchived` (see commit
+  "fix: tolerate pre-Phase-4 docs"). Noted, not Phase 4: a stale "This code expired" error banner shows
+  on Board/Roster at launch.
 
 ## Phase 5 — v1.0, used by others (`phase-5-v1-others.md`)
 - [ ] Invited-member first-run screen
