@@ -23,7 +23,9 @@ Package: `com.example.temacker` (existing scaffold namespace/applicationId — k
 | Local cache | **Room** (single source of truth) | Full offline-first; UI never observes the network directly. |
 | Key/value + tokens | **Jetpack DataStore** | Async, Flow-based; backs the `SessionManager` contract. |
 | Navigation | **Navigation-Compose** (type-safe routes) | One nav graph, role/state-driven. |
-| Background sync | **WorkManager** | Retryable writes when Firestore writes fail offline. |
+| Background sync | **WorkManager** | Retryable writes when Firestore writes fail offline (outbox, §7). |
+| Push (Phase 3) | **Firebase Cloud Messaging** | Handoff pings. Data-only messages so the app builds the notification (actions, styling). |
+| Push triggers (Phase 3) | **Cloud Functions (Node/TypeScript, Admin SDK)** | Send FCM on handoff changes + the 18h nudge. Lives in `functions/` at repo root — a deployable outside the Android package tree, not an app module. |
 | Async | Coroutines + Flow | — |
 
 **Single-module rule:** one `:app` Gradle module, no per-feature Gradle modules. We get multi-module
@@ -143,8 +145,10 @@ com.example.temacker/
 │
 ├── feature_tasks/                  <-- Phase 2+. Same shape.
 │   ├── domain/ …
-│   ├── data/ …
-│   ├── presentation/ …
+│   ├── data/ …                     <-- Phase 3 adds notification/ (messaging service, builder, Accept
+│   │                                   receiver) and worker/ (PendingWriteWorker)
+│   ├── presentation/ …             <-- Phase 3 adds inbox/ and queue/
+│   │                                   (core/data also gains notification/ for the token registrar)
 │   └── di/
 │       └── TasksModule.kt
 │
@@ -367,9 +371,19 @@ Firestore **snapshot listeners** feed incoming remote changes (from other member
 Room, so the UI's `Flow` updates automatically without polling. Caching/sync logic lives 100% in
 `data/repository/`. Domain and Presentation don't know it exists.
 
-### Retryable writes → WorkManager
+### Retryable writes → WorkManager (outbox, Phase 3)
 A write that fails while offline is queued via WorkManager and retried when connectivity returns,
-rather than silently dropped.
+rather than silently dropped. Firestore's own persistence queues plain writes but not transactions;
+offer/accept/decline are transactional, hence an explicit outbox:
+
+- **Queueable writes:** create task, offer, accept, decline, mark done. Delete stays online-only.
+- **Storage:** local-only Room table `PendingWriteEntity` (`type`, `payload`, `status` `PENDING`/`FAILED`,
+  `attempts`, `lastError`, `createdAt`). Never a Firestore collection.
+- **Routing:** on `DataError.Network.NO_INTERNET` the repository writes the outbox row and enqueues a
+  `CONNECTED`-constrained worker; the worker replays through the same transactional data-source path.
+- **Replay conflicts:** a replay rejected on validation (e.g. the holder changed meanwhile) becomes
+  `FAILED` with a reason and is surfaced on the queue screen (Retry/Discard). It is never silently dropped
+  and the UI never shows a queued write as succeeded.
 
 ### Tokens / session → DataStore
 "Am I logged in" and cached uid live in **DataStore** (async, Flow-based), exposed app-wide through
@@ -460,6 +474,14 @@ them to `TaskRepository`'s public interface would leak Team-screen-specific shap
 contract. `observePulse()` runs its own Firestore→Room sync `channelFlow` (same shape as
 `OfflineFirstTaskRepository.observeBoard()`) rather than a redundant `OfflineFirstEventRepository` for
 a feed only Pulse consumes.
+
+**Fifth and sixth contracts (Phase 3):** both live in `core/domain`, implemented in `core/data`, bound in
+`CoreModule.kt`.
+- `PushTokenRegistrar` — `register()` on sign-in / `onNewToken`, `unregister()` on sign-out (writes/deletes
+  `users/{uid}/fcmTokens/{token}`). Lets `feature_auth` and `feature_tasks`' messaging service share it
+  without importing each other.
+- `ConnectivityObserver` — `observeIsOnline(): Flow<Boolean>` over `ConnectivityManager`, consumed by the
+  Board's offline strip and the outbox.
 
 ---
 
@@ -642,6 +664,12 @@ spot.
   `TASK_MARKED_DONE`), `taskId`, `taskTitle` (denormalized), `byUid`, `byDisplayName`, `at`. **Phase 4
   update:** now mirrored to Room (`EventEntity`/`EventDao`) and read by the Pulse tab — the original
   "no Room mirror, fire-and-forget" design held only while events were write-only.
+- **Handoff `nudgedAt`** (Phase 3, nullable, set only by the Cloud Function) — stamped once the 18h
+  stale-baton nudge is sent. Docs created earlier lack it; the function filters it in code rather than
+  querying `== null`, which would not match missing fields.
+- **FcmToken** (`users/{uid}/fcmTokens/{token}`, Phase 3) — doc id is the token; fields `token`,
+  `updatedAt`. Owner-only; read by Cloud Functions via the Admin SDK, which prunes unregistered tokens.
+- **PendingWrite** (Phase 3) — local-only Room table for the offline outbox (§7). No Firestore mirror.
 
 ## Firestore Security Rules
 
@@ -660,6 +688,10 @@ spot.
   `allow create` blocks for the exact conditions, and their header comment for the accepted trust
   boundary (same-batch writes can't cross-validate each other's data, so the copied `roleId` on a
   member doc can't be checked against the sibling role doc created in the same batch).
+
+- **Phase 3 — push tokens:** `users/{uid}/fcmTokens/{token}` is readable and writable only by
+  `request.auth.uid == uid`. Cloud Functions bypass rules via the Admin SDK, so the `nudgedAt` stamp
+  needs no client-facing rule.
 
 ## Feature ↔ Package Mapping
 
@@ -695,3 +727,5 @@ Each phase gets its own spec in `specs/office/` before implementation starts (CL
 |---|---|
 | Unit tests | JUnit5, Turbine, AssertK, `kotlinx-coroutines-test` |
 | UI tests | `ComposeTestRule` |
+| Firestore rules | Emulator + Jest (`npm run test:rules`) |
+| Cloud Functions (Phase 3) | Jest on pure logic (recipient selection, payload building, nudge cutoff) |
