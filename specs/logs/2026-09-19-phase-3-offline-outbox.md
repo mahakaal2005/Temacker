@@ -26,6 +26,7 @@
 - Snackbar Undo: tapping it removed the queued create and the queue emptied.
 - Notification Accept while offline: toast "Saved on this phone. It sends when you're back online.", notification cleared; after reconnect the handoff was ACCEPTED and the task held by Rudra (DOING).
 - Lock screen (adb screenshot of the keyguard): the Temacker notification shows collapsed with no task title or note, so private details stay hidden. The expanded public text was not captured (screen timed out).
+- Lock screen, re-checked twice: Temacker shows only the app name and time, with no task title or note. Expanding it over adb isn't possible on this One UI (a tap drops the phone to the always-on display), so the public text is unconfirmed.
 - Still unverified: Inbox error banner (needs a real listener error; preview only), and the Board previews in Android Studio.
 - Observed: WorkManager took 5-10 s to start a replay after Retry / reconnect on One UI.
 - Test tasks and offers were deleted afterwards; earlier test notifications may linger in the shade.
