@@ -4,7 +4,7 @@ Read this first, every session, before touching code — it's the current status
 detail lives in each phase's spec file (`specs/office/phase-N-*.md`); this file only tracks
 done/left. Update it after every session or completed task.
 
-**Current phase: 4 — Truth about the team (implemented, pending on-device verification, 2026-09-18). Next: on-device golden path for Phase 4, then Phase 3 (still unstarted — Phase 4 was pulled forward per explicit user request; see phase-4-team-truth.md's note).**
+**Current phase: 4 — Truth about the team (implemented and verified on-device, 2026-09-19; unit tests still deferred). Next: Phase 3 (still unstarted — Phase 4 was pulled forward per explicit user request; see phase-4-team-truth.md's note).**
 
 ## Phase 1 — Auth, projects, roles (`phase-1-auth-projects-roles.md`)
 - [x] Core layer: `Result`/`DataError` (core/domain/util), `SessionManager` interface + DataStore impl, `UiText`/`ObserveAsEvents` (core/presentation/util), `CoreModule` Koin wiring, `App.kt` + `startKoin`. `AppDatabase` deferred until the first Room entity exists (Room rejects `@Database` with zero entities).
@@ -151,15 +151,16 @@ Load/Stuck/Pulse read already exists and doesn't depend on notifications.
   matching the explicit precedent set in Phase 1/2 (rules tests + preview coverage only). If this
   should change for Phase 4 specifically, say so — the plan flagged this as an open question that was
   never explicitly answered.
-- [~] On-device golden path (physical device, signed in as the non-Leader member, 2026-09-19):
-  verified — Room v3→v5 migration, Roster/Load/Stuck/Pulse tabs render real data, new events
-  (`TASK_MARKED_DONE`) write under the deployed rules and appear in Pulse, Succession affordance hidden
-  for a non-Leader, legacy Leader doc now reads as Leader. Rules deployed to `temacker-a0252`.
-  **Still unverified:** the Leader-side flow (Succession icon → name → confirm → old project archived,
-  roster incl. custom roles carried to new project) — needs the Leader account signed in on a device.
-  Found + fixed on-device: pre-Phase-4 member/project docs lack `isLeader`/`isArchived` (see commit
-  "fix: tolerate pre-Phase-4 docs"). Noted, not Phase 4: a stale "This code expired" error banner shows
-  on Board/Roster at launch.
+- [x] On-device golden path (physical device, both accounts, 2026-09-19): Room v3→v5 migration,
+  Roster/Load/Stuck/Pulse render real data, `TASK_MARKED_DONE` event written under the deployed rules
+  and shown in Pulse, Succession affordance hidden for the non-Leader and shown for the Leader,
+  full Leader flow (name → confirm → submit) archived the old project and created "Cycle2" with the
+  roster (both members, Leader preserved) and an empty Board. Rules deployed to `temacker-a0252`.
+  Not exercised on-device: a custom (non-Leader/Default) role carrying over — covered by rules tests only.
+  Found + fixed on-device: pre-Phase-4 member/project docs lack `isLeader`/`isArchived` (commit
+  "fix: tolerate pre-Phase-4 docs").
+  Noted, not fixed (out of Phase 4 scope): a stale "This code expired" error banner shows on
+  Board/Team/You at launch; SuccessionScreen's Continue button sits under the keyboard until it is dismissed.
 
 ## Phase 5 — v1.0, used by others (`phase-5-v1-others.md`)
 - [ ] Invited-member first-run screen
