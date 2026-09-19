@@ -1,6 +1,6 @@
 # Phase 3 — Notifications, Honest Offline
 
-Status: in progress (Steps 0–2 done 2026-09-19: docs, backend, Inbox + badge; Steps 3–4 remaining)
+Status: in progress (Steps 0–3 done 2026-09-19: docs, backend, Inbox + badge, FCM client + rationale; Step 4 remaining)
 
 Push notifications for handoffs, plus surfacing offline state instead of hiding it. A handoff nobody
 sees is worse than no handoff, so push is load-bearing on the core mechanic. Offline never fakes a

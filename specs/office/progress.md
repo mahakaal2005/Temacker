@@ -4,7 +4,7 @@ Read this first, every session, before touching code — it's the current status
 detail lives in each phase's spec file (`specs/office/phase-N-*.md`); this file only tracks
 done/left. Update it after every session or completed task.
 
-**Current phase: 4 — Truth about the team (implemented and verified on-device, 2026-09-19; unit tests still deferred). Phase 3 in progress (2026-09-19): Steps 0-2 done (spec, backend, Inbox + badge); Steps 3-4 (FCM client, offline outbox) next — see phase-3-notifications-offline.md for the step list (Phase 4 was pulled forward per explicit user request; see phase-4-team-truth.md's note).**
+**Current phase: 4 — Truth about the team (implemented and verified on-device, 2026-09-19; unit tests still deferred). Phase 3 in progress (2026-09-19): Steps 0-3 done (spec, backend, Inbox + badge, FCM client + rationale); Step 4 (offline outbox) next — see phase-3-notifications-offline.md for the step list (Phase 4 was pulled forward per explicit user request; see phase-4-team-truth.md's note).**
 
 ## Phase 1 — Auth, projects, roles (`phase-1-auth-projects-roles.md`)
 - [x] Core layer: `Result`/`DataError` (core/domain/util), `SessionManager` interface + DataStore impl, `UiText`/`ObserveAsEvents` (core/presentation/util), `CoreModule` Koin wiring, `App.kt` + `startKoin`. `AppDatabase` deferred until the first Room entity exists (Room rejects `@Database` with zero entities).
@@ -127,8 +127,8 @@ done/left. Update it after every session or completed task.
 Started 2026-09-19, see `specs/logs/2026-09-19-phase-3-backend-and-inbox.md`.
 - [x] Spec + architecture additions agreed and applied (Step 0).
 - [x] Backend (Step 1): fcmTokens rule + 5 tests, `functions/` (`onHandoffWritten`, `nudgeStaleHandoffs`, 9 Jest tests), nudge index — rules/indexes/functions deployed. Runtime IAM granted; trigger runs clean and the nudge stamps `nudgedAt` (verified with a synthetic stale offer). **Open:** send-logging fix committed but not redeployed; a real FCM send is unverified until Step 3 registers a device token.
-- [ ] FCM setup + permission rationale screen (Step 3)
-- [ ] Lock-screen notification style (Step 3)
+- [x] FCM setup + permission rationale screen (Step 3) — verified on device, see `specs/logs/2026-09-19-phase-3-fcm-client.md`
+- [x] Lock-screen notification style (Step 3) — BigText, Accept/Decline, private + public version; all five push types verified on device; lock-screen pixels not eyeballed (One UI hides them; posted notification is private + public version)
 - [x] Inbox nav destination + badge (Step 2) — built, 8 unit tests, verified on-device (waiting/earlier sections, badge, open + accept). Rules/index for the "sent by me" query deployed.
 - [ ] Offline queue screen (WorkManager) (Step 4)
 
@@ -173,10 +173,12 @@ Load/Stuck/Pulse read already exists and doesn't depend on notifications.
 ## Phase 5 — v1.0, used by others (`phase-5-v1-others.md`)
 - [ ] Invited-member first-run screen
 - [ ] Role explainer screen
+- [ ] Project switcher — **open decision, not agreed**: see phase-5 spec. Motivated by Phase 3: a push for a non-current project can't be shown (tap is dropped)
 
 ## Phase 6 — Sustainability (`phase-6-sustainability.md`)
 - [ ] Your data (export + delete-account)
 - [ ] Plan & limits screen
 
 ## Open decisions
+- Phase 5: project switcher (multi-project users). The app assumes current project = first project; agree scope with the user before building.
 - Phase 6: extend `feature_profile` vs. new `feature_settings` — default is extend, revisit if it grows.
