@@ -20,4 +20,12 @@
 - A queued accept leaves the offer counted in the "waiting on you" strip and Inbox badge until it sends.
 - Queuing the same answer twice is not deduped; the second replay fails as a conflict.
 - A batch write that times out in the worker may still complete from Firestore's own local queue; create/mark-done are idempotent, Pulse could get one duplicate event.
-- Snackbar Undo appears only on Board; unverified: Undo tap, other Board previews in Android Studio.
+- Snackbar Undo appears only on Board.
+
+## Follow-up verification (same day, on device)
+- Snackbar Undo: tapping it removed the queued create and the queue emptied.
+- Notification Accept while offline: toast "Saved on this phone. It sends when you're back online.", notification cleared; after reconnect the handoff was ACCEPTED and the task held by Rudra (DOING).
+- Lock screen (adb screenshot of the keyguard): the Temacker notification shows collapsed with no task title or note, so private details stay hidden. The expanded public text was not captured (screen timed out).
+- Still unverified: Inbox error banner (needs a real listener error; preview only), and the Board previews in Android Studio.
+- Observed: WorkManager took 5-10 s to start a replay after Retry / reconnect on One UI.
+- Test tasks and offers were deleted afterwards; earlier test notifications may linger in the shade.
