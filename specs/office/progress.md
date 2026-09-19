@@ -126,7 +126,7 @@ done/left. Update it after every session or completed task.
 ## Phase 3 — Notifications, honest offline (`phase-3-notifications-offline.md`)
 Started 2026-09-19, see `specs/logs/2026-09-19-phase-3-backend-and-inbox.md`.
 - [x] Spec + architecture additions agreed and applied (Step 0).
-- [x] Backend (Step 1): fcmTokens rule + 5 tests, `functions/` (`onHandoffWritten`, `nudgeStaleHandoffs`, 9 Jest tests), nudge index — rules/indexes/functions deployed. **Open:** the functions' runtime service account still needs `roles/datastore.user` + `roles/firebasecloudmessaging.admin` (user to grant); until then the trigger fires but fails PERMISSION_DENIED, so no push is sent.
+- [x] Backend (Step 1): fcmTokens rule + 5 tests, `functions/` (`onHandoffWritten`, `nudgeStaleHandoffs`, 9 Jest tests), nudge index — rules/indexes/functions deployed. Runtime IAM granted; trigger runs clean and the nudge stamps `nudgedAt` (verified with a synthetic stale offer). **Open:** send-logging fix committed but not redeployed; a real FCM send is unverified until Step 3 registers a device token.
 - [ ] FCM setup + permission rationale screen (Step 3)
 - [ ] Lock-screen notification style (Step 3)
 - [x] Inbox nav destination + badge (Step 2) — built, 8 unit tests, verified on-device (waiting/earlier sections, badge, open + accept). Rules/index for the "sent by me" query deployed.

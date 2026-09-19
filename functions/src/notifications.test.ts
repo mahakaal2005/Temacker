@@ -1,4 +1,4 @@
-import { HandoffData, NUDGE_AFTER_MS, isNudgeDue, planForHandoffChange, planNudges, toFcmMessage } from "./notifications";
+import { HandoffData, NUDGE_AFTER_MS, deadTokenIndexes, isNudgeDue, planForHandoffChange, planNudges, toFcmMessage } from "./notifications";
 
 const ctx = { projectId: "p1", taskId: "t1", handoffId: "h1", taskTitle: "Sponsor deck" };
 const offered: HandoffData = {
@@ -60,4 +60,18 @@ test("toFcmMessage is data-only with high priority", () => {
   const m = toFcmMessage("tok", { a: "b" });
   expect(m).toEqual({ token: "tok", data: { a: "b" }, android: { priority: "high" } });
   expect("notification" in m).toBe(false);
+});
+
+describe("deadTokenIndexes", () => {
+  test("prunes only tokens FCM reports as gone", () => {
+    const outcomes = [
+      { success: true },
+      { success: false, error: { code: "messaging/registration-token-not-registered" } },
+      { success: false, error: { code: "messaging/invalid-registration-token" } },
+      { success: false, error: { code: "messaging/invalid-argument" } },
+      { success: false, error: { code: "messaging/quota-exceeded" } },
+      { success: false }
+    ];
+    expect(deadTokenIndexes(outcomes)).toEqual([1, 2]);
+  });
 });

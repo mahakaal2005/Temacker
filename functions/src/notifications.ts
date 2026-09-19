@@ -84,6 +84,16 @@ export const DEAD_TOKEN_CODES = [
   "messaging/invalid-registration-token"
 ];
 
+export interface SendOutcome {
+  success: boolean;
+  error?: { code: string };
+}
+
+// Only "gone for good" codes prune a token; anything else (bad payload, quota) must keep it.
+export function deadTokenIndexes(outcomes: SendOutcome[]): number[] {
+  return outcomes.flatMap((o, i) => (!o.success && o.error && DEAD_TOKEN_CODES.includes(o.error.code) ? [i] : []));
+}
+
 export function toFcmMessage(token: string, data: Record<string, string>) {
   // Data-only + high priority so the app builds the notification (actions, styling).
   return { token, data, android: { priority: "high" as const } };

@@ -39,11 +39,13 @@ Rules + indexes twice (fcmTokens/nudge index, then fromUid rule/index); function
 - **Badge rendering (found on-device):** the amber badge blended into the amber selected pill and covered
   the narrow "I". Fixed with a paper ring (per the mock's box-shadow), a fixed-width glyph slot, and the
   same slot on every destination so the selected pills stay equal width.
-- **OPEN — function runtime lacks IAM:** `onHandoffWritten` fires on real handoff writes but fails
-  `7 PERMISSION_DENIED` on its first Firestore read; the compute service account has no Firestore/FCM
-  role. Needs `roles/datastore.user` + `roles/firebasecloudmessaging.admin` on
-  `83858186212-compute@developer.gserviceaccount.com` (user to run). No push can be delivered or the
-  nudge run until then.
+- **Function runtime lacked IAM (resolved):** `onHandoffWritten` fired but failed `7 PERMISSION_DENIED` on its
+  first Firestore read — the compute service account had no Firestore/FCM role. User granted
+  `roles/datastore.user` + `roles/firebasecloudmessaging.admin`; re-test: the trigger ran clean and a manual
+  run of the scheduler job (`firebase-schedule-nudgeStaleHandoffs-us-central1`) stamped `nudgedAt` on a
+  19h-old synthetic offer. **Gap found:** `send.ts` swallowed send failures silently (a fake token was neither
+  pruned nor logged). Fixed in code (per-failure `logger.warn`, pure `deadTokenIndexes` + test, 10 Jest
+  tests) — **not yet redeployed**; a real FCM send is unverified until Step 3 registers a device token.
 
 ## On-device verification (RZCWA28EAZF, signed in as Rudra Sharma, project Cycle2)
 
@@ -51,11 +53,11 @@ Four synthetic `[inbox-test]` tasks/handoffs were created via Firestore REST and
 Confirmed: 4-tab nav; Waiting section (1 row, amber border) and Earlier section ordered by most recent
 outcome (declined with reason 3h, unanswered 19h, accepted Yesterday); badge shows 1 on both selected and
 unselected Inbox; tapping a Waiting row opens Incoming; Accept clears the Waiting row and the badge.
-Not yet verified: tapping an Earlier row (-> task detail), empty-state and error banner on-device.
+Later the same day also confirmed: tapping an Earlier row opens task detail (baton trail shown), and the
+empty state renders when nothing is waiting. Only the error banner is unverified on-device (preview only).
 
 ## Not done / next
 
-- User to run the two IAM grants above, then re-test the trigger and nudge (needs a device token — Step 3).
+- Redeploy functions for the send-logging fix (needs approval); verify a real FCM send once Step 3 lands.
 - Artifact Registry cleanup policy for `us-central1` not set (`firebase functions:artifacts:setpolicy`).
 - Step 3: FCM client, token registrar, messaging service, rationale screen. Step 4: offline outbox.
-- Nothing committed yet this session.
