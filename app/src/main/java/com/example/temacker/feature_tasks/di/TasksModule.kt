@@ -30,6 +30,12 @@ import com.example.temacker.feature_tasks.presentation.incoming.IncomingViewMode
 import com.example.temacker.feature_tasks.presentation.new_task.NewTaskViewModel
 import com.example.temacker.feature_tasks.presentation.task_detail.TaskDetailViewModel
 import org.koin.core.module.dsl.bind
+import com.example.temacker.feature_tasks.data.repository.DataStoreNotificationRationaleRepository
+import com.example.temacker.feature_tasks.domain.repository.NotificationRationaleRepository
+import com.example.temacker.feature_tasks.domain.use_case.MarkNotificationRationaleSeenUseCase
+import com.example.temacker.feature_tasks.domain.use_case.ObserveNotificationRationaleSeenUseCase
+import com.example.temacker.feature_tasks.presentation.notification_rationale.NotificationRationaleGateViewModel
+import com.example.temacker.feature_tasks.presentation.notification_rationale.NotificationRationaleViewModel
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModelOf
@@ -39,6 +45,7 @@ import org.koin.dsl.module
 val tasksModule = module {
     singleOf(::FirestoreTaskRemoteDataSource) { bind<TaskRemoteDataSource>() }
     singleOf(::OfflineFirstTaskRepository) { bind<TaskRepository>() }
+    singleOf(::DataStoreNotificationRationaleRepository) { bind<NotificationRationaleRepository>() }
     singleOf(::TaskTeamInsightsProvider) { bind<TeamInsightsProvider>() }
 
     factoryOf(::ObserveCurrentProjectIdUseCase)
@@ -50,6 +57,8 @@ val tasksModule = module {
     factoryOf(::ObservePendingHandoffsUseCase)
     factoryOf(::ObserveInboxUseCase)
     factoryOf(::ObserveInboxBadgeCountUseCase)
+    factoryOf(::ObserveNotificationRationaleSeenUseCase)
+    factoryOf(::MarkNotificationRationaleSeenUseCase)
     factoryOf(::CreateTaskUseCase)
     factoryOf(::OfferHandoffUseCase)
     factoryOf(::AcceptHandoffUseCase)
@@ -60,6 +69,8 @@ val tasksModule = module {
     viewModelOf(::BoardViewModel)
     viewModelOf(::InboxViewModel)
     viewModelOf(::InboxBadgeViewModel)
+    viewModelOf(::NotificationRationaleGateViewModel)
+    viewModelOf(::NotificationRationaleViewModel)
     viewModelOf(::NewTaskViewModel)
     // taskId/handoffId are runtime nav params, not resolvable by constructor reference alone —
     // lambda form is the documented fallback (android-di-koin skill).

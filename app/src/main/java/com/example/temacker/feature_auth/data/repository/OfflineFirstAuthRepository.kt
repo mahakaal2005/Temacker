@@ -1,5 +1,6 @@
 package com.example.temacker.feature_auth.data.repository
 
+import com.example.temacker.core.domain.notification.PushTokenRegistrar
 import com.example.temacker.core.domain.session.SessionManager
 import com.example.temacker.core.domain.util.DataError
 import com.example.temacker.core.domain.util.Result
@@ -13,7 +14,8 @@ import kotlinx.coroutines.flow.Flow
 // (DataStore), so SplashViewModel can route without waiting on Firebase's async listener.
 class OfflineFirstAuthRepository(
     private val remote: AuthRemoteDataSource,
-    private val session: SessionManager
+    private val session: SessionManager,
+    private val pushTokens: PushTokenRegistrar
 ) : AuthRepository {
 
     override fun observeUser(): Flow<User?> = remote.observeUser()
@@ -31,6 +33,8 @@ class OfflineFirstAuthRepository(
     }
 
     override suspend fun signOut() {
+        // Drop this device's push token while still authenticated.
+        pushTokens.unregister()
         remote.signOut()
         session.setSession(null)
     }

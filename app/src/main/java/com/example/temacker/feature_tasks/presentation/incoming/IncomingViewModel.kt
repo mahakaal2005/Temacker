@@ -55,8 +55,8 @@ class IncomingViewModel(
         viewModelScope.launch {
             projectId.flatMapLatest { observeHandoffTrail(it, taskId) }.collect { result ->
                 result
-                    .onSuccess { trail -> _state.update { it.copy(handoff = trail.firstOrNull { h -> h.id == handoffId }) } }
-                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+                    .onSuccess { trail -> _state.update { it.copy(handoff = trail.firstOrNull { h -> h.id == handoffId }, isTrailLoaded = true) } }
+                    .onFailure { error -> _state.update { it.copy(isTrailLoaded = true, error = error.toUiText()) } }
             }
         }
     }

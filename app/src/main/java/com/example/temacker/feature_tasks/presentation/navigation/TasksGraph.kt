@@ -10,6 +10,7 @@ import com.example.temacker.feature_tasks.presentation.handoff.HandoffRoot
 import com.example.temacker.feature_tasks.presentation.inbox.InboxRoot
 import com.example.temacker.feature_tasks.presentation.incoming.IncomingRoot
 import com.example.temacker.feature_tasks.presentation.new_task.NewTaskRoot
+import com.example.temacker.feature_tasks.presentation.notification_rationale.NotificationRationaleRoot
 import com.example.temacker.feature_tasks.presentation.task_detail.TaskDetailRoot
 
 // onNavigateToTeam/onNavigateToYou are callbacks so feature_tasks never imports
@@ -37,6 +38,9 @@ fun NavGraphBuilder.tasksGraph(
             onNavigateToIncoming = { taskId, handoffId -> navController.navigate(IncomingRoute(taskId, handoffId)) },
             onNavigateToTaskDetail = { taskId -> navController.navigate(TaskDetailRoute(taskId)) }
         )
+    }
+    composable<NotificationRationaleRoute> {
+        NotificationRationaleRoot(onClose = { navController.popBackStack() })
     }
     composable<NewTaskRoute> {
         NewTaskRoot(

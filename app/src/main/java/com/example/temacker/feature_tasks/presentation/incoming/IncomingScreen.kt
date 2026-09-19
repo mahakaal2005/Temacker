@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -87,7 +88,24 @@ fun IncomingScreen(state: IncomingState, onAction: (IncomingAction) -> Unit, onN
                 }
             }
 
-            if (state.isLoading || state.task == null || state.handoff == null) {
+            // Covers a stale notification: the task is gone, or the offer was already answered.
+            val notice = state.unavailableNotice()
+            if (notice != null) {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(24.dp),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(notice.title, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
+                    Text(
+                        notice.detail,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Ink500,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+            } else if (state.isLoading || state.task == null || state.handoff == null) {
                 Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
@@ -167,5 +185,30 @@ private fun IncomingScreenPreview() {
 private fun IncomingScreenLoadingPreview() {
     TemackerTheme {
         IncomingScreen(state = IncomingState(isLoading = true), onAction = {}, onNavigateBack = {})
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun IncomingScreenUnavailablePreview() {
+    TemackerTheme {
+        IncomingScreen(state = IncomingState(isLoading = false, isTrailLoaded = true), onAction = {}, onNavigateBack = {})
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun IncomingScreenAlreadyAcceptedPreview() {
+    TemackerTheme {
+        IncomingScreen(
+            state = IncomingState(
+                isLoading = false,
+                isTrailLoaded = true,
+                task = Task("t1", "p1", "Sponsor deck — final pass", null, "u1", "You", TaskStatus.DOING, null, 3, "u1", "You", 0, 0),
+                handoff = Handoff("h1", "t1", "u2", "Daniel Osei", "u1", "You", null, HandoffStatus.ACCEPTED, null, 0, 0)
+            ),
+            onAction = {},
+            onNavigateBack = {}
+        )
     }
 }

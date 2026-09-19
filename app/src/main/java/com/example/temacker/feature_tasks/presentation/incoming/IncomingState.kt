@@ -10,6 +10,7 @@ data class IncomingState(
     val task: Task? = null,
     val handoff: Handoff? = null,
     val isLoading: Boolean = true,
+    val isTrailLoaded: Boolean = false,
     val isResponding: Boolean = false,
     val error: UiText? = null
 )
