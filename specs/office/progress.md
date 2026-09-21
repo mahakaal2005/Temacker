@@ -130,7 +130,7 @@ Started 2026-09-19, see `specs/logs/2026-09-19-phase-3-backend-and-inbox.md`.
 - [x] FCM setup + permission rationale screen (Step 3) — verified on device, see `specs/logs/2026-09-19-phase-3-fcm-client.md`
 - [x] Lock-screen notification style (Step 3) — BigText, Accept/Decline, private + public version; all five push types verified on device; lock-screen pixels not eyeballed (One UI hides them; posted notification is private + public version)
 - [x] Inbox nav destination + badge (Step 2) — built, 8 unit tests, verified on-device (waiting/earlier sections, badge, open + accept). Rules/index for the "sent by me" query deployed.
-- [x] Offline queue (WorkManager) (Step 4) — Room v6 outbox, connectivity observer, replayer/worker, Board strip + Queued chip + Undo snackbar, queue screen with Retry/Discard; 49 unit tests; verified on device incl. a forced conflict. See `specs/logs/2026-09-19-phase-3-offline-outbox.md`
+- [x] Offline queue (WorkManager) (Step 4) — Room v6 outbox, connectivity observer, replayer/worker, Board strip + Queued chip + Undo snackbar, queue screen with Retry/Discard; 52 unit tests; verified on device incl. a forced conflict. See `specs/logs/2026-09-19-phase-3-offline-outbox.md`
 
 ## Phase 4 — Truth about the team (`phase-4-team-truth.md`)
 Built ahead of Phase 3 per explicit user request (2026-09-18) — normally blocked on Phase 3's data

@@ -17,8 +17,7 @@
 - Test data removed afterwards; "do it" restored to TODO. Pulse still has the test events.
 
 ## Known limits
-- A queued accept leaves the offer counted in the "waiting on you" strip and Inbox badge until it sends.
-- Queuing the same answer twice is not deduped; the second replay fails as a conflict.
+- ~~A queued accept leaves the offer counted in the waiting strip and badge~~ and ~~the same answer can be queued twice~~: both fixed, see below.
 - A batch write that times out in the worker may still complete from Firestore's own local queue; create/mark-done are idempotent, Pulse could get one duplicate event.
 - Snackbar Undo appears only on Board.
 
@@ -39,3 +38,10 @@
 - After the banner check the outbox held a FAILED "Accept handoff" (CONFLICT, 0 attempts) for a handoff that Firestore showed ACCEPTED. The accept had reached the server but the app never got the reply (connectivity was flapping), so the retry hit "already resolved" and was marked failed.
 - Fix: on CONFLICT for accept or decline, the replayer now reads the handoff's status (new `getHandoffStatus` on the remote) and treats "already ACCEPTED/DECLINED" as done. If the lookup fails or the status differs, it stays FAILED. 3 new replayer tests; 49 total pass.
 - Not reproducible on demand, so covered by unit tests only; the stale row was discarded from the queue screen.
+
+## Two known limits fixed and verified (2026-09-21)
+- Reproduced on device first: after a queued accept the Board strip, the Inbox "Waiting on you" list and the badge still counted the offer, and answering it a second time from Inbox queued a second identical row.
+- Fix in `OfflineFirstTaskRepository`: an offer whose task has a PENDING queued accept/decline is filtered out of `observePendingHandoffs` (Board strip, badge) and of `observeInbox`; `queue()` skips a write when an identical PENDING one (same type and task) already exists. New DAO queries `countPendingFor` and `observeAnsweredTaskIds`. 3 new repository tests; 52 total pass.
+- Verified on device with the new build: queued accept clears the strip, badge and Inbox row immediately; it sent after reconnect (handoff ACCEPTED).
+- Also verified on device: the earlier "already answered counts as done" fix. With two identical queued accepts (old build), reconnecting sent the first and the second was treated as done, so no "Not sent" row.
+- The duplicate guard is covered by a unit test only; the UI no longer offers a second answer, so it can't be triggered by hand.

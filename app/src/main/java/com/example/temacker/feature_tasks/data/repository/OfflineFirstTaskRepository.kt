@@ -26,6 +26,7 @@ import com.example.temacker.feature_tasks.domain.model.TaskStatus
 import com.example.temacker.feature_tasks.domain.repository.TaskRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -95,7 +96,11 @@ class OfflineFirstTaskRepository(
                     handoffDao.deleteMissingPendingForUser(projectId, uid, handoffs.map { it.id })
                 }
         }
-        handoffDao.observePendingForUser(projectId, uid).map { it.map { e -> e.toDomain() } }.collect { send(Result.Success(it)) }
+        handoffDao.observePendingForUser(projectId, uid)
+            .combine(pendingDao.observeAnsweredTaskIds(projectId)) { entities, answered ->
+                entities.filter { it.taskId !in answered }.map { it.toDomain() }
+            }
+            .collect { send(Result.Success(it)) }
     }
 
     override fun observeInbox(projectId: String): Flow<Result<List<InboxEntry>, DataError>> = channelFlow {
@@ -130,7 +135,11 @@ class OfflineFirstTaskRepository(
                 }
         }
         handoffDao.observeInbox(projectId, uid)
-            .map { rows -> rows.map { InboxEntry(it.handoff.toDomain(), it.taskTitle) } }
+            .combine(pendingDao.observeAnsweredTaskIds(projectId)) { rows, answered ->
+                // An offer to me with a queued answer is no longer waiting on me.
+                rows.filterNot { it.handoff.toUid == uid && it.handoff.taskId in answered }
+                    .map { InboxEntry(it.handoff.toDomain(), it.taskTitle) }
+            }
             .collect { send(Result.Success(it)) }
     }
 
@@ -226,6 +235,8 @@ class OfflineFirstTaskRepository(
         payload: PendingPayload,
         createdAt: Long = System.currentTimeMillis()
     ): EmptyResult<DataError> {
+        // The same answer queued twice would fail as a conflict on replay, so a duplicate is ignored.
+        if (payload !is PendingPayload.CreateTask && pendingDao.countPendingFor(payload.type.name, taskId) > 0) return Result.Success(Unit)
         pendingDao.insert(
             PendingWriteEntity(
                 type = payload.type.name, projectId = projectId, taskId = taskId, taskTitle = taskTitle,

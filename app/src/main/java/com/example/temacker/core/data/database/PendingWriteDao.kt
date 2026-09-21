@@ -19,6 +19,13 @@ interface PendingWriteDao {
     @Query("SELECT COUNT(*) FROM pending_writes WHERE status = 'PENDING'")
     suspend fun countPending(): Int
 
+    @Query("SELECT COUNT(*) FROM pending_writes WHERE status = 'PENDING' AND type = :type AND taskId = :taskId")
+    suspend fun countPendingFor(type: String, taskId: String): Int
+
+    // Tasks whose offer already has a queued accept or decline, so it no longer counts as waiting.
+    @Query("SELECT taskId FROM pending_writes WHERE projectId = :projectId AND status = 'PENDING' AND type IN ('ACCEPT', 'DECLINE')")
+    fun observeAnsweredTaskIds(projectId: String): Flow<List<String>>
+
     @Query("UPDATE pending_writes SET attempts = attempts + 1 WHERE id = :id")
     suspend fun incrementAttempts(id: Long)
 
