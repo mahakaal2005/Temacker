@@ -27,7 +27,7 @@
 - Lock screen (adb screenshot of the keyguard): the Temacker notification shows collapsed with no task title or note, so private details stay hidden. The expanded public text was not captured (screen timed out).
 - Lock screen, re-checked twice: Temacker shows only the app name and time, with no task title or note. Expanding it over adb isn't possible on this One UI (a tap drops the phone to the always-on display), so the public text is unconfirmed.
 - Inbox error banner: verified on device. With the member doc deleted, Inbox showed "You don't have permission to do that." above the empty state, and Dismiss is present.
-- Still unverified: Board previews in Android Studio.
+- Board previews in Android Studio: checked by the user, look good.
 - Observed: WorkManager took 5-10 s to start a replay after Retry / reconnect on One UI.
 - Test tasks and offers were deleted afterwards; earlier test notifications may linger in the shade.
 
