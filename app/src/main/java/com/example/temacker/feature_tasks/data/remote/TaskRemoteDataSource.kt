@@ -5,6 +5,7 @@ import com.example.temacker.core.domain.util.EmptyResult
 import com.example.temacker.core.domain.util.Result
 import com.example.temacker.feature_tasks.domain.model.Event
 import com.example.temacker.feature_tasks.domain.model.Handoff
+import com.example.temacker.feature_tasks.domain.model.HandoffStatus
 import com.example.temacker.feature_tasks.domain.model.Task
 import kotlinx.coroutines.flow.Flow
 
@@ -41,4 +42,5 @@ interface TaskRemoteDataSource {
     suspend fun declineHandoff(projectId: String, taskId: String, handoffId: String, reason: String): Result<Handoff, DataError>
     suspend fun markTaskDone(projectId: String, taskId: String, byUid: String, byDisplayName: String): Result<Task, DataError>
     suspend fun deleteTask(projectId: String, taskId: String, byUid: String, byDisplayName: String): EmptyResult<DataError>
+    suspend fun getHandoffStatus(projectId: String, taskId: String, handoffId: String): Result<HandoffStatus?, DataError>
 }

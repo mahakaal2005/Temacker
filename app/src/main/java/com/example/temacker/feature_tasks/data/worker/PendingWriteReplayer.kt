@@ -13,6 +13,7 @@ import com.example.temacker.feature_tasks.data.mapper.PendingPayload
 import com.example.temacker.feature_tasks.data.mapper.decodePayload
 import com.example.temacker.feature_tasks.data.mapper.toEntity
 import com.example.temacker.feature_tasks.data.remote.TaskRemoteDataSource
+import com.example.temacker.feature_tasks.domain.model.HandoffStatus
 import com.example.temacker.feature_tasks.domain.model.ReplayVerdict
 import com.example.temacker.feature_tasks.domain.model.replayVerdict
 
@@ -58,12 +59,21 @@ class PendingWriteReplayer(
 
         is PendingPayload.Accept -> remote.acceptHandoff(row.projectId, row.taskId, payload.handoffId)
             .onSuccess { taskDao.upsertAll(listOf(it.toEntity())) }.asEmptyResult()
+            .orAlreadyAnswered(row, payload.handoffId, HandoffStatus.ACCEPTED)
 
         is PendingPayload.Decline -> remote.declineHandoff(row.projectId, row.taskId, payload.handoffId, payload.reason)
             .onSuccess { handoffDao.upsertAll(listOf(it.toEntity(row.projectId))) }.asEmptyResult()
+            .orAlreadyAnswered(row, payload.handoffId, HandoffStatus.DECLINED)
 
         is PendingPayload.MarkDone -> remote.markTaskDone(row.projectId, row.taskId, payload.byUid, payload.byDisplayName)
             .onSuccess { taskDao.upsertAll(listOf(it.toEntity())) }.asEmptyResult()
+    }
+
+    // A lost acknowledgement makes an accepted earlier attempt look like a conflict, so check where the handoff really stands.
+    private suspend fun EmptyResult<DataError>.orAlreadyAnswered(row: PendingWriteEntity, handoffId: String, wanted: HandoffStatus): EmptyResult<DataError> {
+        if (this !is Result.Error || error != DataError.Network.CONFLICT) return this
+        val status = (remote.getHandoffStatus(row.projectId, row.taskId, handoffId) as? Result.Success)?.data
+        return if (status == wanted) Result.Success(Unit) else this
     }
 }
 

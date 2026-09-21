@@ -11,6 +11,7 @@ import com.example.temacker.core.domain.util.Result
 import com.example.temacker.feature_tasks.data.mapper.PendingPayload
 import com.example.temacker.feature_tasks.data.mapper.encode
 import com.example.temacker.feature_tasks.data.remote.TaskRemoteDataSource
+import com.example.temacker.feature_tasks.domain.model.HandoffStatus
 import com.example.temacker.feature_tasks.domain.model.MAX_REPLAY_ATTEMPTS
 import com.example.temacker.feature_tasks.domain.model.PendingWriteStatus
 import com.example.temacker.feature_tasks.domain.model.Task
@@ -66,12 +67,45 @@ class PendingWriteReplayerTest {
     fun `a rejected write is marked failed with its reason and the drain moves on`() = runTest {
         coEvery { pendingDao.getPending() } returns listOf(row(1), row(2))
         coEvery { remote.acceptHandoff("p", "t", "h1") } returns Result.Error(DataError.Network.CONFLICT)
+        coEvery { remote.getHandoffStatus("p", "t", "h1") } returns Result.Success(HandoffStatus.DECLINED)
         coEvery { remote.acceptHandoff("p", "t", "h2") } returns Result.Success(task)
 
         assertThat(replayer.drain()).isEqualTo(DrainOutcome.DONE)
         coVerify { pendingDao.markFailed(1, "CONFLICT") }
         coVerify(exactly = 0) { pendingDao.delete(1) }
         coVerify { pendingDao.delete(2) }
+    }
+
+    @Test
+    fun `an accept that already went through is treated as done, not failed`() = runTest {
+        coEvery { pendingDao.getPending() } returns listOf(row(1))
+        coEvery { remote.acceptHandoff("p", "t", "h1") } returns Result.Error(DataError.Network.CONFLICT)
+        coEvery { remote.getHandoffStatus("p", "t", "h1") } returns Result.Success(HandoffStatus.ACCEPTED)
+
+        assertThat(replayer.drain()).isEqualTo(DrainOutcome.DONE)
+        coVerify { pendingDao.delete(1) }
+        coVerify(exactly = 0) { pendingDao.markFailed(any(), any()) }
+    }
+
+    @Test
+    fun `a decline that already went through is treated as done`() = runTest {
+        val decline = row(1, payload = PendingPayload.Decline("h1", "busy").encode()).copy(type = "DECLINE")
+        coEvery { pendingDao.getPending() } returns listOf(decline)
+        coEvery { remote.declineHandoff("p", "t", "h1", "busy") } returns Result.Error(DataError.Network.CONFLICT)
+        coEvery { remote.getHandoffStatus("p", "t", "h1") } returns Result.Success(HandoffStatus.DECLINED)
+
+        assertThat(replayer.drain()).isEqualTo(DrainOutcome.DONE)
+        coVerify { pendingDao.delete(1) }
+    }
+
+    @Test
+    fun `a conflict stays failed when the status lookup fails`() = runTest {
+        coEvery { pendingDao.getPending() } returns listOf(row(1))
+        coEvery { remote.acceptHandoff("p", "t", "h1") } returns Result.Error(DataError.Network.CONFLICT)
+        coEvery { remote.getHandoffStatus("p", "t", "h1") } returns Result.Error(DataError.Network.NO_INTERNET)
+
+        replayer.drain()
+        coVerify { pendingDao.markFailed(1, "CONFLICT") }
     }
 
     @Test

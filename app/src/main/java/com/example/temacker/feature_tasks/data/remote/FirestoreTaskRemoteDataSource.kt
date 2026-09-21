@@ -244,4 +244,7 @@ class FirestoreTaskRemoteDataSource(
                 .await()
             Unit
         }
+
+    override suspend fun getHandoffStatus(projectId: String, taskId: String, handoffId: String): Result<HandoffStatus?, DataError> =
+        safeFirestoreCall { handoffsRef(projectId, taskId).document(handoffId).get().await().toHandoff(taskId)?.status }
 }

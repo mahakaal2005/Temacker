@@ -27,6 +27,15 @@
 - Notification Accept while offline: toast "Saved on this phone. It sends when you're back online.", notification cleared; after reconnect the handoff was ACCEPTED and the task held by Rudra (DOING).
 - Lock screen (adb screenshot of the keyguard): the Temacker notification shows collapsed with no task title or note, so private details stay hidden. The expanded public text was not captured (screen timed out).
 - Lock screen, re-checked twice: Temacker shows only the app name and time, with no task title or note. Expanding it over adb isn't possible on this One UI (a tap drops the phone to the always-on display), so the public text is unconfirmed.
-- Still unverified: Inbox error banner (needs a real listener error; preview only), and the Board previews in Android Studio.
+- Inbox error banner: verified on device. With the member doc deleted, Inbox showed "You don't have permission to do that." above the empty state, and Dismiss is present.
+- Still unverified: Board previews in Android Studio.
 - Observed: WorkManager took 5-10 s to start a replay after Retry / reconnect on One UI.
 - Test tasks and offers were deleted afterwards; earlier test notifications may linger in the shade.
+
+## Incident: test-project member doc
+- To trigger the banner I deleted Rudra's Leader member doc in the test project (OFGG2mNKWM7klcDCHjEy) with the user's approval. My local backup was gone by then (scratchpad cleared overnight), so the restore step failed and the doc stayed deleted until the user re-created it from a script built from values printed earlier in the session. Read back: same fields and types as the other member's doc; Board recovered. Lesson: back up and verify the restore file immediately before any destructive REST call.
+
+## Bug found and fixed: replayed accept after a lost acknowledgement
+- After the banner check the outbox held a FAILED "Accept handoff" (CONFLICT, 0 attempts) for a handoff that Firestore showed ACCEPTED. The accept had reached the server but the app never got the reply (connectivity was flapping), so the retry hit "already resolved" and was marked failed.
+- Fix: on CONFLICT for accept or decline, the replayer now reads the handoff's status (new `getHandoffStatus` on the remote) and treats "already ACCEPTED/DECLINED" as done. If the lookup fails or the status differs, it stays FAILED. 3 new replayer tests; 49 total pass.
+- Not reproducible on demand, so covered by unit tests only; the stale row was discarded from the queue screen.
