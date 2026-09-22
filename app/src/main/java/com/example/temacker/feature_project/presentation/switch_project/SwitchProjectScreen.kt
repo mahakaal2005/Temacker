@@ -15,9 +15,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,6 +36,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun SwitchProjectRoot(
     onNavigateBack: () -> Unit,
+    onNavigateToJoinProject: () -> Unit,
     viewModel: SwitchProjectViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -47,7 +50,8 @@ fun SwitchProjectRoot(
     SwitchProjectScreen(
         state = state,
         onAction = viewModel::onAction,
-        onNavigateBack = onNavigateBack
+        onNavigateBack = onNavigateBack,
+        onNavigateToJoinProject = onNavigateToJoinProject
     )
 }
 
@@ -56,7 +60,8 @@ fun SwitchProjectRoot(
 fun SwitchProjectScreen(
     state: SwitchProjectState,
     onAction: (SwitchProjectAction) -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToJoinProject: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -73,7 +78,16 @@ fun SwitchProjectScreen(
         when {
             state.isLoading -> LoadingBody(padding)
             state.error != null -> ErrorBody(padding, state.error.asString())
-            else -> ProjectList(padding, state.rows, onAction)
+            else -> Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+                ProjectList(Modifier.weight(1f), state.rows, onAction)
+                TextButton(
+                    onClick = onNavigateToJoinProject,
+                    modifier = Modifier.fillMaxWidth().padding(16.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                    Text("Join another project")
+                }
+            }
         }
     }
 }
@@ -96,8 +110,8 @@ private fun ErrorBody(padding: PaddingValues, message: String) {
 }
 
 @Composable
-private fun ProjectList(padding: PaddingValues, rows: List<SwitchProjectRow>, onAction: (SwitchProjectAction) -> Unit) {
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
+private fun ProjectList(modifier: Modifier, rows: List<SwitchProjectRow>, onAction: (SwitchProjectAction) -> Unit) {
+    LazyColumn(modifier = modifier.fillMaxWidth()) {
         items(rows, key = { it.projectId }) { row ->
             ProjectRow(row, onClick = { onAction(SwitchProjectAction.OnProjectClick(row.projectId)) })
         }
@@ -140,7 +154,8 @@ private fun SwitchProjectScreenPreview() {
                 )
             ),
             onAction = {},
-            onNavigateBack = {}
+            onNavigateBack = {},
+            onNavigateToJoinProject = {}
         )
     }
 }
@@ -152,7 +167,8 @@ private fun SwitchProjectScreenLoadingPreview() {
         SwitchProjectScreen(
             state = SwitchProjectState(isLoading = true),
             onAction = {},
-            onNavigateBack = {}
+            onNavigateBack = {},
+            onNavigateToJoinProject = {}
         )
     }
 }
@@ -167,7 +183,8 @@ private fun SwitchProjectScreenErrorPreview() {
                 error = com.example.temacker.core.presentation.util.UiText.DynamicString("Couldn't load your projects.")
             ),
             onAction = {},
-            onNavigateBack = {}
+            onNavigateBack = {},
+            onNavigateToJoinProject = {}
         )
     }
 }

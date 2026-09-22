@@ -35,11 +35,9 @@ fun SwitcherPill(
     modifier: Modifier = Modifier
 ) {
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars)) {
-        val rowModifier = if (hasOtherProjects) {
-            Modifier.fillMaxWidth().clickable(role = Role.Button, onClickLabel = "Switch project", onClick = onClick)
-        } else {
-            Modifier.fillMaxWidth()
-        }
+        // Always tappable — even a single-project user needs a way in to join a second one.
+        // The chevron is just the "there's a list" affordance, shown only once there's a list.
+        val rowModifier = Modifier.fillMaxWidth().clickable(role = Role.Button, onClickLabel = "Switch project", onClick = onClick)
         Row(
             modifier = modifier.then(rowModifier).padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically

@@ -69,7 +69,10 @@ fun NavGraphBuilder.projectGraph(
         )
     }
     composable<SwitchProjectRoute> {
-        SwitchProjectRoot(onNavigateBack = { navController.popBackStack() })
+        SwitchProjectRoot(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToJoinProject = { navController.navigate(JoinProjectRoute) }
+        )
     }
     composable<RoleExplainerRoute> { backStackEntry ->
         val route: RoleExplainerRoute = backStackEntry.toRoute()
