@@ -42,11 +42,13 @@ fun AppScaffold(
     selected: AppDestination,
     onSelect: (AppDestination) -> Unit,
     snackbarHost: @Composable () -> Unit = {},
+    header: (@Composable () -> Unit)? = null,
     content: @Composable (PaddingValues) -> Unit
 ) {
     val inboxBadge = LocalInboxBadgeCount.current
     Scaffold(
         snackbarHost = snackbarHost,
+        topBar = { header?.invoke() },
         bottomBar = {
             NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                 AppDestination.entries.forEach { destination ->

@@ -24,6 +24,7 @@ import androidx.navigation.compose.rememberNavController
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import kotlinx.coroutines.flow.first
+import com.example.temacker.core.domain.repository.SelectedProjectStore
 import com.example.temacker.core.domain.util.Result
 import com.example.temacker.core.presentation.components.LocalInboxBadgeCount
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
@@ -36,6 +37,7 @@ import com.example.temacker.feature_project.presentation.navigation.CreateProjec
 import com.example.temacker.feature_project.presentation.navigation.JoinProjectRoute
 import com.example.temacker.feature_project.presentation.navigation.NoProjectRoute
 import com.example.temacker.feature_project.presentation.navigation.ProjectGateRoute
+import com.example.temacker.feature_project.presentation.navigation.SwitchProjectRoute
 import com.example.temacker.feature_project.presentation.navigation.TeamRoute
 import com.example.temacker.feature_project.presentation.navigation.projectGraph
 import com.example.temacker.feature_tasks.domain.model.EXTRA_DESTINATION
@@ -108,7 +110,8 @@ private fun TemackerApp(
     onPendingRouteHandled: () -> Unit,
     badgeViewModel: InboxBadgeViewModel = koinViewModel(),
     rationaleGate: NotificationRationaleGateViewModel = koinViewModel(),
-    observeCurrentProjectId: ObserveCurrentProjectIdUseCase = koinInject()
+    observeCurrentProjectId: ObserveCurrentProjectIdUseCase = koinInject(),
+    selectedProjectStore: SelectedProjectStore = koinInject()
 ) {
     val navController = rememberNavController()
     val backStackEntry by navController.currentBackStackEntryAsState()
@@ -128,9 +131,10 @@ private fun TemackerApp(
         if (pendingRoute != null) {
             // Wait until signed in with a project so Back from the target never lands on Splash.
             if (!inApp) return@LaunchedEffect
-            // The app only shows one project, so a tap for another stays where it is.
             val current = (observeCurrentProjectId().first() as? Result.Success)?.data
-            if (current == pendingRoute.projectId) navController.navigate(pendingRoute.route)
+            // A tap for another project switches to it first, instead of being dropped.
+            if (current != pendingRoute.projectId) selectedProjectStore.setSelectedProjectId(pendingRoute.projectId)
+            navController.navigate(pendingRoute.route)
             onPendingRouteHandled()
         } else if (atBoard && needsRationale) {
             navController.navigate(NotificationRationaleRoute)
@@ -167,7 +171,8 @@ private fun TemackerApp(
                     navController.navigate(LoginRoute) {
                         popUpTo(0) { inclusive = true }
                     }
-                }
+                },
+                onNavigateToSwitchProject = { navController.navigate(SwitchProjectRoute) }
             )
         }
     }

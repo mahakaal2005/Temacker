@@ -2,13 +2,13 @@ package com.example.temacker.feature_project.presentation.succession
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.temacker.core.domain.repository.CurrentProjectProvider
 import com.example.temacker.core.domain.util.Result
 import com.example.temacker.core.domain.util.onFailure
 import com.example.temacker.core.domain.util.onSuccess
 import com.example.temacker.core.presentation.util.UiText
 import com.example.temacker.core.presentation.util.toUiText
 import com.example.temacker.feature_project.domain.use_case.ObserveCurrentMembershipUseCase
-import com.example.temacker.feature_project.domain.use_case.ObserveUserProjectsUseCase
 import com.example.temacker.feature_project.domain.use_case.TriggerSuccessionUseCase
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,9 +19,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class SuccessionViewModel(
-    private val observeUserProjects: ObserveUserProjectsUseCase,
     private val observeCurrentMembership: ObserveCurrentMembershipUseCase,
-    private val triggerSuccession: TriggerSuccessionUseCase
+    private val triggerSuccession: TriggerSuccessionUseCase,
+    private val currentProjectProvider: CurrentProjectProvider
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SuccessionState())
@@ -37,7 +37,7 @@ class SuccessionViewModel(
         // but this self-check bounces back immediately if reached any other way (deep link, back
         // stack manipulation) — the real enforcement is still Firestore rules + the use case guard.
         viewModelScope.launch {
-            val id = (observeUserProjects().first() as? Result.Success)?.data?.firstOrNull()?.id
+            val id = (currentProjectProvider.observeCurrentProjectId().first() as? Result.Success)?.data
             if (id == null) {
                 _events.send(SuccessionEvent.NavigateBack)
                 return@launch

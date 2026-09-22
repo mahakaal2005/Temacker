@@ -3,6 +3,7 @@ package com.example.temacker.feature_project.presentation.join_project
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.temacker.R
+import com.example.temacker.core.domain.repository.SelectedProjectStore
 import com.example.temacker.core.domain.util.DataError
 import com.example.temacker.core.domain.util.onFailure
 import com.example.temacker.core.domain.util.onSuccess
@@ -20,7 +21,8 @@ import kotlinx.coroutines.launch
 
 class JoinProjectViewModel(
     private val joinProject: JoinProjectUseCase,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val selectedProjectStore: SelectedProjectStore
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(JoinProjectState())
@@ -52,7 +54,12 @@ class JoinProjectViewModel(
         }
 
         joinProject(code, user.displayName, user.photoUrl)
-            .onSuccess { _events.send(JoinProjectEvent.NavigateToFirstRun) }
+            .onSuccess { membership ->
+                // A multi-project user's selection would otherwise stay on their old project —
+                // the invite they just redeemed should be what they land on.
+                selectedProjectStore.setSelectedProjectId(membership.projectId)
+                _events.send(JoinProjectEvent.NavigateToFirstRun)
+            }
             .onFailure { error ->
                 // The join transaction reports a bad/expired code as CONFLICT; everywhere else CONFLICT is generic.
                 val text = if (error == DataError.Network.CONFLICT) UiText.StringResource(R.string.error_invite_code_invalid) else error.toUiText()

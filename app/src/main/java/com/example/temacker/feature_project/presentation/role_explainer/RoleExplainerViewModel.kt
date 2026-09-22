@@ -2,6 +2,7 @@ package com.example.temacker.feature_project.presentation.role_explainer
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.temacker.core.domain.repository.CurrentProjectProvider
 import com.example.temacker.core.domain.util.Result
 import com.example.temacker.core.domain.util.onFailure
 import com.example.temacker.core.domain.util.onSuccess
@@ -9,7 +10,6 @@ import com.example.temacker.core.presentation.util.UiText
 import com.example.temacker.core.presentation.util.toUiText
 import com.example.temacker.feature_project.domain.use_case.ObserveCurrentMembershipUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveMembersUseCase
-import com.example.temacker.feature_project.domain.use_case.ObserveUserProjectsUseCase
 import com.example.temacker.feature_project.presentation.role_copy.grantedCapabilities
 import com.example.temacker.feature_project.presentation.role_copy.roleSetLine
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -26,9 +26,9 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalCoroutinesApi::class)
 class RoleExplainerViewModel(
     private val userId: String,
-    private val observeUserProjects: ObserveUserProjectsUseCase,
     private val observeMembers: ObserveMembersUseCase,
-    private val observeCurrentMembership: ObserveCurrentMembershipUseCase
+    private val observeCurrentMembership: ObserveCurrentMembershipUseCase,
+    private val currentProjectProvider: CurrentProjectProvider
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RoleExplainerState())
@@ -38,8 +38,8 @@ class RoleExplainerViewModel(
     val events = _events.receiveAsFlow()
 
     init {
-        val projectId = observeUserProjects()
-            .mapNotNull { result -> (result as? Result.Success)?.data?.firstOrNull()?.id }
+        val projectId = currentProjectProvider.observeCurrentProjectId()
+            .mapNotNull { (it as? Result.Success)?.data }
             .distinctUntilChanged()
 
         viewModelScope.launch {

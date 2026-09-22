@@ -2,12 +2,12 @@ package com.example.temacker.feature_project.presentation.stuck
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.temacker.core.domain.repository.CurrentProjectProvider
 import com.example.temacker.core.domain.util.Result
 import com.example.temacker.core.domain.util.onFailure
 import com.example.temacker.core.domain.util.onSuccess
 import com.example.temacker.core.presentation.util.toUiText
 import com.example.temacker.feature_project.domain.use_case.ObserveStuckHandoffsUseCase
-import com.example.temacker.feature_project.domain.use_case.ObserveUserProjectsUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,16 +19,16 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class StuckViewModel(
-    private val observeUserProjects: ObserveUserProjectsUseCase,
-    private val observeStuckHandoffs: ObserveStuckHandoffsUseCase
+    private val observeStuckHandoffs: ObserveStuckHandoffsUseCase,
+    private val currentProjectProvider: CurrentProjectProvider
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(StuckState())
     val state = _state.asStateFlow()
 
     init {
-        val projectId = observeUserProjects()
-            .mapNotNull { (it as? Result.Success)?.data?.firstOrNull()?.id }
+        val projectId = currentProjectProvider.observeCurrentProjectId()
+            .mapNotNull { (it as? Result.Success)?.data }
             .distinctUntilChanged()
 
         viewModelScope.launch {

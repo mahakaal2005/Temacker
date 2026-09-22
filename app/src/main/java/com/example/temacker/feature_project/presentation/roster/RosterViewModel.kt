@@ -2,6 +2,7 @@ package com.example.temacker.feature_project.presentation.roster
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.temacker.core.domain.repository.CurrentProjectProvider
 import com.example.temacker.core.domain.util.Result
 import com.example.temacker.core.domain.util.onFailure
 import com.example.temacker.core.domain.util.onSuccess
@@ -18,6 +19,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.mapNotNull
@@ -34,7 +36,8 @@ class RosterViewModel(
     private val observeActiveInviteCode: ObserveActiveInviteCodeUseCase,
     private val generateInviteCode: GenerateInviteCodeUseCase,
     private val removeMember: RemoveMemberUseCase,
-    private val reassignMemberRole: ReassignMemberRoleUseCase
+    private val reassignMemberRole: ReassignMemberRoleUseCase,
+    private val currentProjectProvider: CurrentProjectProvider
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RosterState())
@@ -44,21 +47,32 @@ class RosterViewModel(
     val events = _events.receiveAsFlow()
 
     init {
+        // Same source the switcher pill writes to (architecture §8, seventh contract) — Team
+        // always follows the selected project, not just the first one.
         viewModelScope.launch {
-            observeUserProjects().collect { result ->
-                result
-                    .onSuccess { projects ->
-                        projects.firstOrNull()?.let { project -> _state.update { it.copy(projectId = project.id) } }
+            currentProjectProvider.observeCurrentProjectId()
+                .combine(observeUserProjects()) { idResult, projectsResult -> idResult to projectsResult }
+                .collect { (idResult, projectsResult) ->
+                    idResult
+                        .onSuccess { id -> if (id != null) _state.update { it.copy(projectId = id) } }
+                        .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+                    projectsResult.onSuccess { projects ->
+                        val currentId = (idResult as? Result.Success)?.data
+                        _state.update {
+                            it.copy(
+                                projectName = projects.firstOrNull { p -> p.id == currentId }?.name.orEmpty(),
+                                hasOtherProjects = projects.size > 1
+                            )
+                        }
                     }
-                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
-            }
+                }
         }
 
         // Only restarts nested listeners when the project id actually changes, not on every
-        // observeUserProjects() re-emission (which was tearing down/rebuilding Firestore
-        // listeners on unrelated Firestore chatter and widening the stale-data race window).
-        val projectId = observeUserProjects()
-            .mapNotNull { result -> (result as? Result.Success)?.data?.firstOrNull()?.id }
+        // re-emission (which was tearing down/rebuilding Firestore listeners on unrelated
+        // Firestore chatter and widening the stale-data race window).
+        val projectId = currentProjectProvider.observeCurrentProjectId()
+            .mapNotNull { (it as? Result.Success)?.data }
             .distinctUntilChanged()
 
         viewModelScope.launch {

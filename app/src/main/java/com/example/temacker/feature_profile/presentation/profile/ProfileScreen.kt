@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.temacker.core.presentation.components.AppDestination
 import com.example.temacker.core.presentation.components.AppScaffold
+import com.example.temacker.core.presentation.components.SwitcherPill
 import com.example.temacker.core.presentation.designsystem.AmberInk
 import com.example.temacker.core.presentation.designsystem.AmberWash
 import com.example.temacker.core.presentation.designsystem.Coral
@@ -50,6 +51,7 @@ fun ProfileRoot(
     onNavigateToInbox: () -> Unit,
     onNavigateToTeam: () -> Unit,
     onNavigateToLogin: () -> Unit,
+    onNavigateToSwitchProject: () -> Unit,
     viewModel: ProfileViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -65,7 +67,8 @@ fun ProfileRoot(
         onAction = viewModel::onAction,
         onNavigateToBoard = onNavigateToBoard,
         onNavigateToInbox = onNavigateToInbox,
-        onNavigateToTeam = onNavigateToTeam
+        onNavigateToTeam = onNavigateToTeam,
+        onNavigateToSwitchProject = onNavigateToSwitchProject
     )
 }
 
@@ -76,7 +79,8 @@ fun ProfileScreen(
     onAction: (ProfileAction) -> Unit,
     onNavigateToBoard: () -> Unit,
     onNavigateToInbox: () -> Unit,
-    onNavigateToTeam: () -> Unit
+    onNavigateToTeam: () -> Unit,
+    onNavigateToSwitchProject: () -> Unit
 ) {
     AppScaffold(
         selected = AppDestination.YOU,
@@ -87,6 +91,14 @@ fun ProfileScreen(
                 AppDestination.TEAM -> onNavigateToTeam()
                 AppDestination.YOU -> Unit
             }
+        },
+        header = {
+            SwitcherPill(
+                projectName = state.projectName,
+                metaLine = "${state.memberCount} members · ${state.roleName.ifBlank { "Member" }}",
+                hasOtherProjects = state.hasOtherProjects,
+                onClick = onNavigateToSwitchProject
+            )
         }
     ) { padding ->
         Surface(modifier = Modifier.fillMaxSize().padding(padding), color = MaterialTheme.colorScheme.background) {
@@ -236,7 +248,8 @@ private fun ProfileScreenPreview() {
             ),
             onAction = {},
             onNavigateToBoard = {}, onNavigateToInbox = {},
-            onNavigateToTeam = {}
+            onNavigateToTeam = {},
+            onNavigateToSwitchProject = {}
         )
     }
 }
@@ -245,7 +258,7 @@ private fun ProfileScreenPreview() {
 @Composable
 private fun ProfileScreenLoadingPreview() {
     TemackerTheme {
-        ProfileScreen(state = ProfileState(isLoading = true), onAction = {}, onNavigateToBoard = {}, onNavigateToInbox = {}, onNavigateToTeam = {})
+        ProfileScreen(state = ProfileState(isLoading = true), onAction = {}, onNavigateToBoard = {}, onNavigateToInbox = {}, onNavigateToTeam = {}, onNavigateToSwitchProject = {})
     }
 }
 
@@ -265,7 +278,8 @@ private fun ProfileScreenErrorPreview() {
             ),
             onAction = {},
             onNavigateToBoard = {}, onNavigateToInbox = {},
-            onNavigateToTeam = {}
+            onNavigateToTeam = {},
+            onNavigateToSwitchProject = {}
         )
     }
 }

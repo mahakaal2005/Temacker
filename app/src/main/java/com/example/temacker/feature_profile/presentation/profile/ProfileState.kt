@@ -9,6 +9,8 @@ data class ProfileState(
     val email: String = "",
     val photoUrl: String? = null,
     val projectName: String = "",
+    val memberCount: Int = 0,
+    val hasOtherProjects: Boolean = false,
     val roleName: String = "",
     val memberSince: String = "",
     val isLoading: Boolean = true,

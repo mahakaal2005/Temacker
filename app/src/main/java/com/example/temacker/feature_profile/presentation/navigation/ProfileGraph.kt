@@ -10,14 +10,16 @@ fun NavGraphBuilder.profileGraph(
     onNavigateToBoard: () -> Unit,
     onNavigateToInbox: () -> Unit,
     onNavigateToTeam: () -> Unit,
-    onNavigateToLogin: () -> Unit
+    onNavigateToLogin: () -> Unit,
+    onNavigateToSwitchProject: () -> Unit
 ) {
     composable<ProfileRoute> {
         ProfileRoot(
             onNavigateToBoard = onNavigateToBoard,
             onNavigateToInbox = onNavigateToInbox,
             onNavigateToTeam = onNavigateToTeam,
-            onNavigateToLogin = onNavigateToLogin
+            onNavigateToLogin = onNavigateToLogin,
+            onNavigateToSwitchProject = onNavigateToSwitchProject
         )
     }
 }

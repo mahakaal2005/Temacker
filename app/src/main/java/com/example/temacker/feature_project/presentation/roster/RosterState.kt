@@ -8,6 +8,8 @@ import com.example.temacker.feature_project.domain.model.Role
 @Stable
 data class RosterState(
     val projectId: String? = null,
+    val projectName: String = "",
+    val hasOtherProjects: Boolean = false,
     val members: List<Membership> = emptyList(),
     val roles: List<Role> = emptyList(),
     val canManageInvite: Boolean = false,

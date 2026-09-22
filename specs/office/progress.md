@@ -4,7 +4,7 @@ Read this first, every session, before touching code — it's the current status
 detail lives in each phase's spec file (`specs/office/phase-N-*.md`); this file only tracks
 done/left. Update it after every session or completed task.
 
-**Current phase: 5 done except the deferred project switcher (2026-09-22); Phase 6 next. Earlier: 4 — Truth about the team (implemented and verified on-device, 2026-09-19; unit tests still deferred). Phase 3 complete (2026-09-19): notifications + offline outbox built and verified on-device, see phase-3-notifications-offline.md (Phase 4 was pulled forward per explicit user request; see phase-4-team-truth.md's note).**
+**Current phase: 5b — project switcher, code complete and partially device-verified (2026-09-22, see phase-5b-project-switcher.md); the actual multi-project tap-through is the one piece still unverified. Phase 6 next after that's closed out. Earlier: 5 done (2026-09-22). 4 — Truth about the team (implemented and verified on-device, 2026-09-19; unit tests still deferred). Phase 3 complete (2026-09-19): notifications + offline outbox built and verified on-device, see phase-3-notifications-offline.md (Phase 4 was pulled forward per explicit user request; see phase-4-team-truth.md's note).**
 
 ## Phase 1 — Auth, projects, roles (`phase-1-auth-projects-roles.md`)
 - [x] Core layer: `Result`/`DataError` (core/domain/util), `SessionManager` interface + DataStore impl, `UiText`/`ObserveAsEvents` (core/presentation/util), `CoreModule` Koin wiring, `App.kt` + `startKoin`. `AppDatabase` deferred until the first Room entity exists (Room rejects `@Database` with zero entities).
@@ -173,12 +173,25 @@ Load/Stuck/Pulse read already exists and doesn't depend on notifications.
 ## Phase 5 — v1.0, used by others (`phase-5-v1-others.md`)
 - [x] Invited-member first-run screen — reached only from the join flow, verified on device (2026-09-22), see `specs/logs/2026-09-22-phase-5-first-run-and-role-explainer.md`
 - [x] Role explainer screen (tap a roster row) + who-set-the-role data (Room v7, rules deployed, 92 rules tests, 59 unit tests)
-- [ ] Project switcher — **deferred out of Phase 5, own spec and approval needed**: a push for a non-current project can't be shown (tap is dropped)
+- [x] Project switcher — spun out into its own phase, `phase-5b-project-switcher.md` (below)
+
+## Phase 5b — Project switcher (`phase-5b-project-switcher.md`)
+- [x] `SelectedProjectStore` (DataStore) + `ProjectCurrentProjectProvider` rewrite (fallback + persist), 4 unit tests
+- [x] Every `feature_project` ViewModel that bypassed `CurrentProjectProvider` switched to it (Roster, ManageRoles,
+  Load, Stuck, Pulse, RoleExplainer, InvitedFirstRun, Succession); `JoinProjectViewModel` selects the newly joined project
+- [x] Switch-project screen (MVI, previews) + `AppScaffold` header slot + `SwitcherPill`, wired on Team and You
+- [x] `MainActivity` notification-tap now auto-switches instead of dropping the tap
+- [x] Device-verified: pill renders correctly on Team/You, status-bar overlap bug found and fixed, no crashes
+- [ ] **Not yet device-verified:** the actual multi-project switch tap-through and the notification auto-switch —
+  blocked on a safe way to get the test account into a genuine multi-project state (see phase-5b spec's "On-device
+  verification" section)
+- [ ] Board/Inbox entry point — flagged follow-up, needs a project-name cross-feature contract `feature_tasks` doesn't have today
 
 ## Phase 6 — Sustainability (`phase-6-sustainability.md`)
 - [ ] Your data (export + delete-account)
 - [ ] Plan & limits screen
 
 ## Open decisions
-- Phase 5: project switcher (multi-project users). The app assumes current project = first project; agree scope with the user before building.
+- Phase 5b: get the device into a genuine multi-project state (safely) to finish verifying the switch tap-through and notification auto-switch.
+- Phase 5b follow-up: Board/Inbox switcher entry point needs a project-name cross-feature contract (not built).
 - Phase 6: extend `feature_profile` vs. new `feature_settings` — default is extend, revisit if it grows.

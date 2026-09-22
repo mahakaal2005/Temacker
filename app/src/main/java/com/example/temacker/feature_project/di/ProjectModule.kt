@@ -10,6 +10,8 @@ import com.example.temacker.feature_project.data.remote.ProjectRemoteDataSource
 import com.example.temacker.feature_project.data.remote.RoleRemoteDataSource
 import com.example.temacker.core.domain.repository.CurrentProjectProvider
 import com.example.temacker.core.domain.repository.ProjectMemberProvider
+import com.example.temacker.core.domain.repository.SelectedProjectStore
+import com.example.temacker.feature_project.data.repository.DataStoreSelectedProjectStore
 import com.example.temacker.feature_project.data.repository.MembershipProjectMemberProvider
 import com.example.temacker.feature_project.data.repository.ProjectCurrentProjectProvider
 import com.example.temacker.feature_project.data.repository.OfflineFirstInviteCodeRepository
@@ -49,6 +51,7 @@ import com.example.temacker.feature_project.presentation.pulse.PulseViewModel
 import com.example.temacker.feature_project.presentation.roster.RosterViewModel
 import com.example.temacker.feature_project.presentation.stuck.StuckViewModel
 import com.example.temacker.feature_project.presentation.succession.SuccessionViewModel
+import com.example.temacker.feature_project.presentation.switch_project.SwitchProjectViewModel
 import com.example.temacker.feature_project.presentation.role_explainer.RoleExplainerViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.module.dsl.bind
@@ -68,6 +71,7 @@ val projectModule = module {
     singleOf(::OfflineFirstMembershipRepository) { bind<MembershipRepository>() }
     singleOf(::OfflineFirstInviteCodeRepository) { bind<InviteCodeRepository>() }
     singleOf(::MembershipProjectMemberProvider) { bind<ProjectMemberProvider>() }
+    singleOf(::DataStoreSelectedProjectStore) { bind<SelectedProjectStore>() }
     singleOf(::ProjectCurrentProjectProvider) { bind<CurrentProjectProvider>() }
 
     factoryOf(::ObserveUserProjectsUseCase)
@@ -101,4 +105,5 @@ val projectModule = module {
     viewModelOf(::StuckViewModel)
     viewModelOf(::PulseViewModel)
     viewModelOf(::SuccessionViewModel)
+    viewModelOf(::SwitchProjectViewModel)
 }

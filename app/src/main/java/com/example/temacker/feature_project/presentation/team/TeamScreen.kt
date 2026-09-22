@@ -26,6 +26,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.temacker.core.presentation.components.AppDestination
 import com.example.temacker.core.presentation.components.AppScaffold
+import com.example.temacker.core.presentation.components.SwitcherPill
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import com.example.temacker.core.presentation.util.ObserveAsEvents
 import com.example.temacker.feature_project.presentation.load.LoadAction
@@ -59,6 +60,7 @@ fun TeamRoot(
     onNavigateToManageRoles: () -> Unit,
     onNavigateToRoleExplainer: (String) -> Unit,
     onNavigateToSuccession: () -> Unit,
+    onNavigateToSwitchProject: () -> Unit,
     rosterViewModel: RosterViewModel = koinViewModel(),
     loadViewModel: LoadViewModel = koinViewModel(),
     stuckViewModel: StuckViewModel = koinViewModel(),
@@ -94,7 +96,8 @@ fun TeamRoot(
         onNavigateToBoard = onNavigateToBoard,
         onNavigateToInbox = onNavigateToInbox,
         onNavigateToYou = onNavigateToYou,
-        onNavigateToSuccession = onNavigateToSuccession
+        onNavigateToSuccession = onNavigateToSuccession,
+        onNavigateToSwitchProject = onNavigateToSwitchProject
     )
 }
 
@@ -112,7 +115,8 @@ fun TeamScreen(
     onNavigateToBoard: () -> Unit,
     onNavigateToInbox: () -> Unit,
     onNavigateToYou: () -> Unit,
-    onNavigateToSuccession: () -> Unit
+    onNavigateToSuccession: () -> Unit,
+    onNavigateToSwitchProject: () -> Unit
 ) {
     var selectedTab by remember { mutableStateOf(TeamTab.ROSTER) }
 
@@ -125,6 +129,14 @@ fun TeamScreen(
                 AppDestination.TEAM -> Unit
                 AppDestination.YOU -> onNavigateToYou()
             }
+        },
+        header = {
+            SwitcherPill(
+                projectName = rosterState.projectName,
+                metaLine = "${rosterState.members.size} members · ${if (rosterState.isLeader) "Leader" else "Member"}",
+                hasOtherProjects = rosterState.hasOtherProjects,
+                onClick = onNavigateToSwitchProject
+            )
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -167,7 +179,7 @@ fun TeamScreen(
 private fun TeamScreenPreview() {
     TemackerTheme {
         TeamScreen(
-            rosterState = RosterState(isLoading = false, isLeader = true),
+            rosterState = RosterState(isLoading = false, isLeader = true, projectName = "Aurora Launch", hasOtherProjects = true),
             loadState = LoadState(isLoading = false),
             stuckState = StuckState(isLoading = false),
             pulseState = PulseState(isLoading = false),
@@ -178,7 +190,8 @@ private fun TeamScreenPreview() {
             onNavigateToBoard = {},
             onNavigateToInbox = {},
             onNavigateToYou = {},
-            onNavigateToSuccession = {}
+            onNavigateToSuccession = {},
+            onNavigateToSwitchProject = {}
         )
     }
 }
@@ -188,7 +201,7 @@ private fun TeamScreenPreview() {
 private fun TeamScreenNonLeaderPreview() {
     TemackerTheme {
         TeamScreen(
-            rosterState = RosterState(isLoading = false, isLeader = false),
+            rosterState = RosterState(isLoading = false, isLeader = false, projectName = "Aurora Launch", hasOtherProjects = false),
             loadState = LoadState(isLoading = false),
             stuckState = StuckState(isLoading = false),
             pulseState = PulseState(isLoading = false),
@@ -199,7 +212,8 @@ private fun TeamScreenNonLeaderPreview() {
             onNavigateToBoard = {},
             onNavigateToInbox = {},
             onNavigateToYou = {},
-            onNavigateToSuccession = {}
+            onNavigateToSuccession = {},
+            onNavigateToSwitchProject = {}
         )
     }
 }

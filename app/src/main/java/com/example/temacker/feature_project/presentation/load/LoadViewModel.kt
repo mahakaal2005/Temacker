@@ -2,12 +2,12 @@ package com.example.temacker.feature_project.presentation.load
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.temacker.core.domain.repository.CurrentProjectProvider
 import com.example.temacker.core.domain.util.Result
 import com.example.temacker.core.domain.util.onFailure
 import com.example.temacker.core.domain.util.onSuccess
 import com.example.temacker.core.presentation.util.toUiText
 import com.example.temacker.feature_project.domain.use_case.ObserveLoadUseCase
-import com.example.temacker.feature_project.domain.use_case.ObserveUserProjectsUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,18 +19,18 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LoadViewModel(
-    private val observeUserProjects: ObserveUserProjectsUseCase,
-    private val observeLoad: ObserveLoadUseCase
+    private val observeLoad: ObserveLoadUseCase,
+    private val currentProjectProvider: CurrentProjectProvider
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LoadState())
     val state = _state.asStateFlow()
 
     init {
-        // Same first-project derivation as RosterViewModel — see its comment on why
-        // distinctUntilChanged matters (avoids tearing down listeners on unrelated re-emissions).
-        val projectId = observeUserProjects()
-            .mapNotNull { (it as? Result.Success)?.data?.firstOrNull()?.id }
+        // Same source the switcher pill writes to (architecture §8, seventh contract) — see
+        // RosterViewModel's comment on why distinctUntilChanged matters here.
+        val projectId = currentProjectProvider.observeCurrentProjectId()
+            .mapNotNull { (it as? Result.Success)?.data }
             .distinctUntilChanged()
 
         viewModelScope.launch {

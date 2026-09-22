@@ -12,6 +12,7 @@ import com.example.temacker.feature_project.presentation.manage_roles.ManageRole
 import com.example.temacker.feature_project.presentation.no_project.NoProjectRoot
 import com.example.temacker.feature_project.presentation.role_explainer.RoleExplainerRoot
 import com.example.temacker.feature_project.presentation.succession.SuccessionRoot
+import com.example.temacker.feature_project.presentation.switch_project.SwitchProjectRoot
 import com.example.temacker.feature_project.presentation.team.TeamRoot
 
 // onNavigateToBoard/onNavigateToProfile are callbacks so feature_project never imports
@@ -63,8 +64,12 @@ fun NavGraphBuilder.projectGraph(
             onNavigateToYou = onNavigateToProfile,
             onNavigateToManageRoles = { navController.navigate(ManageRolesRoute) },
             onNavigateToRoleExplainer = { userId -> navController.navigate(RoleExplainerRoute(userId)) },
-            onNavigateToSuccession = { navController.navigate(SuccessionRoute) }
+            onNavigateToSuccession = { navController.navigate(SuccessionRoute) },
+            onNavigateToSwitchProject = { navController.navigate(SwitchProjectRoute) }
         )
+    }
+    composable<SwitchProjectRoute> {
+        SwitchProjectRoot(onNavigateBack = { navController.popBackStack() })
     }
     composable<RoleExplainerRoute> { backStackEntry ->
         val route: RoleExplainerRoute = backStackEntry.toRoute()

@@ -2,18 +2,21 @@ package com.example.temacker.feature_profile.presentation.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.temacker.core.domain.repository.CurrentProjectProvider
 import com.example.temacker.core.domain.util.Result
 import com.example.temacker.core.domain.util.onFailure
 import com.example.temacker.core.domain.util.onSuccess
 import com.example.temacker.core.presentation.util.toUiText
 import com.example.temacker.feature_auth.domain.repository.AuthRepository
 import com.example.temacker.feature_project.domain.use_case.ObserveCurrentMembershipUseCase
+import com.example.temacker.feature_project.domain.use_case.ObserveMembersUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveUserProjectsUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.mapNotNull
@@ -30,7 +33,9 @@ import java.util.Locale
 class ProfileViewModel(
     private val authRepository: AuthRepository,
     private val observeUserProjects: ObserveUserProjectsUseCase,
-    private val observeCurrentMembership: ObserveCurrentMembershipUseCase
+    private val observeCurrentMembership: ObserveCurrentMembershipUseCase,
+    private val observeMembers: ObserveMembersUseCase,
+    private val currentProjectProvider: CurrentProjectProvider
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ProfileState())
@@ -46,24 +51,28 @@ class ProfileViewModel(
                 _state.update { it.copy(displayName = user.displayName, email = user.email, photoUrl = user.photoUrl) }
             }
         }
-        viewModelScope.launch {
-            observeUserProjects().collect { result ->
-                result
-                    .onSuccess { projects ->
-                        val project = projects.firstOrNull()
-                        if (project == null) {
-                            _state.update { it.copy(isLoading = false) }
-                            return@onSuccess
-                        }
-                        _state.update { it.copy(projectName = project.name, isLoading = false) }
-                    }
-                    .onFailure { error -> _state.update { it.copy(isLoading = false, error = error.toUiText()) } }
-            }
-        }
 
-        val projectId = observeUserProjects()
-            .mapNotNull { result -> (result as? Result.Success)?.data?.firstOrNull()?.id }
+        val projectId = currentProjectProvider.observeCurrentProjectId()
+            .mapNotNull { (it as? Result.Success)?.data }
             .distinctUntilChanged()
+
+        viewModelScope.launch {
+            projectId.combine(observeUserProjects()) { id, projectsResult -> id to projectsResult }
+                .collect { (id, projectsResult) ->
+                    projectsResult
+                        .onSuccess { projects ->
+                            val project = projects.firstOrNull { it.id == id }
+                            if (project == null) {
+                                _state.update { it.copy(isLoading = false) }
+                            } else {
+                                _state.update {
+                                    it.copy(projectName = project.name, hasOtherProjects = projects.size > 1, isLoading = false)
+                                }
+                            }
+                        }
+                        .onFailure { error -> _state.update { it.copy(isLoading = false, error = error.toUiText()) } }
+                }
+        }
 
         viewModelScope.launch {
             projectId.flatMapLatest { observeCurrentMembership(it) }.collect { membershipResult ->
@@ -77,6 +86,11 @@ class ProfileViewModel(
                         }
                     }
                     .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+            }
+        }
+        viewModelScope.launch {
+            projectId.flatMapLatest { observeMembers(it) }.collect { membersResult ->
+                membersResult.onSuccess { members -> _state.update { it.copy(memberCount = members.size) } }
             }
         }
     }

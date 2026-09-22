@@ -483,6 +483,20 @@ a feed only Pulse consumes.
 - `ConnectivityObserver` — `observeIsOnline(): Flow<Boolean>` over `ConnectivityManager`, consumed by the
   Board's offline strip and the outbox.
 
+**Seventh contract (Phase 5b):** `SelectedProjectStore` (`core/domain/repository`) —
+`observeSelectedProjectId(): Flow<String?>`, `suspend fun setSelectedProjectId(id: String)`. Implemented by
+a DataStore-backed class in `feature_project/data/repository/` (same shared `DataStore<Preferences>`
+singleton as `DataStoreSessionManager`, one `stringPreferencesKey`), bound in `ProjectModule.kt`.
+`CurrentProjectProvider`'s implementation (`ProjectCurrentProjectProvider`) now combines this with
+`observeUserProjects()`: it resolves to the selected id when it's still in the user's project list, else
+falls back to the first project and persists that as the new selection. `CurrentProjectProvider`'s own
+interface is unchanged — `Board`/`Inbox`/`Queue` ViewModels and `MainActivity` already used it and needed no
+changes. Every `feature_project` screen ViewModel that previously derived "current project" inline via
+`observeUserProjects().firstOrNull()?.id` (Roster, ManageRoles, Load, Stuck, Pulse, RoleExplainer,
+InvitedFirstRun, Succession) was switched to `CurrentProjectProvider` too, so the switcher actually applies
+project-wide, not just to Board/Inbox — `ProjectGateViewModel` is the one deliberate exception (it checks
+"does the user have any project," not "which one").
+
 ---
 
 ## 9. Presentation: MVI inside MVVM
@@ -670,6 +684,9 @@ spot.
 - **FcmToken** (`users/{uid}/fcmTokens/{token}`, Phase 3) — doc id is the token; fields `token`,
   `updatedAt`. Owner-only; read by Cloud Functions via the Admin SDK, which prunes unregistered tokens.
 - **PendingWrite** (Phase 3) — local-only Room table for the offline outbox (§7). No Firestore mirror.
+- **Selected project id** (Phase 5b) — local-only DataStore Preferences key (`SelectedProjectStore`, §8's
+  seventh contract), not a Room table or Firestore field. Holds which of the user's projects the app currently
+  shows; falls back to the first project if the stored id is no longer in the user's project list.
 
 ## Firestore Security Rules
 
@@ -716,6 +733,9 @@ spot.
    (reading the `events` collection), succession flow. See `specs/office/phase-4-team-truth.md`.
 5. **Phase 5 — v1.0, used by others.** Invited-member first-run screen (reached from the join flow), role explainer, and who-set-the-role data; project switcher deferred. See
    `specs/office/phase-5-v1-others.md`.
+5b. **Phase 5b — Project switcher.** Real "current project" selection (`SelectedProjectStore`), a
+   switch-project screen, an `AppScaffold` header entry point, and notification taps that switch project
+   first. See `specs/office/phase-5b-project-switcher.md`.
 6. **Phase 6 — Sustainability.** Your data (export + delete-account), plan & limits screen. See
    `specs/office/phase-6-sustainability.md`.
 

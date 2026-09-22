@@ -2,6 +2,7 @@ package com.example.temacker.feature_project.presentation.manage_roles
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.temacker.core.domain.repository.CurrentProjectProvider
 import com.example.temacker.core.domain.util.Result
 import com.example.temacker.core.domain.util.onFailure
 import com.example.temacker.core.domain.util.onSuccess
@@ -10,7 +11,6 @@ import com.example.temacker.feature_project.domain.model.RolePermissions
 import com.example.temacker.feature_project.domain.use_case.CreateRoleUseCase
 import com.example.temacker.feature_project.domain.use_case.DeleteRoleUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveRolesUseCase
-import com.example.temacker.feature_project.domain.use_case.ObserveUserProjectsUseCase
 import com.example.temacker.feature_project.domain.use_case.UpdateRoleUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
@@ -25,11 +25,11 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ManageRolesViewModel(
-    private val observeUserProjects: ObserveUserProjectsUseCase,
     private val observeRoles: ObserveRolesUseCase,
     private val createRole: CreateRoleUseCase,
     private val updateRole: UpdateRoleUseCase,
-    private val deleteRole: DeleteRoleUseCase
+    private val deleteRole: DeleteRoleUseCase,
+    private val currentProjectProvider: CurrentProjectProvider
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ManageRolesState())
@@ -40,17 +40,15 @@ class ManageRolesViewModel(
 
     init {
         viewModelScope.launch {
-            observeUserProjects().collect { result ->
+            currentProjectProvider.observeCurrentProjectId().collect { result ->
                 result
-                    .onSuccess { projects ->
-                        projects.firstOrNull()?.let { project -> _state.update { it.copy(projectId = project.id) } }
-                    }
+                    .onSuccess { id -> if (id != null) _state.update { it.copy(projectId = id) } }
                     .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
             }
         }
 
-        val projectId = observeUserProjects()
-            .mapNotNull { result -> (result as? Result.Success)?.data?.firstOrNull()?.id }
+        val projectId = currentProjectProvider.observeCurrentProjectId()
+            .mapNotNull { (it as? Result.Success)?.data }
             .distinctUntilChanged()
 
         viewModelScope.launch {

@@ -11,3 +11,4 @@ import kotlinx.serialization.Serializable
 @Serializable data class RoleExplainerRoute(val userId: String)
 @Serializable data object ManageRolesRoute
 @Serializable data object SuccessionRoute
+@Serializable data object SwitchProjectRoute
