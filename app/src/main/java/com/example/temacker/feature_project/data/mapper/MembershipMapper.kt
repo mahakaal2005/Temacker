@@ -23,7 +23,10 @@ fun DocumentSnapshot.toMembership(projectId: String): Membership? {
         displayName = displayName,
         photoUrl = photoUrl,
         joinedAt = joinedAt,
-        isLeader = isLeader
+        isLeader = isLeader,
+        roleSetByUid = getString("roleSetByUid"),
+        roleSetByDisplayName = getString("roleSetByDisplayName"),
+        roleSetAt = getLong("roleSetAt")
     )
 }
 
@@ -35,5 +38,8 @@ fun Membership.toFirestoreMap(): Map<String, Any?> = mapOf(
     "displayName" to displayName,
     "photoUrl" to photoUrl,
     "joinedAt" to joinedAt,
-    "isLeader" to isLeader
+    "isLeader" to isLeader,
+    "roleSetByUid" to roleSetByUid,
+    "roleSetByDisplayName" to roleSetByDisplayName,
+    "roleSetAt" to roleSetAt
 )

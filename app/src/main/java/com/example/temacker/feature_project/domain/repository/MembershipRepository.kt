@@ -12,5 +12,5 @@ interface MembershipRepository {
     fun observeMembership(projectId: String): Flow<Result<Membership?, DataError>>
     suspend fun joinProject(code: String, displayName: String, photoUrl: String?): Result<Membership, DataError>
     suspend fun removeMember(projectId: String, userId: String): EmptyResult<DataError>
-    suspend fun reassignRole(projectId: String, userId: String, roleId: String): EmptyResult<DataError>
+    suspend fun reassignRole(projectId: String, userId: String, roleId: String, byUid: String, byDisplayName: String): EmptyResult<DataError>
 }

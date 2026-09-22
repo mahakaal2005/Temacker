@@ -107,6 +107,7 @@ fun RosterTabContent(
                             isMenuOpen = state.menuForUserId == member.userId,
                             canReassign = state.canManageRoles,
                             canRemove = state.canRemoveMembers,
+                            onClick = { onAction(RosterAction.OnMemberClick(member.userId)) },
                             onMoreClick = { onAction(RosterAction.OnMemberMoreClick(member.userId)) },
                             onDismissMenu = { onAction(RosterAction.OnDismissMemberMenu) },
                             onReassignClick = { onAction(RosterAction.OnReassignRoleClick(member.userId)) },
@@ -144,13 +145,14 @@ private fun MemberRow(
     isMenuOpen: Boolean,
     canReassign: Boolean,
     canRemove: Boolean,
+    onClick: () -> Unit,
     onMoreClick: () -> Unit,
     onDismissMenu: () -> Unit,
     onReassignClick: () -> Unit,
     onRemoveClick: () -> Unit
 ) {
     val isLeader = member.isLeader
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "See what ${member.roleName} can do", onClick = onClick).padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         Surface(shape = CircleShape, color = if (isLeader) AmberWash else TealWash, modifier = Modifier.size(40.dp)) {
             Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(

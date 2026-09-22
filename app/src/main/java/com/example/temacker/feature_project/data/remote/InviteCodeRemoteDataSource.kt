@@ -7,5 +7,5 @@ import kotlinx.coroutines.flow.Flow
 
 interface InviteCodeRemoteDataSource {
     fun observeActiveInviteCode(projectId: String): Flow<InviteCode?>
-    suspend fun generateInviteCode(projectId: String): Result<InviteCode, DataError>
+    suspend fun generateInviteCode(projectId: String, byUid: String, byDisplayName: String): Result<InviteCode, DataError>
 }

@@ -126,6 +126,11 @@ function asMember() {
 function asOutsider() {
   return testEnv.authenticatedContext(OUTSIDER_UID).firestore();
 }
+// The stamp reassignRole writes: who set the role and when.
+function roleStamp(uid) {
+  return { roleSetByUid: uid, roleSetByDisplayName: "Setter", roleSetAt: Date.now() };
+}
+
 function asUnauthenticated() {
   return testEnv.unauthenticatedContext().firestore();
 }
@@ -431,7 +436,8 @@ describe("projects/{projectId}/members/{userId}", () => {
           displayName: "Joiner",
           photoUrl: null,
           joinedAt: Date.now(),
-          isLeader: false
+          isLeader: false,
+          ...roleStamp(LEADER_UID)
         })
     );
   });
@@ -510,7 +516,25 @@ describe("projects/{projectId}/members/{userId}", () => {
       asLeader()
         .collection(`projects/${PROJECT_ID_1}/members`)
         .doc(MEMBER_UID)
+        .update({ roleId: "role-manager", roleName: "Manager", permissions: managerPermissions(), isLeader: false, ...roleStamp(LEADER_UID) })
+    );
+  });
+
+  test("reassigning without the roleSetBy stamp is denied", async () => {
+    await assertFails(
+      asLeader()
+        .collection(`projects/${PROJECT_ID_1}/members`)
+        .doc(MEMBER_UID)
         .update({ roleId: "role-manager", roleName: "Manager", permissions: managerPermissions(), isLeader: false })
+    );
+  });
+
+  test("reassigning with someone else's uid in roleSetByUid is denied", async () => {
+    await assertFails(
+      asLeader()
+        .collection(`projects/${PROJECT_ID_1}/members`)
+        .doc(MEMBER_UID)
+        .update({ roleId: "role-manager", roleName: "Manager", permissions: managerPermissions(), isLeader: false, ...roleStamp(OUTSIDER_UID) })
     );
   });
 
@@ -519,7 +543,7 @@ describe("projects/{projectId}/members/{userId}", () => {
       asLeader()
         .collection(`projects/${PROJECT_ID_1}/members`)
         .doc(MEMBER_UID)
-        .update({ roleId: "role-manager", roleName: "Manager", permissions: managerPermissions(), isLeader: true })
+        .update({ roleId: "role-manager", roleName: "Manager", permissions: managerPermissions(), isLeader: true, ...roleStamp(LEADER_UID) })
     );
   });
 
@@ -528,7 +552,7 @@ describe("projects/{projectId}/members/{userId}", () => {
       asMember()
         .collection(`projects/${PROJECT_ID_1}/members`)
         .doc(MEMBER_UID)
-        .update({ roleId: "role-manager", roleName: "Manager", permissions: managerPermissions() })
+        .update({ roleId: "role-manager", roleName: "Manager", permissions: managerPermissions(), ...roleStamp(LEADER_UID) })
     );
   });
 
@@ -537,7 +561,7 @@ describe("projects/{projectId}/members/{userId}", () => {
       asLeader()
         .collection(`projects/${PROJECT_ID_1}/members`)
         .doc(LEADER_UID)
-        .update({ roleId: DEFAULT_ROLE_ID, roleName: "Default", permissions: noPermissions() })
+        .update({ roleId: DEFAULT_ROLE_ID, roleName: "Default", permissions: noPermissions(), ...roleStamp(LEADER_UID) })
     );
   });
 
@@ -546,7 +570,7 @@ describe("projects/{projectId}/members/{userId}", () => {
       asLeader()
         .collection(`projects/${PROJECT_ID_1}/members`)
         .doc(MEMBER_UID)
-        .update({ roleId: LEADER_ROLE_ID, roleName: "Leader", permissions: fullPermissions() })
+        .update({ roleId: LEADER_ROLE_ID, roleName: "Leader", permissions: fullPermissions(), ...roleStamp(LEADER_UID) })
     );
   });
 
@@ -559,7 +583,8 @@ describe("projects/{projectId}/members/{userId}", () => {
           userId: OUTSIDER_UID,
           roleId: "role-manager",
           roleName: "Manager",
-          permissions: managerPermissions()
+          permissions: managerPermissions(),
+          ...roleStamp(LEADER_UID)
         })
     );
   });
@@ -695,7 +720,25 @@ describe("inviteCodes/{code}", () => {
       asLeader()
         .collection("inviteCodes")
         .doc("NEWCODE1")
+        .set({ projectId: PROJECT_ID_1, expiresAt: Date.now() + 1000000, isActive: true, createdByUid: LEADER_UID, createdByDisplayName: "Leader Person" })
+    );
+  });
+
+  test("creating an invite code without createdByUid is denied", async () => {
+    await assertFails(
+      asLeader()
+        .collection("inviteCodes")
+        .doc("NEWCODE3")
         .set({ projectId: PROJECT_ID_1, expiresAt: Date.now() + 1000000, isActive: true })
+    );
+  });
+
+  test("creating an invite code naming someone else as creator is denied", async () => {
+    await assertFails(
+      asLeader()
+        .collection("inviteCodes")
+        .doc("NEWCODE4")
+        .set({ projectId: PROJECT_ID_1, expiresAt: Date.now() + 1000000, isActive: true, createdByUid: MEMBER_UID, createdByDisplayName: "Regular Member" })
     );
   });
 
@@ -704,7 +747,7 @@ describe("inviteCodes/{code}", () => {
       asMember()
         .collection("inviteCodes")
         .doc("NEWCODE2")
-        .set({ projectId: PROJECT_ID_1, expiresAt: Date.now() + 1000000, isActive: true })
+        .set({ projectId: PROJECT_ID_1, expiresAt: Date.now() + 1000000, isActive: true, createdByUid: MEMBER_UID, createdByDisplayName: "Regular Member" })
     );
   });
 

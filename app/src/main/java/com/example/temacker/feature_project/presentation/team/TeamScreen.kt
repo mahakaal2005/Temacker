@@ -57,6 +57,7 @@ fun TeamRoot(
     onNavigateToInbox: () -> Unit,
     onNavigateToYou: () -> Unit,
     onNavigateToManageRoles: () -> Unit,
+    onNavigateToRoleExplainer: (String) -> Unit,
     onNavigateToSuccession: () -> Unit,
     rosterViewModel: RosterViewModel = koinViewModel(),
     loadViewModel: LoadViewModel = koinViewModel(),
@@ -72,6 +73,7 @@ fun TeamRoot(
     ObserveAsEvents(rosterViewModel.events) { event ->
         when (event) {
             RosterEvent.NavigateToManageRoles -> onNavigateToManageRoles()
+            is RosterEvent.NavigateToRoleExplainer -> onNavigateToRoleExplainer(event.userId)
         }
     }
 

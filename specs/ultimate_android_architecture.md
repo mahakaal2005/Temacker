@@ -643,9 +643,9 @@ spot.
   succession flips this `true` and the project stops appearing in `observeUserProjects()`, filtered at
   the Room-query level via `ProjectDao.observeActiveByIds`), `predecessorProjectId` (Phase 4, nullable
   — set on a succession-created project, pointing at the project it inherited its roster from).
-- **InviteCode** — `code`, `projectId`, `expiresAt` (nullable), `isActive`
+- **InviteCode** — `code`, `projectId`, `expiresAt` (nullable), `isActive` (Firestore doc also carries `createdByUid`, `createdByDisplayName` since Phase 5 — read by `joinProject`, not part of the domain model or Room)
 - **Role** (`projects/{projectId}/roles/{roleId}`) — `id`, `projectId`, `name`, `permissions` (booleans: `manageRoles`, `manageInviteCode`, `removeMembers`, `deleteProject`, `assignTasks`, `editAnyTask`, `manageTags`), `isLeader`. A system `Leader` role is auto-created per project: all permissions `true`, immutable, assigned to the creator, cannot be edited/deleted/reassigned away by anyone else.
-- **Membership** (`projects/{projectId}/members/{userId}`) — `projectId`, `userId`, `roleId`, a **denormalized `permissions` snapshot** copied from the role at assignment time (refreshed whenever the member's role changes), and a **denormalized `isLeader`** (Phase 4 — replaces the old `roleName == "Leader"` string-compare with a real field succession's Leader-only guard can trust). Firestore security rules read these snapshots rather than chaining a lookup to the role document.
+- **Membership** (`projects/{projectId}/members/{userId}`) — `projectId`, `userId`, `roleId`, a **denormalized `permissions` snapshot** copied from the role at assignment time (refreshed whenever the member's role changes), and a **denormalized `isLeader`** (Phase 4 — replaces the old `roleName == "Leader"` string-compare with a real field succession's Leader-only guard can trust). Firestore security rules read these snapshots rather than chaining a lookup to the role document. **Phase 5 update:** nullable `roleSetByUid`, `roleSetByDisplayName` (denormalized), `roleSetAt` record who last set the role and when (inviter on join, the acting user on reassign, the creator for a Leader); docs older than Phase 5 lack them and the UI omits the line.
 - **Task** (`projects/{projectId}/tasks/{taskId}`, Phase 2+) — holder/handoff model, not a status-column
   model. `id`, `projectId`, `title`, `description` (nullable), `holderUid`, `holderDisplayName`
   (denormalized), `status` (`TODO`/`DOING`/`DONE` — derived, never set directly by the client: `TODO`
@@ -714,7 +714,7 @@ spot.
    destination + badge, offline queue screen. See `specs/office/phase-3-notifications-offline.md`.
 4. **Phase 4 — Truth about the team.** Load/Stuck/Pulse tabs inside Team, aggregation use cases
    (reading the `events` collection), succession flow. See `specs/office/phase-4-team-truth.md`.
-5. **Phase 5 — v1.0, used by others.** Invited-member first-run screen, role explainer. See
+5. **Phase 5 — v1.0, used by others.** Invited-member first-run screen (reached from the join flow), role explainer, and who-set-the-role data; project switcher deferred. See
    `specs/office/phase-5-v1-others.md`.
 6. **Phase 6 — Sustainability.** Your data (export + delete-account), plan & limits screen. See
    `specs/office/phase-6-sustainability.md`.

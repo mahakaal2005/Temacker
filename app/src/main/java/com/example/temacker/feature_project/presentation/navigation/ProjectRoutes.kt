@@ -6,6 +6,8 @@ import kotlinx.serialization.Serializable
 @Serializable data object NoProjectRoute
 @Serializable data object CreateProjectRoute
 @Serializable data object JoinProjectRoute
+@Serializable data object InvitedFirstRunRoute
 @Serializable data object TeamRoute
+@Serializable data class RoleExplainerRoute(val userId: String)
 @Serializable data object ManageRolesRoute
 @Serializable data object SuccessionRoute

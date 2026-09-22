@@ -130,6 +130,7 @@ class RosterViewModel(
                 }
             }
             RosterAction.OnManageRolesClick -> viewModelScope.launch { _events.send(RosterEvent.NavigateToManageRoles) }
+            is RosterAction.OnMemberClick -> viewModelScope.launch { _events.send(RosterEvent.NavigateToRoleExplainer(action.userId)) }
             RosterAction.OnErrorDismissed -> _state.update { it.copy(error = null) }
         }
     }

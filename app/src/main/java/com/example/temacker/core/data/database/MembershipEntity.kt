@@ -20,5 +20,8 @@ data class MembershipEntity(
     val displayName: String,
     val photoUrl: String?,
     val joinedAt: Long,
-    @ColumnInfo(defaultValue = "0") val isLeader: Boolean = false
+    @ColumnInfo(defaultValue = "0") val isLeader: Boolean = false,
+    val roleSetByUid: String? = null,
+    val roleSetByDisplayName: String? = null,
+    val roleSetAt: Long? = null
 )

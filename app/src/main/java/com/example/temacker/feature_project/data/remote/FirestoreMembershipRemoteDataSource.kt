@@ -61,6 +61,7 @@ class FirestoreMembershipRemoteDataSource(
 
             val memberRef = projectRef.collection("members").document(userId)
             val joinedAt = System.currentTimeMillis()
+            // The invite's creator is who added this member; codes older than Phase 5 have none.
             val membership = Membership(
                 projectId = projectId,
                 userId = userId,
@@ -70,7 +71,10 @@ class FirestoreMembershipRemoteDataSource(
                 displayName = displayName,
                 photoUrl = photoUrl,
                 joinedAt = joinedAt,
-                isLeader = isLeader
+                isLeader = isLeader,
+                roleSetByUid = codeSnap.getString("createdByUid"),
+                roleSetByDisplayName = codeSnap.getString("createdByDisplayName"),
+                roleSetAt = joinedAt
             )
             txn.set(memberRef, membership.toFirestoreMap())
             membership
@@ -83,7 +87,7 @@ class FirestoreMembershipRemoteDataSource(
             Unit
         }
 
-    override suspend fun reassignRole(projectId: String, userId: String, roleId: String): Result<Membership, DataError> =
+    override suspend fun reassignRole(projectId: String, userId: String, roleId: String, byUid: String, byDisplayName: String): Result<Membership, DataError> =
         safeFirestoreCall {
             val roleRef = firestore.collection("projects").document(projectId).collection("roles").document(roleId)
             val roleSnap = roleRef.get().await()
@@ -97,7 +101,10 @@ class FirestoreMembershipRemoteDataSource(
                     "roleId" to roleId,
                     "roleName" to roleName,
                     "permissions" to permissions.toFirestoreMap(),
-                    "isLeader" to isLeader
+                    "isLeader" to isLeader,
+                    "roleSetByUid" to byUid,
+                    "roleSetByDisplayName" to byDisplayName,
+                    "roleSetAt" to System.currentTimeMillis()
                 )
             ).await()
             val updated = memberRef.get().await().toMembership(projectId)

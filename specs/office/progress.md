@@ -4,7 +4,7 @@ Read this first, every session, before touching code — it's the current status
 detail lives in each phase's spec file (`specs/office/phase-N-*.md`); this file only tracks
 done/left. Update it after every session or completed task.
 
-**Current phase: 4 — Truth about the team (implemented and verified on-device, 2026-09-19; unit tests still deferred). Phase 3 complete (2026-09-19): notifications + offline outbox built and verified on-device, see phase-3-notifications-offline.md (Phase 4 was pulled forward per explicit user request; see phase-4-team-truth.md's note).**
+**Current phase: 5 done except the deferred project switcher (2026-09-22); Phase 6 next. Earlier: 4 — Truth about the team (implemented and verified on-device, 2026-09-19; unit tests still deferred). Phase 3 complete (2026-09-19): notifications + offline outbox built and verified on-device, see phase-3-notifications-offline.md (Phase 4 was pulled forward per explicit user request; see phase-4-team-truth.md's note).**
 
 ## Phase 1 — Auth, projects, roles (`phase-1-auth-projects-roles.md`)
 - [x] Core layer: `Result`/`DataError` (core/domain/util), `SessionManager` interface + DataStore impl, `UiText`/`ObserveAsEvents` (core/presentation/util), `CoreModule` Koin wiring, `App.kt` + `startKoin`. `AppDatabase` deferred until the first Room entity exists (Room rejects `@Database` with zero entities).
@@ -171,9 +171,9 @@ Load/Stuck/Pulse read already exists and doesn't depend on notifications.
   `CreateProjectScreen` has the same button-under-keyboard layout — not touched, out of Phase 4 scope.
 
 ## Phase 5 — v1.0, used by others (`phase-5-v1-others.md`)
-- [ ] Invited-member first-run screen
-- [ ] Role explainer screen
-- [ ] Project switcher — **open decision, not agreed**: see phase-5 spec. Motivated by Phase 3: a push for a non-current project can't be shown (tap is dropped)
+- [x] Invited-member first-run screen — reached only from the join flow, verified on device (2026-09-22), see `specs/logs/2026-09-22-phase-5-first-run-and-role-explainer.md`
+- [x] Role explainer screen (tap a roster row) + who-set-the-role data (Room v7, rules deployed, 92 rules tests, 59 unit tests)
+- [ ] Project switcher — **deferred out of Phase 5, own spec and approval needed**: a push for a non-current project can't be shown (tap is dropped)
 
 ## Phase 6 — Sustainability (`phase-6-sustainability.md`)
 - [ ] Your data (export + delete-account)

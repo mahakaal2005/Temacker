@@ -39,8 +39,8 @@ class OfflineFirstInviteCodeRepository(
         inviteCodeDao.observeActiveForProject(projectId).map { it?.toDomain() }.collect { send(Result.Success(it)) }
     }
 
-    override suspend fun generateInviteCode(projectId: String) =
-        remote.generateInviteCode(projectId).onSuccess {
+    override suspend fun generateInviteCode(projectId: String, byUid: String, byDisplayName: String) =
+        remote.generateInviteCode(projectId, byUid, byDisplayName).onSuccess {
             inviteCodeDao.deactivateAllForProject(projectId)
             inviteCodeDao.upsert(it.toEntity())
         }

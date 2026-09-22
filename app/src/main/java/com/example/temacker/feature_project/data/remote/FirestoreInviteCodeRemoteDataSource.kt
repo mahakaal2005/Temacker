@@ -25,7 +25,7 @@ class FirestoreInviteCodeRemoteDataSource(
             .snapshots()
             .map { snapshot -> snapshot.documents.firstOrNull()?.toInviteCode() }
 
-    override suspend fun generateInviteCode(projectId: String): Result<InviteCode, DataError> = safeFirestoreCall {
+    override suspend fun generateInviteCode(projectId: String, byUid: String, byDisplayName: String): Result<InviteCode, DataError> = safeFirestoreCall {
         // Deactivate any existing active code first so a project only ever has one live code.
         val existing = firestore.collection("inviteCodes")
             .whereEqualTo("projectId", projectId)
@@ -38,7 +38,9 @@ class FirestoreInviteCodeRemoteDataSource(
         val code = generateCode()
         val expiresAt = System.currentTimeMillis() + INVITE_CODE_TTL_MS
         val inviteCode = InviteCode(code = code, projectId = projectId, expiresAt = expiresAt, isActive = true)
-        batch.set(firestore.collection("inviteCodes").document(code), inviteCode.toFirestoreMap())
+        // The creator is data-layer only: joinProject copies it onto the new member, no screen shows it.
+        val fields = inviteCode.toFirestoreMap() + mapOf("createdByUid" to byUid, "createdByDisplayName" to byDisplayName)
+        batch.set(firestore.collection("inviteCodes").document(code), fields)
         batch.commit().await()
 
         inviteCode

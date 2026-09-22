@@ -52,7 +52,7 @@ class JoinProjectViewModel(
         }
 
         joinProject(code, user.displayName, user.photoUrl)
-            .onSuccess { _events.send(JoinProjectEvent.NavigateToHome) }
+            .onSuccess { _events.send(JoinProjectEvent.NavigateToFirstRun) }
             .onFailure { error ->
                 // The join transaction reports a bad/expired code as CONFLICT; everywhere else CONFLICT is generic.
                 val text = if (error == DataError.Network.CONFLICT) UiText.StringResource(R.string.error_invite_code_invalid) else error.toUiText()

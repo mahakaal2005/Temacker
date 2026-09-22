@@ -37,7 +37,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun JoinProjectRoot(
     onNavigateBack: () -> Unit,
-    onNavigateToHome: () -> Unit,
+    onNavigateToFirstRun: () -> Unit,
     viewModel: JoinProjectViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -45,7 +45,7 @@ fun JoinProjectRoot(
     ObserveAsEvents(viewModel.events) { event ->
         when (event) {
             JoinProjectEvent.NavigateBack -> onNavigateBack()
-            JoinProjectEvent.NavigateToHome -> onNavigateToHome()
+            JoinProjectEvent.NavigateToFirstRun -> onNavigateToFirstRun()
         }
     }
 

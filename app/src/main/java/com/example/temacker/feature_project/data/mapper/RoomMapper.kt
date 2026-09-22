@@ -50,7 +50,10 @@ fun Membership.toEntity() = MembershipEntity(
     displayName = displayName,
     photoUrl = photoUrl,
     joinedAt = joinedAt,
-    isLeader = isLeader
+    isLeader = isLeader,
+    roleSetByUid = roleSetByUid,
+    roleSetByDisplayName = roleSetByDisplayName,
+    roleSetAt = roleSetAt
 )
 
 fun MembershipEntity.toDomain() = Membership(
@@ -62,7 +65,10 @@ fun MembershipEntity.toDomain() = Membership(
     displayName = displayName,
     photoUrl = photoUrl,
     joinedAt = joinedAt,
-    isLeader = isLeader
+    isLeader = isLeader,
+    roleSetByUid = roleSetByUid,
+    roleSetByDisplayName = roleSetByDisplayName,
+    roleSetAt = roleSetAt
 )
 
 fun InviteCode.toEntity() = InviteCodeEntity(code, projectId, expiresAt, isActive)

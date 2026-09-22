@@ -65,8 +65,8 @@ class OfflineFirstMembershipRepository(
     override suspend fun removeMember(projectId: String, userId: String) =
         remote.removeMember(projectId, userId).onSuccess { membershipDao.delete(projectId, userId) }
 
-    override suspend fun reassignRole(projectId: String, userId: String, roleId: String) =
-        remote.reassignRole(projectId, userId, roleId)
+    override suspend fun reassignRole(projectId: String, userId: String, roleId: String, byUid: String, byDisplayName: String) =
+        remote.reassignRole(projectId, userId, roleId, byUid, byDisplayName)
             .onSuccess { membershipDao.upsertAll(listOf(it.toEntity())) }
             .asEmptyResult()
 }
