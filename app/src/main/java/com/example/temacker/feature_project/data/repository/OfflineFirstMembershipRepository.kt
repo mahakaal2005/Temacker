@@ -1,11 +1,12 @@
 package com.example.temacker.feature_project.data.repository
 
 import com.example.temacker.core.data.database.MembershipDao
+import com.example.temacker.core.data.database.ProjectDao
 import com.example.temacker.core.data.firebase.toFirestoreDataError
 import com.example.temacker.core.domain.session.SessionManager
 import com.example.temacker.core.domain.util.DataError
 import com.example.temacker.core.domain.util.Result
-import com.example.temacker.core.domain.util.onSuccess
+import com.example.temacker.core.domain.util.map as resultMap
 import com.example.temacker.feature_project.data.mapper.toDomain
 import com.example.temacker.feature_project.data.mapper.toEntity
 import com.example.temacker.feature_project.data.remote.MembershipRemoteDataSource
@@ -17,10 +18,12 @@ import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import com.example.temacker.core.domain.util.asEmptyResult
+import com.example.temacker.core.domain.util.onSuccess
 
 class OfflineFirstMembershipRepository(
     private val remote: MembershipRemoteDataSource,
     private val membershipDao: MembershipDao,
+    private val projectDao: ProjectDao,
     private val sessionManager: SessionManager
 ) : MembershipRepository {
 
@@ -59,7 +62,14 @@ class OfflineFirstMembershipRepository(
     override suspend fun joinProject(code: String, displayName: String, photoUrl: String?): Result<Membership, DataError> {
         val uid = sessionManager.getUid() ?: return Result.Error(DataError.Network.UNAUTHORIZED)
         return remote.joinProject(code, uid, displayName, photoUrl)
-            .onSuccess { membershipDao.upsertAll(listOf(it.toEntity())) }
+            .onSuccess { (membership, project) ->
+                // Seed both tables immediately — without the project row, observeUserProjects()'s
+                // Room-backed emission races the remote project listener and can briefly still
+                // omit the just-joined project (it only reads membershipDao + projectDao).
+                projectDao.upsertAll(listOf(project.toEntity()))
+                membershipDao.upsertAll(listOf(membership.toEntity()))
+            }
+            .resultMap { (membership, _) -> membership }
     }
 
     override suspend fun removeMember(projectId: String, userId: String) =

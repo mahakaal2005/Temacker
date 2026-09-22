@@ -10,14 +10,12 @@ import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
-import androidx.credentials.exceptions.NoCredentialException
 import com.example.temacker.R
 import com.example.temacker.core.data.activity.CurrentActivityHolder
 import com.example.temacker.core.domain.util.DataError
 import com.example.temacker.core.domain.util.Result
 import com.example.temacker.feature_auth.data.mapper.toUser
 import com.example.temacker.feature_auth.domain.model.User
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
@@ -62,24 +60,17 @@ class FirebaseAuthRemoteDataSource(
         val hashedNonce = hashNonce(generateNonce())
 
         return try {
-            // Try silently for an account that has already signed into this app before.
-            val credential = try {
-                credentialManager.getCredential(
-                    activity,
-                    buildRequest(filterByAuthorizedAccounts = true, hashedNonce = hashedNonce)
-                ).credential
-            } catch (e: NoCredentialException) {
-                // First-time user — fall back to the full account picker (sign-up).
-                // Use GetSignInWithGoogleOption for better "button click" flow handling.
-                val request = GetCredentialRequest.Builder()
-                    .addCredentialOption(
-                        GetSignInWithGoogleOption.Builder(context.getString(R.string.google_web_client_id))
-                            .setNonce(hashedNonce)
-                            .build()
-                    )
-                    .build()
-                credentialManager.getCredential(activity, request).credential
-            }
+            // Always show the full system account chooser (every Google account on the device),
+            // not just accounts already authorized for this app — filterByAuthorizedAccounts=true
+            // silently narrows the picker to previously-used accounts, which hides the rest.
+            val request = GetCredentialRequest.Builder()
+                .addCredentialOption(
+                    GetSignInWithGoogleOption.Builder(context.getString(R.string.google_web_client_id))
+                        .setNonce(hashedNonce)
+                        .build()
+                )
+                .build()
+            val credential = credentialManager.getCredential(activity, request).credential
 
             val idToken = credential.toGoogleIdToken() ?: run {
                 Log.e(TAG, "signInWithGoogle: credential was not a Google ID token, type=${credential.type}")
@@ -161,15 +152,6 @@ class FirebaseAuthRemoteDataSource(
     override suspend fun signOut() {
         firebaseAuth.signOut()
         credentialManager.clearCredentialState(ClearCredentialStateRequest())
-    }
-
-    private fun buildRequest(filterByAuthorizedAccounts: Boolean, hashedNonce: String): GetCredentialRequest {
-        val googleIdOption = GetGoogleIdOption.Builder()
-            .setFilterByAuthorizedAccounts(filterByAuthorizedAccounts)
-            .setServerClientId(context.getString(R.string.google_web_client_id))
-            .setNonce(hashedNonce)
-            .build()
-        return GetCredentialRequest.Builder().addCredentialOption(googleIdOption).build()
     }
 
     private fun generateNonce(): String {

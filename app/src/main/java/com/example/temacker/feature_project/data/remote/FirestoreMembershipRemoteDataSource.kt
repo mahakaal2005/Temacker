@@ -7,8 +7,10 @@ import com.example.temacker.core.domain.util.EmptyResult
 import com.example.temacker.core.domain.util.Result
 import com.example.temacker.feature_project.data.mapper.toFirestoreMap
 import com.example.temacker.feature_project.data.mapper.toMembership
+import com.example.temacker.feature_project.data.mapper.toProject
 import com.example.temacker.feature_project.data.mapper.toRolePermissions
 import com.example.temacker.feature_project.domain.model.Membership
+import com.example.temacker.feature_project.domain.model.Project
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import kotlinx.coroutines.flow.Flow
@@ -34,7 +36,7 @@ class FirestoreMembershipRemoteDataSource(
         userId: String,
         displayName: String,
         photoUrl: String?
-    ): Result<Membership, DataError> = safeFirestoreCall {
+    ): Result<Pair<Membership, Project>, DataError> = safeFirestoreCall {
         val codeRef = firestore.collection("inviteCodes").document(code)
         firestore.runTransaction { txn ->
             val codeSnap = txn.get(codeRef)
@@ -77,7 +79,9 @@ class FirestoreMembershipRemoteDataSource(
                 roleSetAt = joinedAt
             )
             txn.set(memberRef, membership.toFirestoreMap())
-            membership
+            val project = projectSnap.toProject()
+                ?: throw FirebaseFirestoreException("Project misconfigured", FirebaseFirestoreException.Code.NOT_FOUND)
+            membership to project
         }.await()
     }
 

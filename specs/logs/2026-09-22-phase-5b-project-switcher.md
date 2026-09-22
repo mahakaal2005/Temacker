@@ -59,8 +59,52 @@ the auto-mode classifier ("Irreversible Local Destruction"), and the attempt was
 around. Cleaned up the Firestore test docs immediately after, confirmed the device back to its clean pre-test
 state (screenshots, no active call).
 
+## Session 2 follow-up: "Join another project"
+
+User said "do it properly" rather than leave the tap-through unverified. Investigated the blocker directly:
+`JoinProjectRoute` was reachable only from `NoProjectRoute`, itself reachable only at zero projects — meaning no
+account, ever, could join a second project through the UI. Not just a test inconvenience, a real product gap.
+Fixed by adding a "Join another project" button to the Switch Project screen and making `SwitcherPill` always
+tappable (chevron alone stays conditional on `hasOtherProjects`). Verified navigation on device (pill → Switch
+Project → Join Project → Back × 2 → Team, stack intact) but still couldn't complete a real join — no second
+project existed to join into, and no fresh account was reachable to create one (see session 3).
+
+## Session 3: full flow verified, two more real bugs found and fixed
+
+User pointed out directly that the Google sign-in picker was showing only previously-authorized accounts ("why
+are you using the samsung account picker man ... pick up all google accounts on this device"). Root cause:
+`signInWithGoogle()` tried `GetGoogleIdOption(filterByAuthorizedAccounts = true)` first, which matched immediately
+once any account had signed in before, so the full-picker fallback branch never ran. Fixed by always using
+`GetSignInWithGoogleOption` — the real system "Choose an account" chooser. Verified: it now lists every Google
+account on the device.
+
+With a genuinely fresh account reachable, built the full second-project path for real: signed in fresh, created
+"Switcher Test Project" via the actual `CreateProjectScreen`, generated an invite code, signed back in as Rudra,
+and joined it through Team → pill → Switch Project → "Join another project" → the code.
+
+That surfaced a real race bug: the first-run screen showed "You're in — Cycle2" — the *wrong*, previously-selected
+project — right after joining "Switcher Test Project". `JoinProjectViewModel` correctly persisted the new
+selection, but `OfflineFirstMembershipRepository.joinProject()` only seeded `membershipDao`, not `projectDao` (unlike
+`createProject()`, which seeds both). `ProjectCurrentProjectProvider`'s "selection not in the list → treat as
+stale, fall back and overwrite" logic then saw the brand-new project missing from the still-stale project list and
+silently reverted the fresh selection back to Cycle2 — the self-correction mechanism built for genuinely stale
+selections, tripped by a sync race instead. Fixed by having `MembershipRemoteDataSource.joinProject()` also return
+the joined `Project` (already read inside its transaction) and seeding `projectDao` immediately in the repo,
+matching `createProject()`'s existing pattern.
+
+Also reproduced (twice) a transient "You don't have permission to do that." error flash on Profile during
+sign-out — a side effect of this session's own new `observeMembers`/`observeCurrentMembership` listeners on
+`ProfileViewModel` still being attached when `signOut()` revokes the auth token, so their next Firestore snapshot
+briefly comes back `PERMISSION_DENIED`. Fixed with an `isSigningOut` flag that suppresses those particular
+`.onFailure` state updates once sign-out has started.
+
+Re-verified end-to-end after both fixes: switcher correctly hidden (1 project) then shown with a chevron
+(2 projects); switching to "Switcher Test Project" updated Team (real roster, role "Default") and Board (empty,
+no FAB — correct, no `assignTasks`) immediately; the selection survived a full app kill and relaunch; switching
+back to Cycle2 worked cleanly, leaving the account exactly as it started.
+
 ## What's left
 
-- The actual tap-through (switch → Board/Team update → survives relaunch) and the notification auto-switch need
-  either a second real project for the test account or the local-DB-edit done with the user's explicit go-ahead.
 - Board/Inbox entry point — needs a small new core contract exposing project name, not built, flagged in the spec.
+- The notification auto-switch path itself wasn't separately exercised via a real push notification, though the
+  `SelectedProjectStore` write it shares with the join flow was just proven correct end-to-end.

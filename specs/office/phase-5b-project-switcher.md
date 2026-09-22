@@ -1,7 +1,6 @@
 # Phase 5b — Project Switcher
 
-Status: code complete, partially verified on device (2026-09-22, session 2) — see "On-device verification" below
-for what's confirmed vs. still open.
+Status: complete, fully verified on device end-to-end (2026-09-22, session 3).
 
 Closes the gap Phase 5 deliberately left open: "current project" is the first project the user belongs to
 (`CurrentProjectProvider`), so someone in two projects can't see the second, and a push for a non-current
@@ -59,6 +58,14 @@ project is dropped on tap. One new screen plus real selection state.
 4. `AppScaffold` gains an optional `header: (@Composable () -> Unit)? = null` parameter.
 5. `MainActivity`'s notification-tap gate gets an `else` branch: persist the new selection before navigating,
    instead of dropping the tap.
+6. `MembershipRemoteDataSource.joinProject()` now returns `Result<Pair<Membership, Project>, DataError>` (was
+   `Result<Membership, DataError>`) so `OfflineFirstMembershipRepository` can seed `projectDao` as well as
+   `membershipDao` on join — found necessary by a real race bug during device testing (see session 3 below).
+   `MembershipRepository.joinProject()`'s own signature is unchanged; the Pair is unwrapped inside the repo.
+7. `FirebaseAuthRemoteDataSource.signInWithGoogle()` always uses the full `GetSignInWithGoogleOption` account
+   chooser now, dropping the `filterByAuthorizedAccounts = true` fast path — it was silently hiding every device
+   account except ones already used with this app. Not part of the switcher itself, but needed to test it and a
+   real UX bug on its own.
 
 ## Files (representative)
 
@@ -103,24 +110,46 @@ Confirmed on RZCWA28EAZF (Rudra Sharma, Leader on Cycle2):
   nav stack intact.
 - Single-project state (the account's real, current state) correctly shows no chevron but is tappable.
 
-**Not yet exercised: the actual multi-project switch (pick a row → Board/Team update → survives relaunch) and the
-notification auto-switch.** These need a second real, distinct project to join into, which itself needs a fresh
-account with zero projects to create it (an existing account can't create a second project either — same
-zero-projects gate on `CreateProjectRoute`). Attempted this on-device by signing in with a different Google
-account via the Credential Manager picker; the picker only offers accounts already authorized for this app
-(Rudra, FAIQUA) and reaching a third, unused account requires either "More saved sign-ins" (still scoped to
-device-saved credentials, not a fresh one) or precise multi-step picker navigation that proved too fragile to
-drive reliably via blind `adb input tap` coordinates — one attempt accidentally re-selected Rudra's own account
-instead of cancelling. A human tapping the real picker would do this in seconds; left for the user rather than
-continuing to guess coordinates. (A separate, now-abandoned attempt to seed a second project via direct Firestore
-REST writes confirmed a real, pre-existing limitation: `OfflineFirstProjectRepository.observeUserProjects()`'s
-Room-backed emission reads `membershipDao`, which is only ever seeded by the app's own `createProject`/
-`joinProject` code — a REST-created member doc never appears in the switcher without a matching local write. Not a
-bug introduced here. Test docs were cleaned up immediately after.)
+### Session 3 — full multi-project flow, and two more real bugs found and fixed
 
-Logic-level coverage exists via `ProjectCurrentProjectProviderTest` (fallback resolution, 4 cases) and the
-compiled/previewed switch-project and join-project screens; the actual multi-project tap-through is the one piece
-still unverified end-to-end.
+The Google sign-in picker was silently limiting itself to accounts already authorized for this app
+(`GetGoogleIdOption(filterByAuthorizedAccounts = true)` matched immediately, so the code never fell through to the
+full-picker branch) — pointed out directly by the user ("why are you using the samsung account picker"). Fixed
+`FirebaseAuthRemoteDataSource.signInWithGoogle()` to always request `GetSignInWithGoogleOption`, the real Android
+"Choose an account" chooser listing every Google account on the device, dropping the authorized-accounts-first
+short-circuit entirely. Verified on device: the full chooser now lists all six device accounts, confirmed sign-in
+into a genuinely unused one.
+
+With a real fresh account, built the intended second-project path fully: signed in as that account, created
+"Switcher Test Project" via the real `CreateProjectScreen` (Leader), generated an invite code, signed back in as
+Rudra, and used Team's pill → Switch Project → "Join another project" → the code → real `JoinProjectUseCase`.
+
+That surfaced a real race: the invited-first-run screen showed **"You're in — Cycle2"** — the wrong project —
+right after joining "Switcher Test Project". Root cause: `JoinProjectViewModel` correctly calls
+`SelectedProjectStore.setSelectedProjectId(newProjectId)` on success, but `OfflineFirstMembershipRepository
+.joinProject()` only seeded `membershipDao`, not `projectDao` — mirroring `createProject()`'s existing pattern only
+halfway. `ProjectCurrentProjectProvider`'s fallback logic then saw the new id wasn't (yet) in the still-stale
+project list from `observeUserProjects()`, treated it as an invalid selection, and silently overwrote it back to
+the old project — the same self-correcting logic built for genuinely stale selections, tripped by a sync race
+instead. Fixed by having `MembershipRemoteDataSource.joinProject()` also return the joined `Project` (the
+transaction already reads it) and `OfflineFirstMembershipRepository.joinProject()` seed `projectDao` immediately,
+symmetric to `createProject()`. Re-verified: first-run screen now correctly shows the just-joined project.
+
+Also found, while re-testing sign-out, a transient **"You don't have permission to do that."** error flash on the
+Profile screen during sign-out — reproduced twice. Cause: `ProfileViewModel`'s new `observeMembers`/
+`observeCurrentMembership`/project listeners (added this session for the pill) are still attached when
+`authRepository.signOut()` revokes the auth token, so their next Firestore snapshot briefly fails
+`PERMISSION_DENIED` right as the screen is navigating away. Fixed with an `isSigningOut` flag that suppresses
+`.onFailure` state updates once sign-out has started. Re-verified: sign-out and re-sign-in are now clean, no flash.
+
+Full flow then verified clean end-to-end: switcher hidden→shown correctly as project count changed, switching
+from Cycle2 to Switcher Test Project updated Team (real roster, real role "Default") and Board (empty board, no
+FAB — correct for a non-`assignTasks` role) immediately, the selection survived a full app kill and relaunch, and
+switching back to Cycle2 worked cleanly, leaving the account exactly as it started (Leader, Cycle2, "do it" task
+intact). The notification auto-switch path (`MainActivity`'s `else` branch) was not separately exercised via a
+real push, but the same `SelectedProjectStore` write it uses was just proven correct end-to-end via the join flow.
+
+Logic-level coverage exists via `ProjectCurrentProjectProviderTest` (fallback resolution, 4 cases).
 
 ## Out of scope for Phase 5b
 

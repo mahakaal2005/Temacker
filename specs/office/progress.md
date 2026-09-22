@@ -4,7 +4,7 @@ Read this first, every session, before touching code — it's the current status
 detail lives in each phase's spec file (`specs/office/phase-N-*.md`); this file only tracks
 done/left. Update it after every session or completed task.
 
-**Current phase: 5b — project switcher, code complete and partially device-verified (2026-09-22, see phase-5b-project-switcher.md); the actual multi-project tap-through is the one piece still unverified. Phase 6 next after that's closed out. Earlier: 5 done (2026-09-22). 4 — Truth about the team (implemented and verified on-device, 2026-09-19; unit tests still deferred). Phase 3 complete (2026-09-19): notifications + offline outbox built and verified on-device, see phase-3-notifications-offline.md (Phase 4 was pulled forward per explicit user request; see phase-4-team-truth.md's note).**
+**Current phase: 5b — project switcher, done and fully verified on device end-to-end (2026-09-22, see phase-5b-project-switcher.md). Phase 6 next; Board/Inbox switcher entry point remains a flagged follow-up. Earlier: 5 done (2026-09-22). 4 — Truth about the team (implemented and verified on-device, 2026-09-19; unit tests still deferred). Phase 3 complete (2026-09-19): notifications + offline outbox built and verified on-device, see phase-3-notifications-offline.md (Phase 4 was pulled forward per explicit user request; see phase-4-team-truth.md's note).**
 
 ## Phase 1 — Auth, projects, roles (`phase-1-auth-projects-roles.md`)
 - [x] Core layer: `Result`/`DataError` (core/domain/util), `SessionManager` interface + DataStore impl, `UiText`/`ObserveAsEvents` (core/presentation/util), `CoreModule` Koin wiring, `App.kt` + `startKoin`. `AppDatabase` deferred until the first Room entity exists (Room rejects `@Database` with zero entities).
@@ -181,10 +181,13 @@ Load/Stuck/Pulse read already exists and doesn't depend on notifications.
   Load, Stuck, Pulse, RoleExplainer, InvitedFirstRun, Succession); `JoinProjectViewModel` selects the newly joined project
 - [x] Switch-project screen (MVI, previews) + `AppScaffold` header slot + `SwitcherPill`, wired on Team and You
 - [x] `MainActivity` notification-tap now auto-switches instead of dropping the tap
-- [x] Device-verified: pill renders correctly on Team/You, status-bar overlap bug found and fixed, no crashes
-- [ ] **Not yet device-verified:** the actual multi-project switch tap-through and the notification auto-switch —
-  blocked on a safe way to get the test account into a genuine multi-project state (see phase-5b spec's "On-device
-  verification" section)
+- [x] Device-verified end-to-end (2026-09-22, session 3): full switch flow (join a second real project → switcher
+  shows both → switch → Board/Team update → survives relaunch → switch back), see phase-5b spec for the two real
+  bugs found and fixed along the way (a join-project Room-seeding race that silently reverted a fresh selection,
+  and a transient sign-out permission-error flash on Profile)
+- [x] Google sign-in now shows the real full device account picker instead of silently limiting itself to
+  accounts already authorized for this app (`FirebaseAuthRemoteDataSource.signInWithGoogle()`) — found while
+  testing the switcher, fixed per explicit user request
 - [ ] Board/Inbox entry point — flagged follow-up, needs a project-name cross-feature contract `feature_tasks` doesn't have today
 
 ## Phase 6 — Sustainability (`phase-6-sustainability.md`)
@@ -192,6 +195,6 @@ Load/Stuck/Pulse read already exists and doesn't depend on notifications.
 - [ ] Plan & limits screen
 
 ## Open decisions
-- Phase 5b: get the device into a genuine multi-project state (safely) to finish verifying the switch tap-through and notification auto-switch.
+- Phase 5b: Board/Inbox switcher entry point deferred (needs a project-name cross-feature contract).
 - Phase 5b follow-up: Board/Inbox switcher entry point needs a project-name cross-feature contract (not built).
 - Phase 6: extend `feature_profile` vs. new `feature_settings` — default is extend, revisit if it grows.

@@ -44,6 +44,11 @@ class ProfileViewModel(
     private val _events = Channel<ProfileEvent>()
     val events = _events.receiveAsFlow()
 
+    // Sign-out revokes the auth token while these Firestore listeners are still attached, so the
+    // next snapshot they receive briefly fails as PERMISSION_DENIED — real, but not worth showing
+    // the user on their way out the door.
+    private var isSigningOut = false
+
     init {
         viewModelScope.launch {
             authRepository.observeUser().collectLatest { user ->
@@ -70,7 +75,7 @@ class ProfileViewModel(
                                 }
                             }
                         }
-                        .onFailure { error -> _state.update { it.copy(isLoading = false, error = error.toUiText()) } }
+                        .onFailure { error -> if (!isSigningOut) _state.update { it.copy(isLoading = false, error = error.toUiText()) } }
                 }
         }
 
@@ -85,7 +90,7 @@ class ProfileViewModel(
                             )
                         }
                     }
-                    .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+                    .onFailure { error -> if (!isSigningOut) _state.update { it.copy(error = error.toUiText()) } }
             }
         }
         viewModelScope.launch {
@@ -98,6 +103,7 @@ class ProfileViewModel(
     fun onAction(action: ProfileAction) {
         when (action) {
             ProfileAction.OnSignOutClick -> viewModelScope.launch {
+                isSigningOut = true
                 authRepository.signOut()
                 _events.send(ProfileEvent.NavigateToLogin)
             }
