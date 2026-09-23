@@ -23,6 +23,7 @@ import com.example.temacker.feature_tasks.domain.use_case.DeleteTaskUseCase
 import com.example.temacker.feature_tasks.domain.use_case.MarkTaskDoneUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveBoardUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveCurrentProjectIdUseCase
+import com.example.temacker.feature_tasks.domain.use_case.ObserveCurrentProjectSummaryUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveCurrentProjectMemberUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveHandoffTrailUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveInboxBadgeCountUseCase
@@ -63,6 +64,7 @@ val tasksModule = module {
     singleOf(::TaskTeamInsightsProvider) { bind<TeamInsightsProvider>() }
 
     factoryOf(::ObserveCurrentProjectIdUseCase)
+    factoryOf(::ObserveCurrentProjectSummaryUseCase)
     factoryOf(::ObserveConnectivityUseCase)
     factoryOf(::ObservePendingWritesUseCase)
     factoryOf(::RetryPendingWriteUseCase)

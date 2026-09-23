@@ -7,6 +7,7 @@ import com.example.temacker.core.domain.util.onFailure
 import com.example.temacker.core.domain.util.onSuccess
 import com.example.temacker.core.presentation.util.toUiText
 import com.example.temacker.feature_tasks.domain.use_case.ObserveCurrentProjectIdUseCase
+import com.example.temacker.feature_tasks.domain.use_case.ObserveCurrentProjectSummaryUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveInboxUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
@@ -22,6 +23,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalCoroutinesApi::class)
 class InboxViewModel(
     private val observeCurrentProjectId: ObserveCurrentProjectIdUseCase,
+    private val observeCurrentProjectSummary: ObserveCurrentProjectSummaryUseCase,
     private val observeInbox: ObserveInboxUseCase
 ) : ViewModel() {
 
@@ -36,6 +38,11 @@ class InboxViewModel(
             .mapNotNull { result -> (result as? Result.Success)?.data }
             .distinctUntilChanged()
 
+        viewModelScope.launch {
+            observeCurrentProjectSummary().collect { result ->
+                result.onSuccess { summary -> _state.update { it.copy(projectSummary = summary) } }
+            }
+        }
         viewModelScope.launch {
             projectId.flatMapLatest { observeInbox(it) }.collect { result ->
                 result

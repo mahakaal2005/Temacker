@@ -19,7 +19,8 @@ import com.example.temacker.feature_tasks.presentation.task_detail.TaskDetailRoo
 fun NavGraphBuilder.tasksGraph(
     navController: NavController,
     onNavigateToTeam: () -> Unit,
-    onNavigateToYou: () -> Unit
+    onNavigateToYou: () -> Unit,
+    onNavigateToSwitchProject: () -> Unit
 ) {
     composable<BoardRoute> {
         BoardRoot(
@@ -29,7 +30,8 @@ fun NavGraphBuilder.tasksGraph(
             onNavigateToNewTask = { navController.navigate(NewTaskRoute) },
             onNavigateToTaskDetail = { taskId -> navController.navigate(TaskDetailRoute(taskId)) },
             onNavigateToIncoming = { taskId, handoffId -> navController.navigate(IncomingRoute(taskId, handoffId)) },
-            onNavigateToQueue = { navController.navigate(QueueRoute) { launchSingleTop = true } }
+            onNavigateToQueue = { navController.navigate(QueueRoute) { launchSingleTop = true } },
+            onNavigateToSwitchProject = onNavigateToSwitchProject
         )
     }
     composable<QueueRoute> {
@@ -41,7 +43,8 @@ fun NavGraphBuilder.tasksGraph(
             onNavigateToTeam = onNavigateToTeam,
             onNavigateToYou = onNavigateToYou,
             onNavigateToIncoming = { taskId, handoffId -> navController.navigate(IncomingRoute(taskId, handoffId)) },
-            onNavigateToTaskDetail = { taskId -> navController.navigate(TaskDetailRoute(taskId)) }
+            onNavigateToTaskDetail = { taskId -> navController.navigate(TaskDetailRoute(taskId)) },
+            onNavigateToSwitchProject = onNavigateToSwitchProject
         )
     }
     composable<NotificationRationaleRoute> {

@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.temacker.core.presentation.components.AppDestination
 import com.example.temacker.core.presentation.components.AppScaffold
+import com.example.temacker.core.presentation.components.SwitcherPill
 import com.example.temacker.core.presentation.designsystem.Amber
 import com.example.temacker.core.presentation.designsystem.AmberInk
 import com.example.temacker.core.presentation.designsystem.AmberWash
@@ -76,6 +77,7 @@ fun BoardRoot(
     onNavigateToTaskDetail: (String) -> Unit,
     onNavigateToIncoming: (String, String) -> Unit,
     onNavigateToQueue: () -> Unit,
+    onNavigateToSwitchProject: () -> Unit,
     viewModel: BoardViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -94,7 +96,8 @@ fun BoardRoot(
         onAction = viewModel::onAction,
         onNavigateToInbox = onNavigateToInbox,
         onNavigateToTeam = onNavigateToTeam,
-        onNavigateToYou = onNavigateToYou
+        onNavigateToYou = onNavigateToYou,
+        onNavigateToSwitchProject = onNavigateToSwitchProject
     )
 }
 
@@ -105,7 +108,8 @@ fun BoardScreen(
     onAction: (BoardAction) -> Unit,
     onNavigateToInbox: () -> Unit,
     onNavigateToTeam: () -> Unit,
-    onNavigateToYou: () -> Unit
+    onNavigateToYou: () -> Unit,
+    onNavigateToSwitchProject: () -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     // Undo is offered while the notice is showing; either way the notice is cleared afterwards.
@@ -127,6 +131,16 @@ fun BoardScreen(
                 AppDestination.INBOX -> onNavigateToInbox()
                 AppDestination.TEAM -> onNavigateToTeam()
                 AppDestination.YOU -> onNavigateToYou()
+            }
+        },
+        header = state.projectSummary?.let { summary ->
+            {
+                SwitcherPill(
+                    projectName = summary.name,
+                    metaLine = "${summary.memberCount} members · ${summary.roleName}",
+                    hasOtherProjects = summary.hasOtherProjects,
+                    onClick = onNavigateToSwitchProject
+                )
             }
         }
     ) { padding ->
@@ -356,7 +370,7 @@ private fun Task.dueLabel(): String? = dueDate?.let {
 @Composable
 private fun BoardScreenLoadingPreview() {
     TemackerTheme {
-        BoardScreen(state = BoardState(isLoading = true), onAction = {}, onNavigateToInbox = {}, onNavigateToTeam = {}, onNavigateToYou = {})
+        BoardScreen(state = BoardState(isLoading = true), onAction = {}, onNavigateToInbox = {}, onNavigateToTeam = {}, onNavigateToYou = {}, onNavigateToSwitchProject = {})
     }
 }
 
@@ -369,6 +383,7 @@ private fun BoardScreenEmptyPreview() {
             onAction = {},
             onNavigateToInbox = {}, onNavigateToTeam = {},
             onNavigateToYou = {},
+            onNavigateToSwitchProject = {},
         )
     }
 }
@@ -393,6 +408,7 @@ private fun BoardScreenWithTasksPreview() {
             onAction = {},
             onNavigateToInbox = {}, onNavigateToTeam = {},
             onNavigateToYou = {},
+            onNavigateToSwitchProject = {},
         )
     }
 }
@@ -408,7 +424,7 @@ private fun BoardScreenOfflinePreview() {
     TemackerTheme {
         BoardScreen(
             state = BoardState(isLoading = false, isOnline = false, canCreateTask = true, tasks = listOf(previewTask)),
-            onAction = {}, onNavigateToInbox = {}, onNavigateToTeam = {}, onNavigateToYou = {}
+            onAction = {}, onNavigateToInbox = {}, onNavigateToTeam = {}, onNavigateToYou = {}, onNavigateToSwitchProject = {}
         )
     }
 }
@@ -425,7 +441,7 @@ private fun BoardScreenOfflineQueuedPreview() {
                     previewWrite(2, PendingWriteType.CREATE_TASK, "t2", PendingWriteStatus.PENDING, previewTask.copy(id = "t2", title = "Book the venue", holderDisplayName = "You"))
                 )
             ),
-            onAction = {}, onNavigateToInbox = {}, onNavigateToTeam = {}, onNavigateToYou = {}
+            onAction = {}, onNavigateToInbox = {}, onNavigateToTeam = {}, onNavigateToYou = {}, onNavigateToSwitchProject = {}
         )
     }
 }
@@ -439,7 +455,7 @@ private fun BoardScreenSendingPreview() {
                 isLoading = false, tasks = listOf(previewTask),
                 pendingWrites = listOf(previewWrite(1, PendingWriteType.MARK_DONE, "t1", PendingWriteStatus.PENDING))
             ),
-            onAction = {}, onNavigateToInbox = {}, onNavigateToTeam = {}, onNavigateToYou = {}
+            onAction = {}, onNavigateToInbox = {}, onNavigateToTeam = {}, onNavigateToYou = {}, onNavigateToSwitchProject = {}
         )
     }
 }
@@ -453,7 +469,7 @@ private fun BoardScreenFailedPreview() {
                 isLoading = false, tasks = listOf(previewTask),
                 pendingWrites = listOf(previewWrite(1, PendingWriteType.ACCEPT, "t1", PendingWriteStatus.FAILED))
             ),
-            onAction = {}, onNavigateToInbox = {}, onNavigateToTeam = {}, onNavigateToYou = {}
+            onAction = {}, onNavigateToInbox = {}, onNavigateToTeam = {}, onNavigateToYou = {}, onNavigateToSwitchProject = {}
         )
     }
 }

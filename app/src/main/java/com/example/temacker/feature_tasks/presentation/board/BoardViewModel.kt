@@ -13,6 +13,7 @@ import com.example.temacker.feature_tasks.domain.use_case.ObserveConnectivityUse
 import com.example.temacker.feature_tasks.domain.use_case.ObservePendingWritesUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveCurrentProjectIdUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveCurrentProjectMemberUseCase
+import com.example.temacker.feature_tasks.domain.use_case.ObserveCurrentProjectSummaryUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObservePendingHandoffsUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
@@ -28,6 +29,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalCoroutinesApi::class)
 class BoardViewModel(
     private val observeCurrentProjectId: ObserveCurrentProjectIdUseCase,
+    private val observeCurrentProjectSummary: ObserveCurrentProjectSummaryUseCase,
     private val observeBoard: ObserveBoardUseCase,
     private val observePendingHandoffs: ObservePendingHandoffsUseCase,
     private val observeCurrentProjectMember: ObserveCurrentProjectMemberUseCase,
@@ -54,6 +56,11 @@ class BoardViewModel(
 
         viewModelScope.launch {
             projectId.collect { id -> _state.update { it.copy(projectId = id) } }
+        }
+        viewModelScope.launch {
+            observeCurrentProjectSummary().collect { result ->
+                result.onSuccess { summary -> _state.update { it.copy(projectSummary = summary) } }
+            }
         }
         viewModelScope.launch {
             projectId.flatMapLatest { observeBoard(it) }.collect { result ->

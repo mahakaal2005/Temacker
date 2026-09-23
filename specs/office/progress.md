@@ -4,7 +4,7 @@ Read this first, every session, before touching code — it's the current status
 detail lives in each phase's spec file (`specs/office/phase-N-*.md`); this file only tracks
 done/left. Update it after every session or completed task.
 
-**Current phase: 5b — project switcher, done and fully verified on device end-to-end (2026-09-22, see phase-5b-project-switcher.md). Phase 6 next; Board/Inbox switcher entry point remains a flagged follow-up. Earlier: 5 done (2026-09-22). 4 — Truth about the team (implemented and verified on-device, 2026-09-19; unit tests still deferred). Phase 3 complete (2026-09-19): notifications + offline outbox built and verified on-device, see phase-3-notifications-offline.md (Phase 4 was pulled forward per explicit user request; see phase-4-team-truth.md's note).**
+**Current phase: 5b — project switcher, fully done including the Board/Inbox entry point follow-up, verified on device end-to-end (2026-09-23, see phase-5b-project-switcher.md). Phase 6 next. Earlier: 5 done (2026-09-22). 4 — Truth about the team (implemented and verified on-device, 2026-09-19; unit tests still deferred). Phase 3 complete (2026-09-19): notifications + offline outbox built and verified on-device, see phase-3-notifications-offline.md (Phase 4 was pulled forward per explicit user request; see phase-4-team-truth.md's note).**
 
 ## Phase 1 — Auth, projects, roles (`phase-1-auth-projects-roles.md`)
 - [x] Core layer: `Result`/`DataError` (core/domain/util), `SessionManager` interface + DataStore impl, `UiText`/`ObserveAsEvents` (core/presentation/util), `CoreModule` Koin wiring, `App.kt` + `startKoin`. `AppDatabase` deferred until the first Room entity exists (Room rejects `@Database` with zero entities).
@@ -188,13 +188,14 @@ Load/Stuck/Pulse read already exists and doesn't depend on notifications.
 - [x] Google sign-in now shows the real full device account picker instead of silently limiting itself to
   accounts already authorized for this app (`FirebaseAuthRemoteDataSource.signInWithGoogle()`) — found while
   testing the switcher, fixed per explicit user request
-- [ ] Board/Inbox entry point — flagged follow-up, needs a project-name cross-feature contract `feature_tasks` doesn't have today
+- [x] Board/Inbox entry point — `CurrentProjectProvider.observeCurrentProjectSummary()` + `ProjectSummary` domain
+  model close the cross-feature gap; `ObserveCurrentProjectSummaryUseCase` added to `feature_tasks`; `BoardState`/
+  `InboxState` + ViewModels + Screens wired to `SwitcherPill`. Device-verified 2026-09-23: pill on both screens,
+  tap opens Switch Project, switching updates Board/Inbox immediately, switch-back restores original state.
 
 ## Phase 6 — Sustainability (`phase-6-sustainability.md`)
 - [ ] Your data (export + delete-account)
 - [ ] Plan & limits screen
 
 ## Open decisions
-- Phase 5b: Board/Inbox switcher entry point deferred (needs a project-name cross-feature contract).
-- Phase 5b follow-up: Board/Inbox switcher entry point needs a project-name cross-feature contract (not built).
 - Phase 6: extend `feature_profile` vs. new `feature_settings` — default is extend, revisit if it grows.

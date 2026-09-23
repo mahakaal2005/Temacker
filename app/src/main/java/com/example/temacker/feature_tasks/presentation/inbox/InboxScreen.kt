@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.temacker.core.presentation.components.AppDestination
 import com.example.temacker.core.presentation.components.AppScaffold
+import com.example.temacker.core.presentation.components.SwitcherPill
 import com.example.temacker.core.presentation.designsystem.Amber
 import com.example.temacker.core.presentation.designsystem.Ink500
 import com.example.temacker.core.presentation.designsystem.Line
@@ -43,6 +44,7 @@ fun InboxRoot(
     onNavigateToYou: () -> Unit,
     onNavigateToIncoming: (String, String) -> Unit,
     onNavigateToTaskDetail: (String) -> Unit,
+    onNavigateToSwitchProject: () -> Unit,
     viewModel: InboxViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -59,7 +61,8 @@ fun InboxRoot(
         onAction = viewModel::onAction,
         onNavigateToBoard = onNavigateToBoard,
         onNavigateToTeam = onNavigateToTeam,
-        onNavigateToYou = onNavigateToYou
+        onNavigateToYou = onNavigateToYou,
+        onNavigateToSwitchProject = onNavigateToSwitchProject
     )
 }
 
@@ -70,7 +73,8 @@ fun InboxScreen(
     onAction: (InboxAction) -> Unit,
     onNavigateToBoard: () -> Unit,
     onNavigateToTeam: () -> Unit,
-    onNavigateToYou: () -> Unit
+    onNavigateToYou: () -> Unit,
+    onNavigateToSwitchProject: () -> Unit
 ) {
     AppScaffold(
         selected = AppDestination.INBOX,
@@ -80,6 +84,16 @@ fun InboxScreen(
                 AppDestination.INBOX -> Unit
                 AppDestination.TEAM -> onNavigateToTeam()
                 AppDestination.YOU -> onNavigateToYou()
+            }
+        },
+        header = state.projectSummary?.let { summary ->
+            {
+                SwitcherPill(
+                    projectName = summary.name,
+                    metaLine = "${summary.memberCount} members · ${summary.roleName}",
+                    hasOtherProjects = summary.hasOtherProjects,
+                    onClick = onNavigateToSwitchProject
+                )
             }
         }
     ) { padding ->
@@ -188,7 +202,7 @@ private val previewEarlier = listOf(
 @Composable
 private fun InboxScreenLoadingPreview() {
     TemackerTheme {
-        InboxScreen(state = InboxState(isLoading = true), onAction = {}, onNavigateToBoard = {}, onNavigateToTeam = {}, onNavigateToYou = {})
+        InboxScreen(state = InboxState(isLoading = true), onAction = {}, onNavigateToBoard = {}, onNavigateToTeam = {}, onNavigateToYou = {}, onNavigateToSwitchProject = {})
     }
 }
 
@@ -196,7 +210,7 @@ private fun InboxScreenLoadingPreview() {
 @Composable
 private fun InboxScreenEmptyPreview() {
     TemackerTheme {
-        InboxScreen(state = InboxState(isLoading = false), onAction = {}, onNavigateToBoard = {}, onNavigateToTeam = {}, onNavigateToYou = {})
+        InboxScreen(state = InboxState(isLoading = false), onAction = {}, onNavigateToBoard = {}, onNavigateToTeam = {}, onNavigateToYou = {}, onNavigateToSwitchProject = {})
     }
 }
 
@@ -209,7 +223,8 @@ private fun InboxScreenPopulatedPreview() {
             onAction = {},
             onNavigateToBoard = {},
             onNavigateToTeam = {},
-            onNavigateToYou = {}
+            onNavigateToYou = {},
+            onNavigateToSwitchProject = {}
         )
     }
 }
@@ -223,7 +238,8 @@ private fun InboxScreenEarlierOnlyPreview() {
             onAction = {},
             onNavigateToBoard = {},
             onNavigateToTeam = {},
-            onNavigateToYou = {}
+            onNavigateToYou = {},
+            onNavigateToSwitchProject = {}
         )
     }
 }
@@ -237,7 +253,8 @@ private fun InboxScreenErrorPreview() {
             onAction = {},
             onNavigateToBoard = {},
             onNavigateToTeam = {},
-            onNavigateToYou = {}
+            onNavigateToYou = {},
+            onNavigateToSwitchProject = {}
         )
     }
 }

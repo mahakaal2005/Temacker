@@ -161,7 +161,8 @@ private fun TemackerApp(
             tasksGraph(
                 navController = navController,
                 onNavigateToTeam = { navController.navigate(TeamRoute) { launchSingleTop = true } },
-                onNavigateToYou = { navController.navigate(ProfileRoute) { launchSingleTop = true } }
+                onNavigateToYou = { navController.navigate(ProfileRoute) { launchSingleTop = true } },
+                onNavigateToSwitchProject = { navController.navigate(SwitchProjectRoute) }
             )
             profileGraph(
                 onNavigateToBoard = { navController.navigate(BoardRoute) { launchSingleTop = true } },

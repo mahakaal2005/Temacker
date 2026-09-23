@@ -1,5 +1,6 @@
 package com.example.temacker.core.domain.repository
 
+import com.example.temacker.core.domain.model.ProjectSummary
 import com.example.temacker.core.domain.util.DataError
 import com.example.temacker.core.domain.util.Result
 import kotlinx.coroutines.flow.Flow
@@ -10,4 +11,9 @@ import kotlinx.coroutines.flow.Flow
 // Impl lives in feature_project/data, bound in feature_project/di/ProjectModule.kt.
 interface CurrentProjectProvider {
     fun observeCurrentProjectId(): Flow<Result<String?, DataError>>
+
+    // Phase 5b, Board/Inbox switcher pill: name + member count + the viewer's role in the current
+    // project, trimmed to what the pill needs (architecture §8 — core can't see feature_project's
+    // Project/Membership). Null once observeUserProjects() is empty (no project at all).
+    fun observeCurrentProjectSummary(): Flow<Result<ProjectSummary?, DataError>>
 }

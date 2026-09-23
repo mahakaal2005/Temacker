@@ -14,12 +14,14 @@ project is dropped on tap. One new screen plus real selection state.
   existing `JoinProjectScreen` — this is the only way any account can ever reach a second project, see below.
 - **App bar switcher pill** — project name + meta line; always tappable (opens Switch Project), chevron shown
   only when the user belongs to 2+ projects.
-- **Entry point shipped on Team and You only, not Board/Inbox.** Team (`RosterState`) and Profile (`ProfileState`)
-  both already assemble project name + member count + role within their own feature (`feature_project`,
-  `feature_profile`); `feature_tasks` (Board/Inbox) has no cross-feature contract exposing a project's *name* today
-  (only its id, via `CurrentProjectProvider`), and adding one was out of this pass's approved scope. Switching is
-  still fully available (via Team or You), and Board/Inbox correctly follow whatever's selected — they just don't
-  carry their own entry point yet. Flagged as follow-up, not silently dropped.
+- **Entry point shipped on all four tabs: Team, You, Board, Inbox.** `CurrentProjectProvider` gained
+  `observeCurrentProjectSummary()` (returns the new `ProjectSummary` domain model: name, member count, viewer's
+  role name, `hasOtherProjects`) so `feature_tasks` no longer needs `feature_project`'s domain to show the pill —
+  it consumes `ProjectSummary` via a new `ObserveCurrentProjectSummaryUseCase` in its own module. `BoardState`/
+  `InboxState` each gained a `projectSummary` field collected in their ViewModels; `BoardScreen`/`InboxScreen`
+  wire it into `AppScaffold`'s `header` slot exactly like Team/You do. Verified on device 2026-09-23: pill renders
+  correctly on both screens (no status-bar overlap), tapping it opens Switch Project, and switching from there
+  updates Board and Inbox immediately.
 
 ## Agreed decisions (2026-09-22)
 
@@ -149,7 +151,8 @@ switching back to Cycle2 worked cleanly, leaving the account exactly as it start
 intact). The notification auto-switch path (`MainActivity`'s `else` branch) was not separately exercised via a
 real push, but the same `SelectedProjectStore` write it uses was just proven correct end-to-end via the join flow.
 
-Logic-level coverage exists via `ProjectCurrentProjectProviderTest` (fallback resolution, 4 cases).
+Logic-level coverage exists via `ProjectCurrentProjectProviderTest` (fallback resolution, 4 cases; 2 more added for
+`observeCurrentProjectSummary()`, 6 total, all passing).
 
 ## Out of scope for Phase 5b
 

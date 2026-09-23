@@ -1,6 +1,7 @@
 package com.example.temacker.feature_tasks.presentation.board
 
 import androidx.compose.runtime.Stable
+import com.example.temacker.core.domain.model.ProjectSummary
 import com.example.temacker.core.presentation.util.UiText
 import com.example.temacker.feature_tasks.domain.model.Handoff
 import com.example.temacker.feature_tasks.domain.model.PendingWrite
@@ -13,6 +14,7 @@ data class QueuedNotice(val writeId: Long)
 @Stable
 data class BoardState(
     val projectId: String? = null,
+    val projectSummary: ProjectSummary? = null,
     val tasks: List<Task> = emptyList(),
     val pendingHandoffs: List<Handoff> = emptyList(),
     val pendingWrites: List<PendingWrite> = emptyList(),

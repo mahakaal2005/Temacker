@@ -105,6 +105,33 @@ back to Cycle2 worked cleanly, leaving the account exactly as it started.
 
 ## What's left
 
-- Board/Inbox entry point — needs a small new core contract exposing project name, not built, flagged in the spec.
 - The notification auto-switch path itself wasn't separately exercised via a real push notification, though the
   `SelectedProjectStore` write it shares with the join flow was just proven correct end-to-end.
+
+## Session 4 (2026-09-23) — Board/Inbox entry point
+
+Closed the one follow-up from session 3: Board and Inbox had no switcher entry point because `feature_tasks` had
+no cross-feature contract exposing a project's *name* (only its id, via `CurrentProjectProvider`).
+
+Extended `CurrentProjectProvider` with `observeCurrentProjectSummary(): Flow<Result<ProjectSummary?, DataError>>`,
+where `ProjectSummary` (new, `core/domain/model`) carries `name`, `memberCount`, `roleName`, `hasOtherProjects` —
+everything `SwitcherPill` needs. Implemented in `ProjectCurrentProjectProvider` by combining the resolved current
+project id with `ProjectRepository.observeUserProjects()` and the new `MembershipRepository` dependency
+(`observeMembers`/`observeMembership`) it now takes. 2 new unit tests added (summary reflects name/count/role;
+summary goes null once the current project drops out of the list) — 6 total in
+`ProjectCurrentProjectProviderTest`, all passing.
+
+`feature_tasks` picked this up via a same-pattern `ObserveCurrentProjectSummaryUseCase` wrapping the provider,
+registered in `TasksModule`. `BoardState`/`InboxState` each gained a `projectSummary` field, their ViewModels
+collect it alongside their existing streams, and `BoardScreen`/`InboxScreen` wire it into `AppScaffold`'s `header`
+slot exactly like Team/You already do — same `SwitcherPill`, same `onNavigateToSwitchProject` callback threaded
+through `TasksGraph.tasksGraph()` and `MainActivity`.
+
+`./gradlew assembleDebug lintDebug testDebugUnitTest` — BUILD SUCCESSFUL, no lint issues, all unit tests pass.
+
+Device-verified on RZCWA28EAZF: pill renders correctly on both Board and Inbox (no status-bar overlap, correct
+name/count/role), tapping it from either screen opens Switch Project, switching to "Switcher Test Project" updates
+both Board (empty board, correct project name in pill) and Inbox (empty inbox, correct project name in pill)
+immediately, and switching back to Cycle2 restores the exact original state.
+
+Phase 5b is now fully complete with no outstanding follow-ups.
