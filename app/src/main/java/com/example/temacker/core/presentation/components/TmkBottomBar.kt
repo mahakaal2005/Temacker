@@ -43,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -113,6 +114,8 @@ fun TmkBottomBar(
                             }
                         )
                         .semantics {
+                            // this.selected, not the outer `selected: AppDestination` param — same name, different thing.
+                            this.selected = isSelected
                             if (destination == AppDestination.INBOX && inboxBadge > 0) {
                                 stateDescription = "$inboxBadge waiting"
                             }
@@ -174,7 +177,9 @@ private fun InboxBadge(count: Int, modifier: Modifier = Modifier) {
 }
 
 // Screens padding their content for the floating bar reuse this rather than guessing a number.
+// Scaffold's own bottom padding already carries the system nav-bar inset (TmkBottomBar applies
+// that inset to itself separately), so it has to be added on top of the bar's own visual height.
 fun bottomBarContentPadding(padding: PaddingValues): PaddingValues = PaddingValues(
     top = padding.calculateTopPadding(),
-    bottom = TmkBottomBarReservedHeight + Spacing.xs
+    bottom = TmkBottomBarReservedHeight + Spacing.xs + padding.calculateBottomPadding()
 )

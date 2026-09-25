@@ -3,6 +3,7 @@ package com.example.temacker.core.presentation.components
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -19,7 +20,9 @@ fun AppScaffold(
     content: @Composable (PaddingValues) -> Unit
 ) {
     Scaffold(
-        snackbarHost = snackbarHost,
+        // Scaffold only reserves snackbar space above its own bottomBar slot, and the floating
+        // bar isn't in that slot — pad the host by hand so the snackbar clears it too.
+        snackbarHost = { Box(modifier = Modifier.padding(bottom = TmkBottomBarReservedHeight)) { snackbarHost() } },
         topBar = { header?.invoke() },
         containerColor = MaterialTheme.colorScheme.background
     ) { padding ->

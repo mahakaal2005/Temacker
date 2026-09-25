@@ -7,9 +7,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.AlertDialog
@@ -43,6 +46,7 @@ import com.example.temacker.core.presentation.designsystem.Coral
 import com.example.temacker.core.presentation.designsystem.Ink500
 import com.example.temacker.core.presentation.designsystem.Ink900
 import com.example.temacker.core.presentation.designsystem.Line
+import com.example.temacker.core.presentation.designsystem.Spacing
 import com.example.temacker.core.presentation.designsystem.TealInk
 import com.example.temacker.core.presentation.designsystem.TealWash
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
@@ -141,7 +145,9 @@ fun ProfileScreen(
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 } else {
-                    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp)) {
+                    // Scrollable — Sign out / Leave project must stay reachable at large font
+                    // scale or in a short window, not just when the content happens to fit.
+                    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
                         Column(
                             modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
@@ -217,7 +223,9 @@ fun ProfileScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.weight(1f))
+                        // weight(1f) can't push content to the bottom inside a scrollable Column
+                        // (unbounded height), so this is a fixed gap instead of a push-to-bottom spacer.
+                        Spacer(modifier = Modifier.height(Spacing.xxl))
 
                         if (state.projectName.isNotBlank()) {
                             if (state.isLeader) {

@@ -24,7 +24,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.unit.dp
@@ -63,14 +62,14 @@ fun SwitcherPill(
 
 @Composable
 private fun SwitcherChip(projectName: String?, metaLine: String?, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val isLoading = projectName == null
     Surface(
         color = MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(50),
         border = BorderStroke(1.dp, Line),
+        // Always enabled, even while isLoading — a slow or failed load must never trap someone
+        // who just needs to switch away from it. isLoading only decides the skeleton visual.
         modifier = modifier.clickable(
             role = Role.Button,
-            enabled = !isLoading,
             onClickLabel = "Switch or add a project",
             onClick = onClick
         )
@@ -81,12 +80,13 @@ private fun SwitcherChip(projectName: String?, metaLine: String?, onClick: () ->
         ) {
             ProjectTile(projectName)
             SwitcherText(projectName = projectName, metaLine = metaLine, modifier = Modifier.weight(1f, fill = false).padding(start = Spacing.s))
-            // Always visible — even a single-project user needs a way in to join or create a second one.
+            // Always visible — even a single-project user (or one stuck on a slow load) needs a
+            // way in to join, create, or switch to a second project.
             Icon(
                 Icons.Rounded.KeyboardArrowDown,
                 contentDescription = null,
                 tint = Ink500,
-                modifier = Modifier.padding(start = Spacing.xs).alpha(if (isLoading) 0f else 1f)
+                modifier = Modifier.padding(start = Spacing.xs)
             )
         }
     }
