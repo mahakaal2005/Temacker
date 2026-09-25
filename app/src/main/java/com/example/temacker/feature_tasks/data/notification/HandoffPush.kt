@@ -18,7 +18,10 @@ data class HandoffPush(
     val title: String,
     val text: String,
     // Blank for pushes sent before the function started including it.
-    val projectName: String = ""
+    val projectName: String = "",
+    // The person the large icon's initials are drawn from — who offered (OFFERED/NUDGE_RECIPIENT) or who
+    // acted (ACCEPTED/DECLINED/NUDGE_OFFERER). Blank for pushes sent before this field existed.
+    val actorName: String = ""
 ) {
     // Only pushes that ask the reader to act carry Accept / Decline.
     val hasActions: Boolean get() = type == HandoffPushType.OFFERED || type == HandoffPushType.NUDGE_RECIPIENT
@@ -52,5 +55,10 @@ fun parseHandoffPush(data: Map<String, String>): HandoffPush? {
         HandoffPushType.NUDGE_RECIPIENT ->
             "A baton is waiting on you" to "$from offered you \"$task\" $hours hours ago. Accept or decline it."
     }
-    return HandoffPush(type, projectId, taskId, handoffId, title, text, data["projectName"].orEmpty())
+    // Whose initials the large icon uses — the person the notification is fundamentally "about".
+    val actorName = when (type) {
+        HandoffPushType.OFFERED, HandoffPushType.NUDGE_RECIPIENT -> from
+        HandoffPushType.ACCEPTED, HandoffPushType.DECLINED, HandoffPushType.NUDGE_OFFERER -> to
+    }
+    return HandoffPush(type, projectId, taskId, handoffId, title, text, data["projectName"].orEmpty(), actorName)
 }

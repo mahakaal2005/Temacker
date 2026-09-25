@@ -265,7 +265,13 @@ named exception (visuals only). Not started.
   Notifications row on Profile opens Android's system notification settings via an Intent rather than a new
   in-app nav route to the existing one-shot rationale screen (flagged as the presentation-only-safe choice).
   **Not build-verified.**
-- [ ] Group F — system notification visuals.
+- [~] Group F — system notification visuals (`HandoffNotificationFactory`): large icon = actor's initials on
+  a wash circle (same algorithm as `Avatar`), waiting-nudge pushes get coral + a new `ic_stat_waiting.xml`,
+  Accept/Decline actions get real icons, `setGroup`/group-summary per project. Added one additive field
+  (`HandoffPush.actorName`) to carry the raw name needed for initials — flagged, no existing behavior
+  changed. Coded 2026-09-25, see `specs/logs/2026-09-25-phase-8-group-f-notifications.md`. **Not
+  build-verified.**
+- **Phase 8 — all 6 groups (A–F) coded as of 2026-09-25.** Nothing build-verified in this container.
 - **Blocker:** this cloud container has no Android SDK — `./gradlew` verification must run on the user's machine
   or after the environment setup script installs one, before any group is marked done (CLAUDE.md rule 12).
 
