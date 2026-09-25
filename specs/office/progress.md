@@ -247,8 +247,14 @@ named exception (visuals only). Not started.
 - [~] Group B — shell: `TmkBottomBar` (floating pill), redesigned `SwitcherPill` (always-visible chevron, never
   disappears while loading — the actual fix for "can't find project switcher"), duplicate per-tab `TopAppBar`s
   removed from Board/Inbox/Team/Profile. Coded 2026-09-25, same log. `TmkToast` and the Board FAB restyle not
-  done yet. **Not build-verified.**
-- [ ] Group C — shared components: `Avatar`, `ListRow`, `StatusChip`, `InfoStrip`, `EmptyState`, `SkeletonList`, `TmkButton`, `SegmentedTabs`, `TmkSheet`, `ConfirmDialog`.
+  done yet. **Not build-verified.** CodeRabbit found 5 real Major-severity bugs in A/B on PR #1 (snackbar
+  hidden behind the bar, content/FAB could sit under the bar on a larger nav inset, missing TalkBack tab
+  state, Profile buttons potentially unreachable, switcher disabled during load) — all fixed, replied to and
+  resolved 2026-09-25, see `specs/logs/2026-09-25-phase-8-coderabbit-fixes.md`.
+- [~] Group C — shared components: `Avatar` (fixes the wrong-initials bug — "MC" not "ME"), `ListRow` +
+  `InsetGroup`, `StatusChip`, `InfoStrip`, `EmptyState`, `LoadingState` + `SkeletonList`, `TmkButton`,
+  `SegmentedTabs`, `TmkSheet`, `ConfirmDialog`. Coded 2026-09-25, see
+  `specs/logs/2026-09-25-phase-8-group-c-components.md`. Not yet wired into any screen. **Not build-verified.**
 - [ ] Group D — tasks feature: Board, Task detail + `BatonTrail`, Hand off (bottom sheet), Incoming (hero moment), Decline, New task, Queue.
 - [ ] Group E — Team, Project, Profile, Auth and onboarding screens.
 - [ ] Group F — system notification visuals.
