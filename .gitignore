@@ -28,3 +28,7 @@ ui-debug.log
 
 functions/lib/
 functions/node_modules/
+
+# Python bytecode cache from Claude Code skill scripts (e.g. ui-ux-pro-max)
+__pycache__/
+*.pyc
