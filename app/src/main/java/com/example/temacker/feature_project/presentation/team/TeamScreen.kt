@@ -1,19 +1,22 @@
 package com.example.temacker.feature_project.presentation.team
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -22,8 +25,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.temacker.core.presentation.components.AppDestination
 import com.example.temacker.core.presentation.components.AppScaffold
+import com.example.temacker.core.presentation.components.SegmentedTabs
 import com.example.temacker.core.presentation.components.SwitcherPill
 import com.example.temacker.core.presentation.components.bottomBarContentPadding
+import com.example.temacker.core.presentation.designsystem.Spacing
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import com.example.temacker.core.presentation.util.ObserveAsEvents
 import com.example.temacker.feature_project.presentation.load.LoadAction
@@ -114,7 +119,7 @@ fun TeamScreen(
     onNavigateToSuccession: () -> Unit,
     onNavigateToSwitchProject: () -> Unit
 ) {
-    var selectedTab by remember { mutableStateOf(TeamTab.ROSTER) }
+    var selectedTab by rememberSaveable { mutableStateOf(TeamTab.ROSTER) }
 
     AppScaffold(
         selected = AppDestination.TEAM,
@@ -134,10 +139,22 @@ fun TeamScreen(
                 onClick = onNavigateToSwitchProject,
                 trailing = {
                     // Leader-only affordance — SuccessionScreen re-checks isLeader itself and
-                    // bounces back if it ever gets reached by anyone else (see plan §6).
+                    // bounces back if it ever gets reached by anyone else (see plan §6). Moved from a
+                    // bare icon into a labelled overflow item — nobody could guess what a lone
+                    // sparkle icon did.
                     if (rosterState.isLeader) {
-                        IconButton(onClick = onNavigateToSuccession) {
-                            Icon(Icons.Outlined.AutoAwesome, contentDescription = "Start new cycle")
+                        var menuOpen by remember { mutableStateOf(false) }
+                        Box {
+                            IconButton(onClick = { menuOpen = true }) {
+                                Icon(Icons.Rounded.MoreVert, contentDescription = "Team actions")
+                            }
+                            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                                DropdownMenuItem(
+                                    text = { Text("Start new cycle") },
+                                    leadingIcon = { Icon(Icons.Rounded.AutoAwesome, contentDescription = null) },
+                                    onClick = { menuOpen = false; onNavigateToSuccession() }
+                                )
+                            }
                         }
                     }
                 }
@@ -145,15 +162,13 @@ fun TeamScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(bottomBarContentPadding(padding))) {
-            TabRow(selectedTabIndex = selectedTab.ordinal) {
-                TeamTab.entries.forEach { tab ->
-                    Tab(
-                        selected = selectedTab == tab,
-                        onClick = { selectedTab = tab },
-                        text = { Text(tab.label) }
-                    )
-                }
-            }
+            SegmentedTabs(
+                items = TeamTab.entries,
+                selected = selectedTab,
+                onSelect = { selectedTab = it },
+                label = { it.label },
+                modifier = Modifier.padding(top = Spacing.xs)
+            )
 
             when (selectedTab) {
                 TeamTab.ROSTER -> RosterTabContent(state = rosterState, onAction = onRosterAction)

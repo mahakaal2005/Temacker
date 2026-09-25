@@ -1,13 +1,17 @@
 package com.example.temacker.feature_project.presentation.load
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -18,12 +22,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.temacker.core.domain.model.HolderLoad
+import com.example.temacker.core.presentation.components.EmptyState
 import com.example.temacker.core.presentation.designsystem.Ink500
 import com.example.temacker.core.presentation.designsystem.Line
+import com.example.temacker.core.presentation.designsystem.NeutralWash
+import com.example.temacker.core.presentation.designsystem.Spacing
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import com.example.temacker.core.presentation.util.UiText
 import org.koin.androidx.compose.koinViewModel
@@ -64,17 +73,18 @@ fun LoadTabContent(
                 ) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
-                state.holderLoads.isEmpty() -> Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text("Nobody's holding a task yet.", style = MaterialTheme.typography.bodyMedium, color = Ink500)
-                }
-                else -> LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
-                    items(state.holderLoads, key = { it.holderUid }) { load ->
-                        HolderLoadRow(load)
-                        HorizontalDivider(color = Line)
+                state.holderLoads.isEmpty() -> EmptyState(
+                    icon = Icons.Rounded.Groups,
+                    title = "Nobody's holding a task yet",
+                    body = "Once tasks are picked up, each holder's share of the load shows up here."
+                )
+                else -> {
+                    val maxActive = state.holderLoads.maxOf { it.totalActive }.coerceAtLeast(1)
+                    LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
+                        items(state.holderLoads, key = { it.holderUid }) { load ->
+                            HolderLoadRow(load, shareOfMax = load.totalActive.toFloat() / maxActive)
+                            HorizontalDivider(color = Line)
+                        }
                     }
                 }
             }
@@ -83,24 +93,38 @@ fun LoadTabContent(
 }
 
 @Composable
-private fun HolderLoadRow(load: HolderLoad) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(load.holderDisplayName, style = MaterialTheme.typography.bodyLarge)
+private fun HolderLoadRow(load: HolderLoad, shareOfMax: Float) {
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 14.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(load.holderDisplayName, style = MaterialTheme.typography.bodyLarge)
+                Text(
+                    "${load.todoCount} to do · ${load.doingCount} doing",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Ink500
+                )
+            }
             Text(
-                "${load.todoCount} to do · ${load.doingCount} doing",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Ink500
+                "${load.totalActive}",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
             )
         }
-        Text(
-            "${load.totalActive}",
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.primary
-        )
+        LoadBar(shareOfMax = shareOfMax, modifier = Modifier.padding(top = Spacing.xs))
+    }
+}
+
+// The bar shows this holder's active-task count relative to the busiest holder on the team, not a
+// percentage of a fixed cap — there's no such cap in the domain model.
+@Composable
+private fun LoadBar(shareOfMax: Float, modifier: Modifier = Modifier) {
+    val fillColor = MaterialTheme.colorScheme.primary
+    Canvas(modifier = modifier.fillMaxWidth().height(6.dp)) {
+        val radius = CornerRadius(3.dp.toPx())
+        drawRoundRect(color = NeutralWash, cornerRadius = radius)
+        clipRect(right = size.width * shareOfMax.coerceIn(0f, 1f)) {
+            drawRoundRect(color = fillColor, cornerRadius = radius)
+        }
     }
 }
 
