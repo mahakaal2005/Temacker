@@ -4,16 +4,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.temacker.core.presentation.components.AppDestination
 import com.example.temacker.core.presentation.components.AppScaffold
 import com.example.temacker.core.presentation.components.SwitcherPill
+import com.example.temacker.core.presentation.components.bottomBarContentPadding
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import com.example.temacker.core.presentation.util.ObserveAsEvents
 import com.example.temacker.feature_project.presentation.load.LoadAction
@@ -101,7 +98,6 @@ fun TeamRoot(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TeamScreen(
     rosterState: RosterState,
@@ -135,25 +131,20 @@ fun TeamScreen(
                 projectName = rosterState.projectName,
                 metaLine = "${rosterState.members.size} members · ${if (rosterState.isLeader) "Leader" else "Member"}",
                 hasOtherProjects = rosterState.hasOtherProjects,
-                onClick = onNavigateToSwitchProject
-            )
-        }
-    ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            TopAppBar(
-                title = { Text("Team") },
-                actions = {
+                onClick = onNavigateToSwitchProject,
+                trailing = {
                     // Leader-only affordance — SuccessionScreen re-checks isLeader itself and
                     // bounces back if it ever gets reached by anyone else (see plan §6).
                     if (rosterState.isLeader) {
                         IconButton(onClick = onNavigateToSuccession) {
-                            Icon(Icons.Default.AutoAwesome, contentDescription = "Start new cycle")
+                            Icon(Icons.Outlined.AutoAwesome, contentDescription = "Start new cycle")
                         }
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
+                }
             )
-
+        }
+    ) { padding ->
+        Column(modifier = Modifier.fillMaxSize().padding(bottomBarContentPadding(padding))) {
             TabRow(selectedTabIndex = selectedTab.ordinal) {
                 TeamTab.entries.forEach { tab ->
                     Tab(

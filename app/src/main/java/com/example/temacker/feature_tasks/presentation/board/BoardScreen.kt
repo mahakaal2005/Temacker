@@ -31,9 +31,6 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.temacker.core.presentation.components.AppDestination
 import com.example.temacker.core.presentation.components.AppScaffold
 import com.example.temacker.core.presentation.components.SwitcherPill
+import com.example.temacker.core.presentation.components.bottomBarContentPadding
 import com.example.temacker.core.presentation.designsystem.Amber
 import com.example.temacker.core.presentation.designsystem.AmberInk
 import com.example.temacker.core.presentation.designsystem.AmberWash
@@ -101,7 +99,6 @@ fun BoardRoot(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BoardScreen(
     state: BoardState,
@@ -133,24 +130,18 @@ fun BoardScreen(
                 AppDestination.YOU -> onNavigateToYou()
             }
         },
-        header = state.projectSummary?.let { summary ->
-            {
-                SwitcherPill(
-                    projectName = summary.name,
-                    metaLine = "${summary.memberCount} members · ${summary.roleName}",
-                    hasOtherProjects = summary.hasOtherProjects,
-                    onClick = onNavigateToSwitchProject
-                )
-            }
+        header = {
+            // Header never disappears while loading — SwitcherPill shows its own skeleton then.
+            SwitcherPill(
+                projectName = state.projectSummary?.name,
+                metaLine = state.projectSummary?.let { "${it.memberCount} members · ${it.roleName}" },
+                hasOtherProjects = state.projectSummary?.hasOtherProjects ?: false,
+                onClick = onNavigateToSwitchProject
+            )
         }
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Box(modifier = Modifier.fillMaxSize().padding(bottomBarContentPadding(padding))) {
             Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-                TopAppBar(
-                    title = { Text("Board") },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-                )
-
                 state.error?.let { error ->
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 4.dp),

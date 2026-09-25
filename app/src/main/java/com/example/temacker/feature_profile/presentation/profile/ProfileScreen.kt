@@ -16,7 +16,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,8 +24,6 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -39,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.temacker.core.presentation.components.AppDestination
 import com.example.temacker.core.presentation.components.AppScaffold
 import com.example.temacker.core.presentation.components.SwitcherPill
+import com.example.temacker.core.presentation.components.bottomBarContentPadding
 import com.example.temacker.core.presentation.designsystem.AmberInk
 import com.example.temacker.core.presentation.designsystem.AmberWash
 import com.example.temacker.core.presentation.designsystem.Coral
@@ -85,7 +83,6 @@ fun ProfileRoot(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     state: ProfileState,
@@ -109,20 +106,15 @@ fun ProfileScreen(
         },
         header = {
             SwitcherPill(
-                projectName = state.projectName,
-                metaLine = "${state.memberCount} members · ${state.roleName.ifBlank { "Member" }}",
+                projectName = state.projectName.ifBlank { null },
+                metaLine = state.projectName.takeIf { it.isNotBlank() }?.let { "${state.memberCount} members · ${state.roleName.ifBlank { "Member" }}" },
                 hasOtherProjects = state.hasOtherProjects,
                 onClick = onNavigateToSwitchProject
             )
         }
     ) { padding ->
-        Surface(modifier = Modifier.fillMaxSize().padding(padding), color = MaterialTheme.colorScheme.background) {
+        Surface(modifier = Modifier.fillMaxSize().padding(bottomBarContentPadding(padding)), color = MaterialTheme.colorScheme.background) {
             Column(modifier = Modifier.fillMaxSize()) {
-                TopAppBar(
-                    title = { Text("Profile") },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-                )
-
                 state.error?.let { error ->
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 4.dp),

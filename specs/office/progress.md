@@ -235,5 +235,25 @@ Spec agreed 2026-09-26 after a multi-project gap audit.
 - **Phase 7 release order:** deploy `firestore.rules` and `functions` first, then install the app build; then run the
   two-account device checks listed in each group's log.
 
+## Phase 8 — Look and feel redesign (`phase-8-ui-redesign.md`)
+Spec written 2026-09-25 after a full screen-by-screen UI/UX critique and empty-state audit; user approved the
+plan and 4 direction decisions (floating animated bottom bar, Roboto + Roboto Mono, expressive motion only at
+hero moments, restyle system-notification visuals). Presentation-layer only — no ViewModel/State/Action/Event,
+use case, repository, Room, Firestore or navigation route changes, with `HandoffNotificationFactory` as the one
+named exception (visuals only). Not started.
+- [~] Group A — foundation: Type, Spacing, Elevation, Motion, Haptics, icon swap (Material Symbols Rounded), Roboto Mono font.
+  Coded 2026-09-25, see `specs/logs/2026-09-25-phase-8-group-a-b-foundation-shell.md`. **Not build-verified — no
+  Android SDK in this container; user must run `./gradlew` locally.**
+- [~] Group B — shell: `TmkBottomBar` (floating pill), redesigned `SwitcherPill` (always-visible chevron, never
+  disappears while loading — the actual fix for "can't find project switcher"), duplicate per-tab `TopAppBar`s
+  removed from Board/Inbox/Team/Profile. Coded 2026-09-25, same log. `TmkToast` and the Board FAB restyle not
+  done yet. **Not build-verified.**
+- [ ] Group C — shared components: `Avatar`, `ListRow`, `StatusChip`, `InfoStrip`, `EmptyState`, `SkeletonList`, `TmkButton`, `SegmentedTabs`, `TmkSheet`, `ConfirmDialog`.
+- [ ] Group D — tasks feature: Board, Task detail + `BatonTrail`, Hand off (bottom sheet), Incoming (hero moment), Decline, New task, Queue.
+- [ ] Group E — Team, Project, Profile, Auth and onboarding screens.
+- [ ] Group F — system notification visuals.
+- **Blocker:** this cloud container has no Android SDK — `./gradlew` verification must run on the user's machine
+  or after the environment setup script installs one, before any group is marked done (CLAUDE.md rule 12).
+
 ## Open decisions
 - Phase 6: extend `feature_profile` vs. new `feature_settings` — default is extend, revisit if it grows.

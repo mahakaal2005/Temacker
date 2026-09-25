@@ -34,3 +34,17 @@ val CoralInk = Color(0xFFB32C45)
 val DPrimary = Color(0xFFFAF9F6)
 val DSecondary = Color(0xFFA9B0C1)
 val DTertiary = Color(0xFF7C8496)
+
+// Semantic groupings so screens stop importing Ink500/Amber/etc. directly (Phase 8).
+object AppColors {
+    val onSurfaceMuted = Ink500
+    val success = Teal
+    val onSuccess = TealInk
+    val successWash = TealWash
+    val warning = Amber
+    val onWarning = AmberInk
+    val warningWash = AmberWash
+    val danger = Coral
+    val onDanger = CoralInk
+    val dangerWash = CoralWash
+}
