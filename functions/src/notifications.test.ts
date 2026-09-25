@@ -1,6 +1,6 @@
 import { HandoffData, NUDGE_AFTER_MS, deadTokenIndexes, isNudgeDue, planForHandoffChange, planNudges, toFcmMessage } from "./notifications";
 
-const ctx = { projectId: "p1", taskId: "t1", handoffId: "h1", taskTitle: "Sponsor deck" };
+const ctx = { projectId: "p1", projectName: "Design Club", taskId: "t1", handoffId: "h1", taskTitle: "Sponsor deck" };
 const offered: HandoffData = {
   fromUid: "a", fromDisplayName: "Ann", toUid: "b", toDisplayName: "Bo",
   note: "please", status: "OFFERED", offeredAt: 1_000_000
@@ -12,6 +12,7 @@ describe("planForHandoffChange", () => {
     expect(plan?.toUid).toBe("b");
     expect(plan?.data.type).toBe("HANDOFF_OFFERED");
     expect(plan?.data.taskTitle).toBe("Sponsor deck");
+    expect(plan?.data.projectName).toBe("Design Club");
   });
 
   test("accept pings the offerer", () => {
@@ -22,6 +23,13 @@ describe("planForHandoffChange", () => {
   test("decline pings the offerer with the reason", () => {
     const plan = planForHandoffChange(offered, { ...offered, status: "DECLINED", declineReason: "away" }, ctx);
     expect(plan).toMatchObject({ toUid: "a", data: { type: "HANDOFF_DECLINED", declineReason: "away" } });
+  });
+
+  test("an offer auto-closed because its offerer left sends no push to that offerer", () => {
+    const closed = { ...offered, status: "DECLINED", declineReason: "left", closedForUid: offered.fromUid };
+    expect(planForHandoffChange(offered, closed, ctx)).toBeNull();
+    const closedForRecipient = { ...offered, status: "DECLINED", declineReason: "left", closedForUid: offered.toUid };
+    expect(planForHandoffChange(offered, closedForRecipient, ctx)?.toUid).toBe(offered.fromUid);
   });
 
   test("a nudgedAt-only update is silent", () => {

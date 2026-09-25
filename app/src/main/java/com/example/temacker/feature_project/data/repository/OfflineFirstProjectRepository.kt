@@ -46,7 +46,16 @@ class OfflineFirstProjectRepository(
             remote.observeUserProjects(uid)
                 // Offline — the Room-backed emission below keeps serving cached rows regardless.
                 .catch { e -> send(Result.Error(e.toFirestoreDataError())) }
-                .collect { projects -> projectDao.upsertAll(projects.map { it.toEntity() }) }
+                .collect { snapshot ->
+                    appDatabase.withTransaction {
+                        projectDao.upsertAll(snapshot.projects.map { it.toEntity() })
+                        membershipDao.upsertAll(snapshot.memberships.map { it.toEntity() })
+                        // Drops projects the user was removed from; cache-served snapshots may lag, so skip them.
+                        if (snapshot.isAuthoritative) {
+                            membershipDao.deleteMissingForUser(uid, snapshot.memberships.map { it.projectId })
+                        }
+                    }
+                }
         }
 
         membershipDao.observeByUser(uid)

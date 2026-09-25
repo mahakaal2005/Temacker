@@ -71,7 +71,8 @@ fun NavGraphBuilder.projectGraph(
     composable<SwitchProjectRoute> {
         SwitchProjectRoot(
             onNavigateBack = { navController.popBackStack() },
-            onNavigateToJoinProject = { navController.navigate(JoinProjectRoute) }
+            onNavigateToJoinProject = { navController.navigate(JoinProjectRoute) },
+            onNavigateToCreateProject = { navController.navigate(CreateProjectRoute) }
         )
     }
     composable<RoleExplainerRoute> { backStackEntry ->

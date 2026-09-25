@@ -10,6 +10,9 @@ sealed interface RosterAction {
     data class OnRemoveMemberClick(val userId: String) : RosterAction
     data class OnReassignRoleClick(val userId: String) : RosterAction
     data object OnDismissReassignSheet : RosterAction
+    data class OnMakeLeaderClick(val userId: String) : RosterAction
+    data object OnConfirmTransferLeadership : RosterAction
+    data object OnDismissTransferDialog : RosterAction
     data class OnRoleSelected(val roleId: String) : RosterAction
     data object OnManageRolesClick : RosterAction
     data class OnMemberClick(val userId: String) : RosterAction

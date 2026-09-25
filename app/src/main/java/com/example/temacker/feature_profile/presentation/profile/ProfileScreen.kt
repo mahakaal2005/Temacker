@@ -1,5 +1,6 @@
 package com.example.temacker.feature_profile.presentation.profile
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,10 +10,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedButton
@@ -38,6 +44,7 @@ import com.example.temacker.core.presentation.designsystem.AmberWash
 import com.example.temacker.core.presentation.designsystem.Coral
 import com.example.temacker.core.presentation.designsystem.Ink500
 import com.example.temacker.core.presentation.designsystem.Ink900
+import com.example.temacker.core.presentation.designsystem.Line
 import com.example.temacker.core.presentation.designsystem.TealInk
 import com.example.temacker.core.presentation.designsystem.TealWash
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
@@ -51,7 +58,10 @@ fun ProfileRoot(
     onNavigateToInbox: () -> Unit,
     onNavigateToTeam: () -> Unit,
     onNavigateToLogin: () -> Unit,
+    onNavigateToProjectGate: () -> Unit,
     onNavigateToSwitchProject: () -> Unit,
+    onNavigateToYourData: () -> Unit,
+    onNavigateToPlanLimits: () -> Unit,
     viewModel: ProfileViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -59,6 +69,7 @@ fun ProfileRoot(
     ObserveAsEvents(viewModel.events) { event ->
         when (event) {
             ProfileEvent.NavigateToLogin -> onNavigateToLogin()
+            ProfileEvent.NavigateToProjectGate -> onNavigateToProjectGate()
         }
     }
 
@@ -68,7 +79,9 @@ fun ProfileRoot(
         onNavigateToBoard = onNavigateToBoard,
         onNavigateToInbox = onNavigateToInbox,
         onNavigateToTeam = onNavigateToTeam,
-        onNavigateToSwitchProject = onNavigateToSwitchProject
+        onNavigateToSwitchProject = onNavigateToSwitchProject,
+        onNavigateToYourData = onNavigateToYourData,
+        onNavigateToPlanLimits = onNavigateToPlanLimits
     )
 }
 
@@ -80,7 +93,9 @@ fun ProfileScreen(
     onNavigateToBoard: () -> Unit,
     onNavigateToInbox: () -> Unit,
     onNavigateToTeam: () -> Unit,
-    onNavigateToSwitchProject: () -> Unit
+    onNavigateToSwitchProject: () -> Unit,
+    onNavigateToYourData: () -> Unit,
+    onNavigateToPlanLimits: () -> Unit
 ) {
     AppScaffold(
         selected = AppDestination.YOU,
@@ -199,7 +214,38 @@ fun ProfileScreen(
                             }
                         }
 
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+                        ) {
+                            Column {
+                                SettingsRow(label = "Your data", onClick = onNavigateToYourData)
+                                HorizontalDivider(color = Line)
+                                SettingsRow(label = "Plan & limits", onClick = onNavigateToPlanLimits)
+                            }
+                        }
+
                         Spacer(modifier = Modifier.weight(1f))
+
+                        if (state.projectName.isNotBlank()) {
+                            if (state.isLeader) {
+                                Text(
+                                    text = "You lead ${state.projectName}. Make another member Leader from the Team tab before you can leave.",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Ink500,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth().padding(top = 20.dp)
+                                )
+                            } else {
+                                OutlinedButton(
+                                    onClick = { onAction(ProfileAction.OnLeaveProjectClick) },
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Coral),
+                                    modifier = Modifier.fillMaxWidth().padding(top = 20.dp)
+                                ) {
+                                    Text("Leave ${state.projectName}")
+                                }
+                            }
+                        }
 
                         OutlinedButton(
                             onClick = { onAction(ProfileAction.OnSignOutClick) },
@@ -219,6 +265,39 @@ fun ProfileScreen(
                 }
             }
         }
+    }
+
+    if (state.isLeaveDialogVisible) {
+        AlertDialog(
+            onDismissRequest = { onAction(ProfileAction.OnLeaveProjectDismissed) },
+            title = { Text("Leave ${state.projectName}?") },
+            text = {
+                Text(
+                    "You'll lose access to its board and inbox. Tasks you hold go back to the Leader, " +
+                        "and offers involving you are closed. You'll need a new invite code to come back."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { onAction(ProfileAction.OnLeaveProjectConfirmed) }) {
+                    Text("Leave", color = Coral)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { onAction(ProfileAction.OnLeaveProjectDismissed) }) { Text("Cancel") }
+            }
+        )
+    }
+}
+
+@Composable
+private fun SettingsRow(label: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = Ink900)
+        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Ink500)
     }
 }
 
@@ -243,13 +322,63 @@ private fun ProfileScreenPreview() {
                 email = "priya.raman@northwind.co",
                 projectName = "Aurora Launch",
                 roleName = "Leader",
+                isLeader = true,
                 memberSince = "August 2026",
                 isLoading = false
             ),
             onAction = {},
             onNavigateToBoard = {}, onNavigateToInbox = {},
             onNavigateToTeam = {},
-            onNavigateToSwitchProject = {}
+            onNavigateToSwitchProject = {},
+            onNavigateToYourData = {},
+            onNavigateToPlanLimits = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ProfileScreenMemberPreview() {
+    TemackerTheme {
+        ProfileScreen(
+            state = ProfileState(
+                displayName = "Daniel Osei",
+                email = "daniel.osei@northwind.co",
+                projectName = "Aurora Launch",
+                roleName = "Editor",
+                memberSince = "August 2026",
+                isLoading = false
+            ),
+            onAction = {},
+            onNavigateToBoard = {}, onNavigateToInbox = {},
+            onNavigateToTeam = {},
+            onNavigateToSwitchProject = {},
+            onNavigateToYourData = {},
+            onNavigateToPlanLimits = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun ProfileScreenLeaveDialogPreview() {
+    TemackerTheme {
+        ProfileScreen(
+            state = ProfileState(
+                displayName = "Daniel Osei",
+                email = "daniel.osei@northwind.co",
+                projectName = "Aurora Launch",
+                roleName = "Editor",
+                memberSince = "August 2026",
+                isLoading = false,
+                isLeaveDialogVisible = true
+            ),
+            onAction = {},
+            onNavigateToBoard = {}, onNavigateToInbox = {},
+            onNavigateToTeam = {},
+            onNavigateToSwitchProject = {},
+            onNavigateToYourData = {},
+            onNavigateToPlanLimits = {}
         )
     }
 }
@@ -258,7 +387,10 @@ private fun ProfileScreenPreview() {
 @Composable
 private fun ProfileScreenLoadingPreview() {
     TemackerTheme {
-        ProfileScreen(state = ProfileState(isLoading = true), onAction = {}, onNavigateToBoard = {}, onNavigateToInbox = {}, onNavigateToTeam = {}, onNavigateToSwitchProject = {})
+        ProfileScreen(
+            state = ProfileState(isLoading = true), onAction = {}, onNavigateToBoard = {}, onNavigateToInbox = {},
+            onNavigateToTeam = {}, onNavigateToSwitchProject = {}, onNavigateToYourData = {}, onNavigateToPlanLimits = {}
+        )
     }
 }
 
@@ -279,7 +411,9 @@ private fun ProfileScreenErrorPreview() {
             onAction = {},
             onNavigateToBoard = {}, onNavigateToInbox = {},
             onNavigateToTeam = {},
-            onNavigateToSwitchProject = {}
+            onNavigateToSwitchProject = {},
+            onNavigateToYourData = {},
+            onNavigateToPlanLimits = {}
         )
     }
 }

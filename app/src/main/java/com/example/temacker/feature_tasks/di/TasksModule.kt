@@ -1,10 +1,12 @@
 package com.example.temacker.feature_tasks.di
 
+import com.example.temacker.core.domain.repository.ExportDataProvider
 import com.example.temacker.core.domain.repository.TeamInsightsProvider
 import com.example.temacker.feature_tasks.data.remote.FirestoreTaskRemoteDataSource
 import com.example.temacker.feature_tasks.data.remote.TaskRemoteDataSource
 import com.example.temacker.feature_tasks.data.repository.OfflineFirstPendingWriteRepository
 import com.example.temacker.feature_tasks.data.repository.OfflineFirstTaskRepository
+import com.example.temacker.feature_tasks.data.repository.TaskExportDataProvider
 import com.example.temacker.feature_tasks.data.repository.TaskTeamInsightsProvider
 import com.example.temacker.feature_tasks.data.worker.PendingWriteReplayer
 import com.example.temacker.feature_tasks.data.worker.PendingWriteScheduler
@@ -28,6 +30,8 @@ import com.example.temacker.feature_tasks.domain.use_case.ObserveCurrentProjectM
 import com.example.temacker.feature_tasks.domain.use_case.ObserveHandoffTrailUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveInboxBadgeCountUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveInboxUseCase
+import com.example.temacker.feature_tasks.domain.use_case.ObserveOtherProjectQueueCountUseCase
+import com.example.temacker.feature_tasks.domain.use_case.ObserveOtherProjectsWaitingUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObservePendingHandoffsUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveProjectMembersUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveTaskUseCase
@@ -62,6 +66,7 @@ val tasksModule = module {
     singleOf(::PendingWriteReplayer)
     singleOf(::DataStoreNotificationRationaleRepository) { bind<NotificationRationaleRepository>() }
     singleOf(::TaskTeamInsightsProvider) { bind<TeamInsightsProvider>() }
+    singleOf(::TaskExportDataProvider) { bind<ExportDataProvider>() }
 
     factoryOf(::ObserveCurrentProjectIdUseCase)
     factoryOf(::ObserveCurrentProjectSummaryUseCase)
@@ -77,6 +82,8 @@ val tasksModule = module {
     factoryOf(::ObservePendingHandoffsUseCase)
     factoryOf(::ObserveInboxUseCase)
     factoryOf(::ObserveInboxBadgeCountUseCase)
+    factoryOf(::ObserveOtherProjectsWaitingUseCase)
+    factoryOf(::ObserveOtherProjectQueueCountUseCase)
     factoryOf(::ObserveNotificationRationaleSeenUseCase)
     factoryOf(::MarkNotificationRationaleSeenUseCase)
     factoryOf(::CreateTaskUseCase)

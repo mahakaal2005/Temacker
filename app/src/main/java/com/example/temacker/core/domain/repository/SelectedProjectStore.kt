@@ -8,4 +8,5 @@ import kotlinx.coroutines.flow.Flow
 interface SelectedProjectStore {
     fun observeSelectedProjectId(): Flow<String?>
     suspend fun setSelectedProjectId(id: String)
+    suspend fun clear()
 }

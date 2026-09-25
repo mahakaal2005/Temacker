@@ -483,6 +483,12 @@ a feed only Pulse consumes.
 - `ConnectivityObserver` — `observeIsOnline(): Flow<Boolean>` over `ConnectivityManager`, consumed by the
   Board's offline strip and the outbox.
 
+**Phase 7 additions (multi-project hardening):** `CurrentProjectProvider.observeUserProjectRefs()` returns the
+user's non-archived projects as `ProjectRef(id, name)` (`core/domain/model`) so `feature_tasks` can build the
+all-project badge and the Inbox's "Waiting in <project>" sections without importing `feature_project`;
+`SelectedProjectStore` gained `clear()`; and a new `LocalDataCleaner` contract (`core/domain/repository`, impl
+`RoomLocalDataCleaner` in `core/data/database`) wipes Room and the saved selection on sign-out and account deletion.
+
 **Seventh contract (Phase 5b):** `SelectedProjectStore` (`core/domain/repository`) —
 `observeSelectedProjectId(): Flow<String?>`, `suspend fun setSelectedProjectId(id: String)`. Implemented by
 a DataStore-backed class in `feature_project/data/repository/` (same shared `DataStore<Preferences>`

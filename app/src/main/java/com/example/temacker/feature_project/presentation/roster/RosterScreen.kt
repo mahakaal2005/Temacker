@@ -107,10 +107,12 @@ fun RosterTabContent(
                             isMenuOpen = state.menuForUserId == member.userId,
                             canReassign = state.canManageRoles,
                             canRemove = state.canRemoveMembers,
+                            canTransfer = state.isLeader,
                             onClick = { onAction(RosterAction.OnMemberClick(member.userId)) },
                             onMoreClick = { onAction(RosterAction.OnMemberMoreClick(member.userId)) },
                             onDismissMenu = { onAction(RosterAction.OnDismissMemberMenu) },
                             onReassignClick = { onAction(RosterAction.OnReassignRoleClick(member.userId)) },
+                            onMakeLeaderClick = { onAction(RosterAction.OnMakeLeaderClick(member.userId)) },
                             onRemoveClick = { onAction(RosterAction.OnRemoveMemberClick(member.userId)) }
                         )
                         HorizontalDivider(color = Line)
@@ -126,6 +128,14 @@ fun RosterTabContent(
             onDismiss = { onAction(RosterAction.OnDismissInviteSheet) },
             onCopy = { onAction(RosterAction.OnCopyCodeClick) },
             onGenerateNew = { onAction(RosterAction.OnGenerateNewCodeClick) }
+        )
+    }
+
+    state.transferTargetUserId?.let { targetId ->
+        TransferLeadershipDialog(
+            memberName = state.members.firstOrNull { it.userId == targetId }?.displayName ?: "this member",
+            onConfirm = { onAction(RosterAction.OnConfirmTransferLeadership) },
+            onDismiss = { onAction(RosterAction.OnDismissTransferDialog) }
         )
     }
 
@@ -145,10 +155,12 @@ private fun MemberRow(
     isMenuOpen: Boolean,
     canReassign: Boolean,
     canRemove: Boolean,
+    canTransfer: Boolean,
     onClick: () -> Unit,
     onMoreClick: () -> Unit,
     onDismissMenu: () -> Unit,
     onReassignClick: () -> Unit,
+    onMakeLeaderClick: () -> Unit,
     onRemoveClick: () -> Unit
 ) {
     val isLeader = member.isLeader
@@ -175,6 +187,9 @@ private fun MemberRow(
                 DropdownMenu(expanded = isMenuOpen, onDismissRequest = onDismissMenu) {
                     if (canReassign) {
                         DropdownMenuItem(text = { Text("Reassign role") }, onClick = onReassignClick)
+                    }
+                    if (canTransfer) {
+                        DropdownMenuItem(text = { Text("Make Leader") }, onClick = onMakeLeaderClick)
                     }
                     if (canRemove) {
                         DropdownMenuItem(
@@ -235,6 +250,26 @@ private fun InviteCodeSheet(
             )
         }
     }
+}
+
+@Composable
+private fun TransferLeadershipDialog(
+    memberName: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Make $memberName the Leader?") },
+        text = {
+            Text(
+                "They'll get every Leader permission and you'll become a regular member. " +
+                    "Only they can hand it back. You can leave the project afterwards if you want."
+            )
+        },
+        confirmButton = { TextButton(onClick = onConfirm) { Text("Make Leader") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }
 
 @Composable
@@ -333,6 +368,27 @@ private fun RosterTabContentReassignDialogPreview() {
                     Role("r2", "p1", "Editor", RolePermissions(), isLeader = false)
                 ),
                 reassignTargetUserId = "u2"
+            ),
+            onAction = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun RosterTabContentTransferDialogPreview() {
+    TemackerTheme {
+        RosterTabContent(
+            state = RosterState(
+                isLoading = false,
+                isLeader = true,
+                canManageRoles = true,
+                canRemoveMembers = true,
+                members = listOf(
+                    Membership("p1", "u1", "r1", "Leader", RolePermissions.ALL_GRANTED, "Priya Raman", null, 0, isLeader = true),
+                    Membership("p1", "u2", "r2", "Editor", RolePermissions(), "Daniel Osei", null, 0, isLeader = false)
+                ),
+                transferTargetUserId = "u2"
             ),
             onAction = {}
         )

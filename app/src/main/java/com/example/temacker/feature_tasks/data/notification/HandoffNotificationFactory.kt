@@ -49,6 +49,8 @@ object HandoffNotificationFactory {
             .setColor(AMBER)
             .setContentTitle(push.title)
             .setContentText(push.text)
+            // Which project this is about; the public lock-screen version below never shows it.
+            .apply { if (push.projectName.isNotBlank()) setSubText(push.projectName) }
             .setStyle(NotificationCompat.BigTextStyle().bigText(push.text))
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

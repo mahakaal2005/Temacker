@@ -14,6 +14,8 @@ private const val DAY = 24 * HOUR
 fun Inbox.toRows(nowMillis: Long): Pair<List<InboxRowUi>, List<InboxRowUi>> =
     waitingOnYou.map { it.toWaitingRow(nowMillis) } to earlier.map { it.toEarlierRow(nowMillis) }
 
+fun List<InboxEntry>.toWaitingRows(nowMillis: Long): List<InboxRowUi> = map { it.toWaitingRow(nowMillis) }
+
 private fun InboxEntry.toWaitingRow(nowMillis: Long) = InboxRowUi(
     handoffId = handoff.id,
     taskId = handoff.taskId,

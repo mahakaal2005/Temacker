@@ -96,7 +96,7 @@ fun CreateProjectScreen(state: CreateProjectState, onAction: (CreateProjectActio
                     Row(modifier = Modifier.padding(16.dp)) {
                         Icon(Icons.Default.Lock, contentDescription = null, tint = AmberInk, modifier = Modifier.height(20.dp))
                         Text(
-                            text = "Creating this project makes you its Leader. That role is granted once, at creation — it can't be transferred or reassigned later, even by you.",
+                            text = "Creating this project makes you its Leader. You can hand it to another member later, but it can't be reassigned like other roles.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = AmberInk,
                             modifier = Modifier.padding(start = 12.dp)

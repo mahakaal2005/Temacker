@@ -8,6 +8,7 @@ import com.example.temacker.core.domain.util.onFailure
 import com.example.temacker.core.domain.util.onSuccess
 import com.example.temacker.core.presentation.util.toUiText
 import com.example.temacker.feature_auth.domain.repository.AuthRepository
+import com.example.temacker.feature_project.domain.use_case.LeaveProjectUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveCurrentMembershipUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveMembersUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveUserProjectsUseCase
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -35,6 +37,7 @@ class ProfileViewModel(
     private val observeUserProjects: ObserveUserProjectsUseCase,
     private val observeCurrentMembership: ObserveCurrentMembershipUseCase,
     private val observeMembers: ObserveMembersUseCase,
+    private val leaveProject: LeaveProjectUseCase,
     private val currentProjectProvider: CurrentProjectProvider
 ) : ViewModel() {
 
@@ -49,6 +52,10 @@ class ProfileViewModel(
     // the user on their way out the door.
     private var isSigningOut = false
 
+    // Same idea while leaving: the just-left project's listeners lose permission before they're cancelled.
+    // Cleared once the selected project changes.
+    private var isLeaving = false
+
     init {
         viewModelScope.launch {
             authRepository.observeUser().collectLatest { user ->
@@ -60,6 +67,13 @@ class ProfileViewModel(
         val projectId = currentProjectProvider.observeCurrentProjectId()
             .mapNotNull { (it as? Result.Success)?.data }
             .distinctUntilChanged()
+
+        viewModelScope.launch {
+            projectId.collect { id ->
+                isLeaving = false
+                _state.update { it.copy(projectId = id) }
+            }
+        }
 
         viewModelScope.launch {
             projectId.combine(observeUserProjects()) { id, projectsResult -> id to projectsResult }
@@ -75,7 +89,7 @@ class ProfileViewModel(
                                 }
                             }
                         }
-                        .onFailure { error -> if (!isSigningOut) _state.update { it.copy(isLoading = false, error = error.toUiText()) } }
+                        .onFailure { error -> if (!isSigningOut && !isLeaving) _state.update { it.copy(isLoading = false, error = error.toUiText()) } }
                 }
         }
 
@@ -85,12 +99,13 @@ class ProfileViewModel(
                     .onSuccess { membership ->
                         _state.update {
                             it.copy(
+                                isLeader = membership?.isLeader == true,
                                 roleName = membership?.roleName.orEmpty(),
                                 memberSince = membership?.joinedAt?.let(::formatMonthYear).orEmpty()
                             )
                         }
                     }
-                    .onFailure { error -> if (!isSigningOut) _state.update { it.copy(error = error.toUiText()) } }
+                    .onFailure { error -> if (!isSigningOut && !isLeaving) _state.update { it.copy(error = error.toUiText()) } }
             }
         }
         viewModelScope.launch {
@@ -106,6 +121,24 @@ class ProfileViewModel(
                 isSigningOut = true
                 authRepository.signOut()
                 _events.send(ProfileEvent.NavigateToLogin)
+            }
+            ProfileAction.OnLeaveProjectClick -> _state.update { it.copy(isLeaveDialogVisible = true) }
+            ProfileAction.OnLeaveProjectDismissed -> _state.update { it.copy(isLeaveDialogVisible = false) }
+            ProfileAction.OnLeaveProjectConfirmed -> {
+                val leftId = _state.value.projectId ?: return
+                _state.update { it.copy(isLeaveDialogVisible = false) }
+                viewModelScope.launch {
+                    isLeaving = true
+                    leaveProject(leftId)
+                        .onSuccess {
+                            val remaining = (observeUserProjects().first() as? Result.Success)?.data.orEmpty()
+                            if (remaining.none { it.id != leftId }) _events.send(ProfileEvent.NavigateToProjectGate)
+                        }
+                        .onFailure { error ->
+                            isLeaving = false
+                            _state.update { it.copy(error = error.toUiText()) }
+                        }
+                }
             }
             ProfileAction.OnErrorDismissed -> _state.update { it.copy(error = null) }
         }

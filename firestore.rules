@@ -55,6 +55,46 @@ service cloud.firestore {
         membership(projectId).get('isLeader', membership(projectId).roleName == 'Leader') == true;
     }
 
+    // Phase 7 leadership transfer = one batch of two member writes, each checked against the other's
+    // post-batch state so a project can never end up with zero or two Leaders.
+    function memberAfter(projectId, uid) {
+      return getAfter(/databases/$(database)/documents/projects/$(projectId)/members/$(uid)).data;
+    }
+
+    // The current Leader promoting another member; the same batch must demote the Leader themselves.
+    function isLeaderPromotion(projectId, userId) {
+      return hasLeaderRole(projectId) &&
+        userId != request.auth.uid &&
+        resource.data.roleName != 'Leader' &&
+        request.resource.data.userId == resource.data.userId &&
+        exists(/databases/$(database)/documents/projects/$(projectId)/roles/$(request.resource.data.roleId)) &&
+        roleDoc(projectId, request.resource.data.roleId).isLeader == true &&
+        request.resource.data.roleName == roleDoc(projectId, request.resource.data.roleId).name &&
+        request.resource.data.permissions == roleDoc(projectId, request.resource.data.roleId).permissions &&
+        request.resource.data.isLeader == true &&
+        memberAfter(projectId, request.auth.uid).isLeader == false;
+    }
+
+    // The Leader stepping down to a non-Leader role; transferToUid names who the same batch promotes.
+    function isLeaderDemotion(projectId, userId) {
+      return userId == request.auth.uid &&
+        hasLeaderRole(projectId) &&
+        request.resource.data.userId == resource.data.userId &&
+        exists(/databases/$(database)/documents/projects/$(projectId)/roles/$(request.resource.data.roleId)) &&
+        roleDoc(projectId, request.resource.data.roleId).isLeader == false &&
+        request.resource.data.roleName == roleDoc(projectId, request.resource.data.roleId).name &&
+        request.resource.data.permissions == roleDoc(projectId, request.resource.data.roleId).permissions &&
+        request.resource.data.isLeader == false &&
+        'transferToUid' in request.resource.data &&
+        request.resource.data.transferToUid != request.auth.uid &&
+        memberAfter(projectId, request.resource.data.transferToUid).isLeader == true;
+    }
+
+    // Phase 7: an archived (succeeded) project keeps its history but takes no new task or handoff writes.
+    function isArchived(projectId) {
+      return get(/databases/$(database)/documents/projects/$(projectId)).data.get('isArchived', false) == true;
+    }
+
     function taskDoc(projectId, taskId) {
       return get(/databases/$(database)/documents/projects/$(projectId)/tasks/$(taskId)).data;
     }
@@ -124,7 +164,10 @@ service cloud.firestore {
       match /members/{userId} {
         // Roster's direct query (membersRef(projectId).snapshots(), no collectionGroup) has a
         // concrete projectId, so isMember(projectId) is resolvable once for the whole result set.
-        allow get, list: if isMember(projectId) || resource.data.userId == request.auth.uid;
+        // get also allows your own member path even when the doc doesn't exist yet, so the join
+        // transaction can check "already a member" (resource.data would error on a missing doc).
+        allow get: if isMember(projectId) || request.auth.uid == userId;
+        allow list: if isMember(projectId) || resource.data.userId == request.auth.uid;
         allow create: if isSignedIn() && request.resource.data.userId == userId &&
           (
             // Creator claims the Leader role for a brand-new project — only for their own uid.
@@ -153,7 +196,7 @@ service cloud.firestore {
           );
         // Reassign-role screen: only touches roleId/roleName/permissions and the roleSetBy* stamp, never the member's identity,
         // never the Leader's own membership, and never assigns the Leader role to someone else.
-        allow update: if hasPermission(projectId, 'manageRoles') &&
+        allow update: if (hasPermission(projectId, 'manageRoles') &&
           resource.data.roleName != 'Leader' &&
           request.resource.data.userId == resource.data.userId &&
           exists(/databases/$(database)/documents/projects/$(projectId)/roles/$(request.resource.data.roleId)) &&
@@ -161,15 +204,20 @@ service cloud.firestore {
           request.resource.data.roleName == roleDoc(projectId, request.resource.data.roleId).name &&
           request.resource.data.permissions == roleDoc(projectId, request.resource.data.roleId).permissions &&
           request.resource.data.isLeader == false &&
-          request.resource.data.roleSetByUid == request.auth.uid;
-        // Remove-member roster action — never the Leader. No "leave project" feature yet, so no self-delete.
-        allow delete: if hasPermission(projectId, 'removeMembers') && resource.data.roleName != 'Leader';
+          request.resource.data.roleSetByUid == request.auth.uid) ||
+          // Leadership transfer (Phase 7) — the only way the Leader membership ever changes.
+          isLeaderPromotion(projectId, userId) ||
+          isLeaderDemotion(projectId, userId);
+        // Remove-member roster action, or self-delete (Phase 6 delete-account leaving every non-Leader
+        // project) — never the Leader either way.
+        allow delete: if (hasPermission(projectId, 'removeMembers') || request.auth.uid == userId) &&
+          resource.data.roleName != 'Leader';
       }
 
       match /tasks/{taskId} {
         allow read: if isMember(projectId);
         // Creating a task makes you its initial holder — see specs/office/phase-2-board-baton.md.
-        allow create: if hasPermission(projectId, 'assignTasks') &&
+        allow create: if !isArchived(projectId) && hasPermission(projectId, 'assignTasks') &&
           request.resource.data.holderUid == request.auth.uid &&
           request.resource.data.createdByUid == request.auth.uid &&
           request.resource.data.status == 'TODO' &&
@@ -177,7 +225,7 @@ service cloud.firestore {
         // Only two client-driven update shapes exist: the holder marking their own task done, or a
         // handoff's toUid accepting and becoming the new holder (see acceptHandoff/markTaskDone in
         // FirestoreTaskRemoteDataSource.kt). Nothing else may change holderUid/timesHandedOver.
-        allow update: if isMember(projectId) && (
+        allow update: if isMember(projectId) && !isArchived(projectId) && (
           (request.auth.uid == resource.data.holderUid &&
             request.resource.data.status == 'DONE' &&
             request.resource.data.holderUid == resource.data.holderUid &&
@@ -189,18 +237,18 @@ service cloud.firestore {
           request.resource.data.createdByUid == resource.data.createdByUid;
         // Deletion is permissioned regardless of who holds the task (approved design decision, see
         // specs/office/implementation-plan.md's task-permissions section).
-        allow delete: if hasPermission(projectId, 'editAnyTask');
+        allow delete: if hasPermission(projectId, 'editAnyTask') && !isArchived(projectId);
 
         match /handoffs/{handoffId} {
           allow read: if isMember(projectId);
           // Only the task's current holder may offer a handoff — "handing back never needs permission".
-          allow create: if isMember(projectId) &&
+          allow create: if isMember(projectId) && !isArchived(projectId) &&
             request.auth.uid == taskDoc(projectId, taskId).holderUid &&
             request.resource.data.fromUid == request.auth.uid &&
             request.resource.data.status == 'OFFERED' &&
             request.resource.data.projectId == projectId;
           // Only the offered toUid may accept/decline, and only while still OFFERED.
-          allow update: if isMember(projectId) &&
+          allow update: if isMember(projectId) && !isArchived(projectId) &&
             resource.data.status == 'OFFERED' &&
             request.auth.uid == resource.data.toUid &&
             (request.resource.data.status == 'ACCEPTED' || request.resource.data.status == 'DECLINED') &&

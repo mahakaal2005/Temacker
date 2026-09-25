@@ -14,10 +14,17 @@ data class InboxRowUi(
     val kind: InboxRowKind
 )
 
+data class OtherProjectUi(
+    val projectId: String,
+    val projectName: String,
+    val rows: List<InboxRowUi>
+)
+
 @Stable
 data class InboxState(
     val projectSummary: ProjectSummary? = null,
     val waiting: List<InboxRowUi> = emptyList(),
+    val otherProjects: List<OtherProjectUi> = emptyList(),
     val earlier: List<InboxRowUi> = emptyList(),
     val isLoading: Boolean = true,
     val error: UiText? = null

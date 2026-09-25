@@ -7,8 +7,15 @@ import com.example.temacker.feature_project.domain.model.Project
 import com.example.temacker.feature_project.domain.model.SuccessionResult
 import kotlinx.coroutines.flow.Flow
 
+// isAuthoritative is false for cache-served snapshots, which may lag the server and must never delete local rows.
+data class UserProjectsSnapshot(
+    val projects: List<Project>,
+    val memberships: List<Membership>,
+    val isAuthoritative: Boolean
+)
+
 interface ProjectRemoteDataSource {
-    fun observeUserProjects(userId: String): Flow<List<Project>>
+    fun observeUserProjects(userId: String): Flow<UserProjectsSnapshot>
     fun observeProject(projectId: String): Flow<Project?>
 
     // Creates the project, its immutable Leader role, an initial Default role, and the creator's

@@ -13,6 +13,10 @@ interface PendingWriteDao {
     @Query("SELECT * FROM pending_writes WHERE projectId = :projectId ORDER BY createdAt ASC, id ASC")
     fun observeByProject(projectId: String): Flow<List<PendingWriteEntity>>
 
+    // Queue rows in projects other than the selected one, so a stuck write there is never invisible.
+    @Query("SELECT COUNT(*) FROM pending_writes WHERE projectId != :projectId")
+    fun observeCountOutsideProject(projectId: String): Flow<Int>
+
     @Query("SELECT * FROM pending_writes WHERE status = 'PENDING' ORDER BY createdAt ASC, id ASC")
     suspend fun getPending(): List<PendingWriteEntity>
 

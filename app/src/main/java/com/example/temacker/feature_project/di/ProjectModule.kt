@@ -36,7 +36,9 @@ import com.example.temacker.feature_project.domain.use_case.ObservePulseUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveRolesUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveStuckHandoffsUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveUserProjectsUseCase
+import com.example.temacker.feature_project.domain.use_case.LeaveProjectUseCase
 import com.example.temacker.feature_project.domain.use_case.ReassignMemberRoleUseCase
+import com.example.temacker.feature_project.domain.use_case.TransferLeadershipUseCase
 import com.example.temacker.feature_project.domain.use_case.RemoveMemberUseCase
 import com.example.temacker.feature_project.domain.use_case.TriggerSuccessionUseCase
 import com.example.temacker.feature_project.domain.use_case.UpdateRoleUseCase
@@ -86,6 +88,8 @@ val projectModule = module {
     factoryOf(::DeleteRoleUseCase)
     factoryOf(::RemoveMemberUseCase)
     factoryOf(::ReassignMemberRoleUseCase)
+    factoryOf(::TransferLeadershipUseCase)
+    factoryOf(::LeaveProjectUseCase)
     factoryOf(::GenerateInviteCodeUseCase)
     factoryOf(::ObserveActiveInviteCodeUseCase)
     factoryOf(::ObserveLoadUseCase)

@@ -15,6 +15,7 @@ import com.example.temacker.feature_project.domain.use_case.ObserveRolesUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveUserProjectsUseCase
 import com.example.temacker.feature_project.domain.use_case.ReassignMemberRoleUseCase
 import com.example.temacker.feature_project.domain.use_case.RemoveMemberUseCase
+import com.example.temacker.feature_project.domain.use_case.TransferLeadershipUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +38,7 @@ class RosterViewModel(
     private val generateInviteCode: GenerateInviteCodeUseCase,
     private val removeMember: RemoveMemberUseCase,
     private val reassignMemberRole: ReassignMemberRoleUseCase,
+    private val transferLeadership: TransferLeadershipUseCase,
     private val currentProjectProvider: CurrentProjectProvider
 ) : ViewModel() {
 
@@ -140,6 +142,16 @@ class RosterViewModel(
                 _state.update { it.copy(reassignTargetUserId = null) }
                 viewModelScope.launch {
                     reassignMemberRole(projectId, targetUserId, action.roleId)
+                        .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+                }
+            }
+            is RosterAction.OnMakeLeaderClick -> _state.update { it.copy(menuForUserId = null, transferTargetUserId = action.userId) }
+            RosterAction.OnDismissTransferDialog -> _state.update { it.copy(transferTargetUserId = null) }
+            RosterAction.OnConfirmTransferLeadership -> {
+                val targetUserId = _state.value.transferTargetUserId ?: return
+                _state.update { it.copy(transferTargetUserId = null) }
+                viewModelScope.launch {
+                    transferLeadership(projectId, targetUserId)
                         .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
                 }
             }

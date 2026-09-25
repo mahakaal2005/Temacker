@@ -32,6 +32,8 @@ import com.example.temacker.feature_auth.presentation.navigation.LoginRoute
 import com.example.temacker.feature_auth.presentation.navigation.SplashRoute
 import com.example.temacker.feature_auth.presentation.navigation.authGraph
 import com.example.temacker.feature_profile.presentation.navigation.ProfileRoute
+import com.example.temacker.feature_profile.presentation.navigation.YourDataRoute
+import com.example.temacker.feature_profile.presentation.navigation.PlanLimitsRoute
 import com.example.temacker.feature_profile.presentation.navigation.profileGraph
 import com.example.temacker.feature_project.presentation.navigation.CreateProjectRoute
 import com.example.temacker.feature_project.presentation.navigation.JoinProjectRoute
@@ -165,6 +167,7 @@ private fun TemackerApp(
                 onNavigateToSwitchProject = { navController.navigate(SwitchProjectRoute) }
             )
             profileGraph(
+                navController = navController,
                 onNavigateToBoard = { navController.navigate(BoardRoute) { launchSingleTop = true } },
                 onNavigateToInbox = { toInbox() },
                 onNavigateToTeam = { navController.navigate(TeamRoute) { launchSingleTop = true } },
@@ -173,7 +176,14 @@ private fun TemackerApp(
                         popUpTo(0) { inclusive = true }
                     }
                 },
-                onNavigateToSwitchProject = { navController.navigate(SwitchProjectRoute) }
+                onNavigateToProjectGate = {
+                    navController.navigate(ProjectGateRoute) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                },
+                onNavigateToSwitchProject = { navController.navigate(SwitchProjectRoute) },
+                onNavigateToYourData = { navController.navigate(YourDataRoute) },
+                onNavigateToPlanLimits = { navController.navigate(PlanLimitsRoute) }
             )
         }
     }

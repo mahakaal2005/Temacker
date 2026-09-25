@@ -10,6 +10,7 @@ import com.example.temacker.feature_tasks.domain.model.PendingWriteStatus
 import com.example.temacker.feature_tasks.domain.use_case.DiscardPendingWriteUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveBoardUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveConnectivityUseCase
+import com.example.temacker.feature_tasks.domain.use_case.ObserveOtherProjectQueueCountUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObservePendingWritesUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveCurrentProjectIdUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveCurrentProjectMemberUseCase
@@ -34,6 +35,7 @@ class BoardViewModel(
     private val observePendingHandoffs: ObservePendingHandoffsUseCase,
     private val observeCurrentProjectMember: ObserveCurrentProjectMemberUseCase,
     private val observePendingWrites: ObservePendingWritesUseCase,
+    private val observeOtherProjectQueueCount: ObserveOtherProjectQueueCountUseCase,
     private val observeConnectivity: ObserveConnectivityUseCase,
     private val discardPendingWrite: DiscardPendingWriteUseCase
 ) : ViewModel() {
@@ -85,6 +87,11 @@ class BoardViewModel(
                 val fresh = if (seen == null) null else writes.lastOrNull { it.id !in seen && it.status == PendingWriteStatus.PENDING }
                 seenWriteIds = writes.mapTo(HashSet()) { it.id }
                 _state.update { it.copy(pendingWrites = writes, queuedNotice = fresh?.let { w -> QueuedNotice(w.id) } ?: it.queuedNotice) }
+            }
+        }
+        viewModelScope.launch {
+            projectId.flatMapLatest { observeOtherProjectQueueCount(it) }.collect { count ->
+                _state.update { it.copy(queuedInOtherProjects = count) }
             }
         }
         viewModelScope.launch {

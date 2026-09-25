@@ -16,6 +16,8 @@ class OfflineFirstPendingWriteRepository(
     override fun observePendingWrites(projectId: String): Flow<List<PendingWrite>> =
         dao.observeByProject(projectId).map { rows -> rows.mapNotNull { it.toDomain() } }
 
+    override fun observeCountInOtherProjects(projectId: String): Flow<Int> = dao.observeCountOutsideProject(projectId)
+
     override suspend fun retry(id: Long) {
         dao.retry(id)
         scheduler.enqueue()

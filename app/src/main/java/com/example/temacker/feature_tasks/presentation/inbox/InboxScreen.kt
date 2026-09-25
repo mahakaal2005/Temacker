@@ -125,13 +125,25 @@ fun InboxScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
 
-                state.waiting.isEmpty() && state.earlier.isEmpty() -> InboxEmptyState()
+                state.waiting.isEmpty() && state.earlier.isEmpty() && state.otherProjects.isEmpty() -> InboxEmptyState()
 
                 else -> LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
                     if (state.waiting.isNotEmpty()) {
                         item(key = "waiting-header") { SectionHeader("Waiting on you · ${state.waiting.size}") }
                         items(state.waiting, key = { "w-${it.handoffId}" }) { row ->
                             InboxRow(row = row, isWaiting = true, onClick = { onAction(InboxAction.OnRowClick(row)) })
+                        }
+                    }
+                    state.otherProjects.forEach { project ->
+                        item(key = "other-header-${project.projectId}") {
+                            SectionHeader("Waiting in ${project.projectName} · ${project.rows.size}")
+                        }
+                        items(project.rows, key = { "o-${project.projectId}-${it.handoffId}" }) { row ->
+                            InboxRow(
+                                row = row,
+                                isWaiting = true,
+                                onClick = { onAction(InboxAction.OnOtherProjectRowClick(project.projectId, row)) }
+                            )
                         }
                     }
                     if (state.earlier.isNotEmpty()) {
@@ -220,6 +232,56 @@ private fun InboxScreenPopulatedPreview() {
     TemackerTheme {
         InboxScreen(
             state = InboxState(waiting = previewWaiting, earlier = previewEarlier, isLoading = false),
+            onAction = {},
+            onNavigateToBoard = {},
+            onNavigateToTeam = {},
+            onNavigateToYou = {},
+            onNavigateToSwitchProject = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun InboxScreenOtherProjectsPreview() {
+    TemackerTheme {
+        InboxScreen(
+            state = InboxState(
+                waiting = previewWaiting,
+                otherProjects = listOf(
+                    OtherProjectUi(
+                        "p2",
+                        "Design Club",
+                        listOf(InboxRowUi("h9", "t9", "Priya Nair is handing you Poster layout", "1h · offer open", InboxRowKind.OFFER_TO_YOU))
+                    )
+                ),
+                earlier = previewEarlier,
+                isLoading = false
+            ),
+            onAction = {},
+            onNavigateToBoard = {},
+            onNavigateToTeam = {},
+            onNavigateToYou = {},
+            onNavigateToSwitchProject = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun InboxScreenOnlyOtherProjectsPreview() {
+    TemackerTheme {
+        InboxScreen(
+            state = InboxState(
+                otherProjects = listOf(
+                    OtherProjectUi(
+                        "p2",
+                        "Design Club",
+                        listOf(InboxRowUi("h9", "t9", "Priya Nair is handing you Poster layout", "1h · offer open", InboxRowKind.OFFER_TO_YOU))
+                    )
+                ),
+                isLoading = false
+            ),
             onAction = {},
             onNavigateToBoard = {},
             onNavigateToTeam = {},

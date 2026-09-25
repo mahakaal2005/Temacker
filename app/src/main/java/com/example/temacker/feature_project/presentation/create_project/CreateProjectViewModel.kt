@@ -2,6 +2,7 @@ package com.example.temacker.feature_project.presentation.create_project
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.temacker.core.domain.repository.SelectedProjectStore
 import com.example.temacker.core.domain.util.onFailure
 import com.example.temacker.core.domain.util.onSuccess
 import com.example.temacker.core.presentation.util.UiText
@@ -20,7 +21,8 @@ import kotlinx.coroutines.launch
 // the Leader membership doc — same pragmatic cross-feature read already used by ProfileViewModel.
 class CreateProjectViewModel(
     private val createProject: CreateProjectUseCase,
-    private val authRepository: AuthRepository
+    private val authRepository: AuthRepository,
+    private val selectedProjectStore: SelectedProjectStore
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CreateProjectState())
@@ -52,7 +54,11 @@ class CreateProjectViewModel(
         }
 
         createProject(name, user.displayName, user.photoUrl)
-            .onSuccess { _events.send(CreateProjectEvent.NavigateToHome) }
+            .onSuccess { project ->
+                // Someone already in another project must land on the one they just made, not their old selection.
+                selectedProjectStore.setSelectedProjectId(project.id)
+                _events.send(CreateProjectEvent.NavigateToHome)
+            }
             .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
         _state.update { it.copy(isLoading = false) }
     }

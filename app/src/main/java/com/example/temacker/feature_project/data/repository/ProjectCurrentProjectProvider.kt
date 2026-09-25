@@ -1,5 +1,6 @@
 package com.example.temacker.feature_project.data.repository
 
+import com.example.temacker.core.domain.model.ProjectRef
 import com.example.temacker.core.domain.model.ProjectSummary
 import com.example.temacker.core.domain.repository.CurrentProjectProvider
 import com.example.temacker.core.domain.repository.SelectedProjectStore
@@ -66,6 +67,14 @@ class ProjectCurrentProjectProvider(
             }
         }
     }
+
+    override fun observeUserProjectRefs(): Flow<Result<List<ProjectRef>, DataError>> =
+        projectRepository.observeUserProjects().map { result ->
+            when (result) {
+                is Result.Success -> Result.Success(result.data.map { ProjectRef(it.id, it.name) })
+                is Result.Error -> Result.Error(result.error)
+            }
+        }
 
     private fun toSummaryResult(
         id: String,

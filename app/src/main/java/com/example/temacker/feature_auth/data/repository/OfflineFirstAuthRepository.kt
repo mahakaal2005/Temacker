@@ -1,8 +1,10 @@
 package com.example.temacker.feature_auth.data.repository
 
 import com.example.temacker.core.domain.notification.PushTokenRegistrar
+import com.example.temacker.core.domain.repository.LocalDataCleaner
 import com.example.temacker.core.domain.session.SessionManager
 import com.example.temacker.core.domain.util.DataError
+import com.example.temacker.core.domain.util.EmptyResult
 import com.example.temacker.core.domain.util.Result
 import com.example.temacker.core.domain.util.onSuccess
 import com.example.temacker.feature_auth.data.remote.AuthRemoteDataSource
@@ -15,7 +17,8 @@ import kotlinx.coroutines.flow.Flow
 class OfflineFirstAuthRepository(
     private val remote: AuthRemoteDataSource,
     private val session: SessionManager,
-    private val pushTokens: PushTokenRegistrar
+    private val pushTokens: PushTokenRegistrar,
+    private val localData: LocalDataCleaner
 ) : AuthRepository {
 
     override fun observeUser(): Flow<User?> = remote.observeUser()
@@ -37,5 +40,15 @@ class OfflineFirstAuthRepository(
         pushTokens.unregister()
         remote.signOut()
         session.setSession(null)
+        // Wipe cached projects/tasks/queued writes so the next account on this device never sees or replays them.
+        localData.clearAll()
+    }
+
+    override suspend fun deleteAccount(): EmptyResult<DataError> {
+        pushTokens.unregister()
+        return remote.deleteAccount().onSuccess {
+            session.setSession(null)
+            localData.clearAll()
+        }
     }
 }

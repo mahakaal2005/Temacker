@@ -13,4 +13,5 @@ interface MembershipRepository {
     suspend fun joinProject(code: String, displayName: String, photoUrl: String?): Result<Membership, DataError>
     suspend fun removeMember(projectId: String, userId: String): EmptyResult<DataError>
     suspend fun reassignRole(projectId: String, userId: String, roleId: String, byUid: String, byDisplayName: String): EmptyResult<DataError>
+    suspend fun transferLeadership(projectId: String, fromUid: String, fromDisplayName: String, toUid: String): EmptyResult<DataError>
 }

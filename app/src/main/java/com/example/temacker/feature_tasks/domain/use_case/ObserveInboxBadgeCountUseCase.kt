@@ -6,14 +6,15 @@ import com.example.temacker.core.domain.util.Result
 import com.example.temacker.feature_tasks.domain.repository.TaskRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 
-// Counts only handoffs waiting on the current user, so the badge is always actionable.
+// Counts handoffs waiting on the current user across every project they belong to, so the badge
+// is always actionable no matter which project is selected.
 @OptIn(ExperimentalCoroutinesApi::class)
 class ObserveInboxBadgeCountUseCase(
     private val sessionManager: SessionManager,
@@ -25,13 +26,17 @@ class ObserveInboxBadgeCountUseCase(
         if (!loggedIn) {
             flowOf(0)
         } else {
-            currentProjectProvider.observeCurrentProjectId()
-                .filter { it is Result.Success }
-                .map { (it as Result.Success).data }
+            currentProjectProvider.observeUserProjectRefs()
+                // A transient error keeps the last badge value instead of flashing to zero.
+                .mapNotNull { (it as? Result.Success)?.data?.map { project -> project.id } }
                 .distinctUntilChanged()
-                .flatMapLatest { projectId ->
-                    if (projectId == null) flowOf(0)
-                    else taskRepository.observePendingHandoffs(projectId).mapNotNull { (it as? Result.Success)?.data?.size }
+                .flatMapLatest { projectIds ->
+                    if (projectIds.isEmpty()) flowOf(0)
+                    else combine(
+                        projectIds.map { id ->
+                            taskRepository.observePendingHandoffs(id).mapNotNull { (it as? Result.Success)?.data?.size }
+                        }
+                    ) { counts -> counts.sum() }
                 }
         }
     }

@@ -21,5 +21,6 @@ data class RosterState(
     val isLoading: Boolean = true,
     val menuForUserId: String? = null,
     val reassignTargetUserId: String? = null,
+    val transferTargetUserId: String? = null,
     val error: UiText? = null
 )

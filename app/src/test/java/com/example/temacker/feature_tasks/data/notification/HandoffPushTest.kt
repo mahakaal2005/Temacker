@@ -26,6 +26,13 @@ class HandoffPushTest {
     }
 
     @Test
+    fun `project name is carried through and defaults to blank for older pushes`() {
+        assertThat(parseHandoffPush(payload("HANDOFF_OFFERED", "projectName" to "Design Club"))!!.projectName)
+            .isEqualTo("Design Club")
+        assertThat(parseHandoffPush(payload("HANDOFF_OFFERED"))!!.projectName).isEqualTo("")
+    }
+
+    @Test
     fun `offer without a note falls back to a prompt`() {
         assertThat(parseHandoffPush(payload("HANDOFF_OFFERED"))!!.text).isEqualTo("Open it to accept or decline.")
     }

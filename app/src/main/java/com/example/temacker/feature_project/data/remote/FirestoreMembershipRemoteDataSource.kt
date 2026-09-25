@@ -62,6 +62,9 @@ class FirestoreMembershipRemoteDataSource(
             val isLeader = roleSnap.getBoolean("isLeader") ?: false
 
             val memberRef = projectRef.collection("members").document(userId)
+            if (txn.get(memberRef).exists()) {
+                throw FirebaseFirestoreException("Already a member", FirebaseFirestoreException.Code.ALREADY_EXISTS)
+            }
             val joinedAt = System.currentTimeMillis()
             // The invite's creator is who added this member; codes older than Phase 5 have none.
             val membership = Membership(
@@ -90,6 +93,58 @@ class FirestoreMembershipRemoteDataSource(
             membersRef(projectId).document(userId).delete().await()
             Unit
         }
+
+    override suspend fun transferLeadership(
+        projectId: String,
+        fromUid: String,
+        fromDisplayName: String,
+        toUid: String
+    ): Result<List<Membership>, DataError> = safeFirestoreCall {
+        val projectRef = firestore.collection("projects").document(projectId)
+        val rolesRef = projectRef.collection("roles")
+        val defaultRoleId = projectRef.get().await().getString("defaultRoleId")
+            ?: throw FirebaseFirestoreException("Project misconfigured", FirebaseFirestoreException.Code.NOT_FOUND)
+        val leaderRole = rolesRef.whereEqualTo("isLeader", true).limit(1).get().await().documents.firstOrNull()
+            ?: throw FirebaseFirestoreException("Leader role missing", FirebaseFirestoreException.Code.NOT_FOUND)
+        val defaultRole = rolesRef.document(defaultRoleId).get().await()
+        if (!defaultRole.exists()) {
+            throw FirebaseFirestoreException("Default role missing", FirebaseFirestoreException.Code.NOT_FOUND)
+        }
+
+        val stamp = mapOf(
+            "roleSetByUid" to fromUid,
+            "roleSetByDisplayName" to fromDisplayName,
+            "roleSetAt" to System.currentTimeMillis()
+        )
+        val toRef = membersRef(projectId).document(toUid)
+        val fromRef = membersRef(projectId).document(fromUid)
+        // Role name/permissions are copied straight from the role docs so they match what the rules compare against.
+        firestore.batch()
+            .update(
+                toRef,
+                mapOf(
+                    "roleId" to leaderRole.id,
+                    "roleName" to leaderRole.getString("name"),
+                    "permissions" to leaderRole.get("permissions"),
+                    "isLeader" to true
+                ) + stamp
+            )
+            .update(
+                fromRef,
+                mapOf(
+                    "roleId" to defaultRole.id,
+                    "roleName" to defaultRole.getString("name"),
+                    "permissions" to defaultRole.get("permissions"),
+                    "isLeader" to false,
+                    // Tells the rules which member the same batch promotes, so a demotion alone is refused.
+                    "transferToUid" to toUid
+                ) + stamp
+            )
+            .commit()
+            .await()
+
+        listOfNotNull(toRef.get().await().toMembership(projectId), fromRef.get().await().toMembership(projectId))
+    }
 
     override suspend fun reassignRole(projectId: String, userId: String, roleId: String, byUid: String, byDisplayName: String): Result<Membership, DataError> =
         safeFirestoreCall {

@@ -8,11 +8,13 @@ import androidx.datastore.preferences.preferencesDataStoreFile
 import androidx.room.Room
 import com.example.temacker.core.data.activity.CurrentActivityHolder
 import com.example.temacker.core.data.database.AppDatabase
+import com.example.temacker.core.data.database.RoomLocalDataCleaner
 import com.example.temacker.core.data.network.AndroidConnectivityObserver
 import com.example.temacker.core.data.notification.FirebaseFcmTokenRegistrar
 import com.example.temacker.core.data.session.DataStoreSessionManager
 import com.example.temacker.core.domain.network.ConnectivityObserver
 import com.example.temacker.core.domain.notification.PushTokenRegistrar
+import com.example.temacker.core.domain.repository.LocalDataCleaner
 import com.example.temacker.core.domain.session.SessionManager
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -35,6 +37,7 @@ val coreModule = module {
     single { get<AppDatabase>().handoffDao() }
     single { get<AppDatabase>().eventDao() }
     single { get<AppDatabase>().pendingWriteDao() }
+    singleOf(::RoomLocalDataCleaner) { bind<LocalDataCleaner>() }
 
     single { FirebaseFirestore.getInstance() }
 

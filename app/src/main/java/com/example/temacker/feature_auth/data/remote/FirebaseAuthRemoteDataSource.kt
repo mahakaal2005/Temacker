@@ -13,6 +13,7 @@ import androidx.credentials.exceptions.GetCredentialException
 import com.example.temacker.R
 import com.example.temacker.core.data.activity.CurrentActivityHolder
 import com.example.temacker.core.domain.util.DataError
+import com.example.temacker.core.domain.util.EmptyResult
 import com.example.temacker.core.domain.util.Result
 import com.example.temacker.feature_auth.data.mapper.toUser
 import com.example.temacker.feature_auth.domain.model.User
@@ -24,6 +25,7 @@ import com.google.firebase.FirebaseTooManyRequestsException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.google.firebase.auth.GoogleAuthProvider
@@ -141,6 +143,10 @@ class FirebaseAuthRemoteDataSource(
     // FirebaseAuthInvalidCredentialsException since it's a subtype of it.
     private fun Exception.toAuthDataError(): DataError.Network = when (this) {
         is FirebaseNetworkException -> DataError.Network.NO_INTERNET
+        // Checked before FirebaseAuthInvalidUserException, its supertype: Firebase requires a
+        // recent sign-in before allowing delete, and UNAUTHORIZED lets the UI prompt "sign in
+        // again" instead of showing a generic failure.
+        is FirebaseAuthRecentLoginRequiredException -> DataError.Network.UNAUTHORIZED
         is FirebaseAuthUserCollisionException -> DataError.Network.CONFLICT
         is FirebaseTooManyRequestsException -> DataError.Network.TOO_MANY_REQUESTS
         is FirebaseAuthWeakPasswordException -> DataError.Network.BAD_REQUEST
@@ -152,6 +158,20 @@ class FirebaseAuthRemoteDataSource(
     override suspend fun signOut() {
         firebaseAuth.signOut()
         credentialManager.clearCredentialState(ClearCredentialStateRequest())
+    }
+
+    override suspend fun deleteAccount(): EmptyResult<DataError> {
+        val user = firebaseAuth.currentUser ?: return Result.Error(DataError.Network.UNAUTHORIZED)
+        return try {
+            user.delete().await()
+            credentialManager.clearCredentialState(ClearCredentialStateRequest())
+            Result.Success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "deleteAccount: failed", e)
+            Result.Error(e.toAuthDataError())
+        }
     }
 
     private fun generateNonce(): String {

@@ -16,4 +16,6 @@ interface MembershipRemoteDataSource {
     suspend fun joinProject(code: String, userId: String, displayName: String, photoUrl: String?): Result<Pair<Membership, Project>, DataError>
     suspend fun removeMember(projectId: String, userId: String): EmptyResult<DataError>
     suspend fun reassignRole(projectId: String, userId: String, roleId: String, byUid: String, byDisplayName: String): Result<Membership, DataError>
+    // Swaps Leader with another member in one batch; returns both updated memberships so the repo can upsert Room.
+    suspend fun transferLeadership(projectId: String, fromUid: String, fromDisplayName: String, toUid: String): Result<List<Membership>, DataError>
 }

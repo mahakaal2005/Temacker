@@ -17,10 +17,13 @@ export interface HandoffData {
   declineReason?: string | null;
   offeredAt: number;
   nudgedAt?: number | null;
+  // Set when a member's removal auto-closed this offer; that member gets no push about it.
+  closedForUid?: string | null;
 }
 
 export interface HandoffContext {
   projectId: string;
+  projectName: string;
   taskId: string;
   handoffId: string;
   taskTitle: string;
@@ -34,6 +37,7 @@ export interface PushPlan {
 const baseData = (type: PushType, h: HandoffData, ctx: HandoffContext): Record<string, string> => ({
   type,
   projectId: ctx.projectId,
+  projectName: ctx.projectName,
   taskId: ctx.taskId,
   handoffId: ctx.handoffId,
   taskTitle: ctx.taskTitle,
@@ -61,6 +65,7 @@ export function planForHandoffChange(
     return { toUid: after.fromUid, data: baseData("HANDOFF_ACCEPTED", after, ctx) };
   }
   if (after.status === "DECLINED") {
+    if (after.closedForUid && after.closedForUid === after.fromUid) return null;
     return { toUid: after.fromUid, data: baseData("HANDOFF_DECLINED", after, ctx) };
   }
   return null;

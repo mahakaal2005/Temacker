@@ -185,6 +185,10 @@ fun BoardScreen(
                     failed = state.pendingWrites.count { it.status == PendingWriteStatus.FAILED }
                 )?.let { SyncStripRow(it, isOffline = !state.isOnline, onClick = { onAction(BoardAction.OnSyncStripClick) }) }
 
+                if (state.queuedInOtherProjects > 0) {
+                    OtherProjectsQueueStrip(count = state.queuedInOtherProjects, onClick = onNavigateToSwitchProject)
+                }
+
                 if (state.pendingHandoffs.isNotEmpty()) {
                     WaitingOnYouStrip(
                         count = state.pendingHandoffs.size,
@@ -246,6 +250,22 @@ private fun TaskStatus.label(): String = when (this) {
     TaskStatus.TODO -> "To do"
     TaskStatus.DOING -> "Doing"
     TaskStatus.DONE -> "Done"
+}
+
+@Composable
+private fun OtherProjectsQueueStrip(count: Int, onClick: () -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.background,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().clickableRow(onClick).padding(12.dp)) {
+            Text(
+                "$count queued change${if (count == 1) "" else "s"} in your other projects",
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text("Switch projects to review or retry them", style = MaterialTheme.typography.bodySmall, color = Ink500)
+        }
+    }
 }
 
 @Composable
@@ -441,6 +461,17 @@ private fun BoardScreenOfflineQueuedPreview() {
                     previewWrite(2, PendingWriteType.CREATE_TASK, "t2", PendingWriteStatus.PENDING, previewTask.copy(id = "t2", title = "Book the venue", holderDisplayName = "You"))
                 )
             ),
+            onAction = {}, onNavigateToInbox = {}, onNavigateToTeam = {}, onNavigateToYou = {}, onNavigateToSwitchProject = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun BoardScreenOtherProjectQueuePreview() {
+    TemackerTheme {
+        BoardScreen(
+            state = BoardState(isLoading = false, canCreateTask = true, tasks = listOf(previewTask), queuedInOtherProjects = 2),
             onAction = {}, onNavigateToInbox = {}, onNavigateToTeam = {}, onNavigateToYou = {}, onNavigateToSwitchProject = {}
         )
     }

@@ -24,4 +24,7 @@ interface MembershipDao {
 
     @Query("DELETE FROM memberships WHERE projectId = :projectId AND userId NOT IN (:keepUserIds)")
     suspend fun deleteMissing(projectId: String, keepUserIds: List<String>)
+
+    @Query("DELETE FROM memberships WHERE userId = :userId AND projectId NOT IN (:keepProjectIds)")
+    suspend fun deleteMissingForUser(userId: String, keepProjectIds: List<String>)
 }

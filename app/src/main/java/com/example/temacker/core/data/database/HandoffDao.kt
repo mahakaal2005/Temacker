@@ -28,6 +28,18 @@ interface HandoffDao {
     @Query("SELECT * FROM handoffs WHERE taskId = :taskId ORDER BY offeredAt DESC")
     fun observeByTask(taskId: String): Flow<List<HandoffEntity>>
 
+    // Export screen (Phase 6) — every handoff in the project, joined against tasks for the title.
+    @Query(
+        """
+        SELECT h.*, t.title AS taskTitle
+        FROM handoffs h
+        INNER JOIN tasks t ON t.id = h.taskId
+        WHERE h.projectId = :projectId
+        ORDER BY h.offeredAt DESC
+        """
+    )
+    fun observeByProject(projectId: String): Flow<List<InboxRow>>
+
     // Team "Stuck" tab — offered but unanswered past a threshold, joined against tasks for the title.
     @Query(
         """

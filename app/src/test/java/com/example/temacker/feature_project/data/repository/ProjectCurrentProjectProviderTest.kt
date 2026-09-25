@@ -31,6 +31,9 @@ class ProjectCurrentProjectProviderTest {
         override suspend fun setSelectedProjectId(id: String) {
             selectedId.value = id
         }
+        override suspend fun clear() {
+            selectedId.value = null
+        }
     }
 
     private class FakeProjectRepository(projects: List<Project>) : ProjectRepository {
@@ -54,6 +57,8 @@ class ProjectCurrentProjectProviderTest {
         override suspend fun joinProject(code: String, displayName: String, photoUrl: String?) = throw NotImplementedError()
         override suspend fun removeMember(projectId: String, userId: String) = throw NotImplementedError()
         override suspend fun reassignRole(projectId: String, userId: String, roleId: String, byUid: String, byDisplayName: String) =
+            throw NotImplementedError()
+        override suspend fun transferLeadership(projectId: String, fromUid: String, fromDisplayName: String, toUid: String) =
             throw NotImplementedError()
     }
 

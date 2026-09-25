@@ -388,6 +388,24 @@ describe("projects/{projectId}/members/{userId}", () => {
     );
   });
 
+  test("a non-member can get their own not-yet-existing membership doc (join's already-a-member check)", async () => {
+    await assertSucceeds(
+      asOutsider().collection(`projects/${PROJECT_ID_1}/members`).doc(OUTSIDER_UID).get()
+    );
+  });
+
+  test("an existing member can get their own membership doc", async () => {
+    await assertSucceeds(
+      asMember().collection(`projects/${PROJECT_ID_1}/members`).doc(MEMBER_UID).get()
+    );
+  });
+
+  test("a non-member still cannot get a not-yet-existing membership doc for someone else", async () => {
+    await assertFails(
+      asOutsider().collection(`projects/${PROJECT_ID_1}/members`).doc("nobody-uid").get()
+    );
+  });
+
   test("creator can self-assign the Leader role on a brand-new project", async () => {
     await assertSucceeds(
       asOutsider()
@@ -574,6 +592,75 @@ describe("projects/{projectId}/members/{userId}", () => {
     );
   });
 
+  describe("leadership transfer (Phase 7)", () => {
+    const membersPath = `projects/${PROJECT_ID_1}/members`;
+    const promote = () => ({
+      roleId: LEADER_ROLE_ID, roleName: "Leader", permissions: fullPermissions(), isLeader: true, ...roleStamp(LEADER_UID)
+    });
+    const demote = (to) => ({
+      roleId: DEFAULT_ROLE_ID, roleName: "Default", permissions: noPermissions(), isLeader: false, transferToUid: to,
+      ...roleStamp(LEADER_UID)
+    });
+
+    test("the Leader can swap leadership with another member in one batch", async () => {
+      const db = asLeader();
+      const batch = db.batch();
+      batch.update(db.doc(`${membersPath}/${MEMBER_UID}`), promote());
+      batch.update(db.doc(`${membersPath}/${LEADER_UID}`), demote(MEMBER_UID));
+      await assertSucceeds(batch.commit());
+    });
+
+    test("after a transfer the old Leader can leave and the new Leader cannot be removed", async () => {
+      const db = asLeader();
+      const batch = db.batch();
+      batch.update(db.doc(`${membersPath}/${MEMBER_UID}`), promote());
+      batch.update(db.doc(`${membersPath}/${LEADER_UID}`), demote(MEMBER_UID));
+      await assertSucceeds(batch.commit());
+      await assertSucceeds(asLeader().collection(membersPath).doc(LEADER_UID).delete());
+      await assertFails(asMember().collection(membersPath).doc(MEMBER_UID).delete());
+    });
+
+    test("promoting without demoting the Leader in the same batch is denied (would be two Leaders)", async () => {
+      await assertFails(asLeader().collection(membersPath).doc(MEMBER_UID).update(promote()));
+    });
+
+    test("the Leader demoting themselves without promoting anyone is denied (would be no Leader)", async () => {
+      await assertFails(asLeader().collection(membersPath).doc(LEADER_UID).update(demote(MEMBER_UID)));
+    });
+
+    test("demotion naming someone the batch does not promote is denied", async () => {
+      const db = asLeader();
+      const batch = db.batch();
+      batch.update(db.doc(`${membersPath}/${LEADER_UID}`), demote(OUTSIDER_UID));
+      await assertFails(batch.commit());
+    });
+
+    test("the Leader cannot name themselves as the transfer target", async () => {
+      await assertFails(asLeader().collection(membersPath).doc(LEADER_UID).update(demote(LEADER_UID)));
+    });
+
+    test("a non-Leader cannot promote themselves", async () => {
+      await assertFails(asMember().collection(membersPath).doc(MEMBER_UID).update(promote()));
+    });
+
+    test("a promotion whose permissions don't match the Leader role is denied", async () => {
+      const db = asLeader();
+      const batch = db.batch();
+      batch.update(db.doc(`${membersPath}/${MEMBER_UID}`), { ...promote(), permissions: noPermissions() });
+      batch.update(db.doc(`${membersPath}/${LEADER_UID}`), demote(MEMBER_UID));
+      await assertFails(batch.commit());
+    });
+
+    test("a manageRoles holder who isn't the Leader cannot run a transfer", async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await context.firestore().collection(membersPath).doc(MEMBER_UID).update({
+          roleId: "role-manager", roleName: "Manager", permissions: managerPermissions()
+        });
+      });
+      await assertFails(asMember().collection(membersPath).doc(MEMBER_UID).update(promote()));
+    });
+  });
+
   test("reassign cannot change the member's userId", async () => {
     await assertFails(
       asLeader()
@@ -604,6 +691,15 @@ describe("projects/{projectId}/members/{userId}", () => {
   test("the Leader can never be removed, even by someone with removeMembers", async () => {
     await assertFails(
       asLeader().collection(`projects/${PROJECT_ID_1}/members`).doc(LEADER_UID).delete()
+    );
+  });
+
+  // Phase 6 delete-account: a member can leave a project themselves, no removeMembers needed —
+  // "the Leader can never be removed" above already covers self-delete-as-Leader (asLeader() IS
+  // LEADER_UID), since it's blocked on roleName == 'Leader' regardless of who's asking.
+  test("a member without removeMembers can remove their own membership (self-delete)", async () => {
+    await assertSucceeds(
+      asMember().collection(`projects/${PROJECT_ID_1}/members`).doc(MEMBER_UID).delete()
     );
   });
 
@@ -995,6 +1091,63 @@ describe("projects/{projectId}/tasks/{taskId}/handoffs/{handoffId}", () => {
     await seedHandoff();
     await assertFails(
       asMember().collection(`projects/${PROJECT_ID_1}/tasks/${TASK_ID}/handoffs`).doc(HANDOFF_ID).delete()
+    );
+  });
+});
+
+describe("archived projects are read-only for tasks and handoffs (Phase 7)", () => {
+  const tasksPath = `projects/${PROJECT_ID_1}/tasks`;
+
+  beforeEach(async () => {
+    await seedProjectOne();
+    await seedTask();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await db.collection(`${tasksPath}/${TASK_ID}/handoffs`).doc(HANDOFF_ID).set({
+        projectId: PROJECT_ID_1, fromUid: LEADER_UID, fromDisplayName: "Leader Person", toUid: MEMBER_UID,
+        toDisplayName: "Regular Member", note: null, status: "OFFERED", declineReason: null,
+        offeredAt: Date.now(), respondedAt: null
+      });
+      await db.collection("projects").doc(PROJECT_ID_1).update({ isArchived: true });
+    });
+  });
+
+  test("members can still read tasks and handoffs", async () => {
+    await assertSucceeds(asMember().collection(tasksPath).doc(TASK_ID).get());
+    await assertSucceeds(asMember().collection(`${tasksPath}/${TASK_ID}/handoffs`).get());
+  });
+
+  test("a task cannot be created", async () => {
+    await assertFails(
+      asLeader().collection(tasksPath).doc("task-new").set({
+        title: "New task", description: null, holderUid: LEADER_UID, holderDisplayName: "Leader Person",
+        status: "TODO", dueDate: null, timesHandedOver: 0, createdByUid: LEADER_UID,
+        createdByDisplayName: "Leader Person", createdAt: Date.now(), updatedAt: Date.now()
+      })
+    );
+  });
+
+  test("a task cannot be marked done or deleted", async () => {
+    await assertFails(asLeader().collection(tasksPath).doc(TASK_ID).update({ status: "DONE", updatedAt: Date.now() }));
+    await assertFails(asLeader().collection(tasksPath).doc(TASK_ID).delete());
+  });
+
+  test("an open offer cannot be accepted or declined", async () => {
+    await assertFails(
+      asMember().collection(`${tasksPath}/${TASK_ID}/handoffs`).doc(HANDOFF_ID).update({ status: "ACCEPTED", respondedAt: Date.now() })
+    );
+    await assertFails(
+      asMember().collection(`${tasksPath}/${TASK_ID}/handoffs`).doc(HANDOFF_ID).update({ status: "DECLINED", respondedAt: Date.now() })
+    );
+  });
+
+  test("a new handoff cannot be offered", async () => {
+    await assertFails(
+      asLeader().collection(`${tasksPath}/${TASK_ID}/handoffs`).doc("handoff-new").set({
+        projectId: PROJECT_ID_1, fromUid: LEADER_UID, fromDisplayName: "Leader Person", toUid: MEMBER_UID,
+        toDisplayName: "Regular Member", note: null, status: "OFFERED", declineReason: null,
+        offeredAt: Date.now(), respondedAt: null
+      })
     );
   });
 });

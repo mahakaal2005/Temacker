@@ -37,6 +37,7 @@ import org.koin.androidx.compose.koinViewModel
 fun SwitchProjectRoot(
     onNavigateBack: () -> Unit,
     onNavigateToJoinProject: () -> Unit,
+    onNavigateToCreateProject: () -> Unit,
     viewModel: SwitchProjectViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -51,7 +52,8 @@ fun SwitchProjectRoot(
         state = state,
         onAction = viewModel::onAction,
         onNavigateBack = onNavigateBack,
-        onNavigateToJoinProject = onNavigateToJoinProject
+        onNavigateToJoinProject = onNavigateToJoinProject,
+        onNavigateToCreateProject = onNavigateToCreateProject
     )
 }
 
@@ -61,7 +63,8 @@ fun SwitchProjectScreen(
     state: SwitchProjectState,
     onAction: (SwitchProjectAction) -> Unit,
     onNavigateBack: () -> Unit,
-    onNavigateToJoinProject: () -> Unit
+    onNavigateToJoinProject: () -> Unit,
+    onNavigateToCreateProject: () -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -82,10 +85,17 @@ fun SwitchProjectScreen(
                 ProjectList(Modifier.weight(1f), state.rows, onAction)
                 TextButton(
                     onClick = onNavigateToJoinProject,
-                    modifier = Modifier.fillMaxWidth().padding(16.dp)
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 16.dp)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                     Text("Join another project")
+                }
+                TextButton(
+                    onClick = onNavigateToCreateProject,
+                    modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                    Text("Create a new project")
                 }
             }
         }
@@ -155,7 +165,8 @@ private fun SwitchProjectScreenPreview() {
             ),
             onAction = {},
             onNavigateBack = {},
-            onNavigateToJoinProject = {}
+            onNavigateToJoinProject = {},
+            onNavigateToCreateProject = {}
         )
     }
 }
@@ -168,7 +179,8 @@ private fun SwitchProjectScreenLoadingPreview() {
             state = SwitchProjectState(isLoading = true),
             onAction = {},
             onNavigateBack = {},
-            onNavigateToJoinProject = {}
+            onNavigateToJoinProject = {},
+            onNavigateToCreateProject = {}
         )
     }
 }
@@ -184,7 +196,8 @@ private fun SwitchProjectScreenErrorPreview() {
             ),
             onAction = {},
             onNavigateBack = {},
-            onNavigateToJoinProject = {}
+            onNavigateToJoinProject = {},
+            onNavigateToCreateProject = {}
         )
     }
 }

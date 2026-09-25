@@ -46,6 +46,17 @@
             android:name=".feature_tasks.data.notification.HandoffActionReceiver"
             android:exported="false" />
 
+        <!-- Phase 6 export share sheet (Your Data screen) — shares a cacheDir/exports file via content://. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
     </application>
 
 

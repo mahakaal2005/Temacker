@@ -14,6 +14,7 @@ fun DataError.toUiText(): UiText {
         DataError.Network.SERIALIZATION -> UiText.StringResource(R.string.error_serialization)
         DataError.Network.TOO_MANY_REQUESTS -> UiText.StringResource(R.string.error_too_many_requests)
         DataError.Network.BAD_REQUEST -> UiText.StringResource(R.string.error_bad_request)
+        DataError.Network.ALREADY_MEMBER -> UiText.StringResource(R.string.error_already_member)
         else -> UiText.StringResource(R.string.error_unknown)
     }
 }

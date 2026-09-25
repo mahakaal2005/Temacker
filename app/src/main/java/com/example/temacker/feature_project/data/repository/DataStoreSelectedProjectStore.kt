@@ -18,6 +18,10 @@ class DataStoreSelectedProjectStore(
         dataStore.edit { prefs -> prefs[SELECTED_PROJECT_ID_KEY] = id }
     }
 
+    override suspend fun clear() {
+        dataStore.edit { prefs -> prefs.remove(SELECTED_PROJECT_ID_KEY) }
+    }
+
     companion object {
         private val SELECTED_PROJECT_ID_KEY = stringPreferencesKey("selected_project_id")
     }

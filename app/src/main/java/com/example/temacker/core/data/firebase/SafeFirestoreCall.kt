@@ -32,6 +32,8 @@ fun Throwable.toFirestoreDataError(): DataError.Network = when (this) {
         // Invalid/expired invite code surfaces here — CONFLICT reads clearest to the caller.
         FirebaseFirestoreException.Code.FAILED_PRECONDITION,
         FirebaseFirestoreException.Code.NOT_FOUND -> DataError.Network.CONFLICT
+        // Only the join transaction throws ALREADY_EXISTS on purpose.
+        FirebaseFirestoreException.Code.ALREADY_EXISTS -> DataError.Network.ALREADY_MEMBER
         FirebaseFirestoreException.Code.DEADLINE_EXCEEDED -> DataError.Network.REQUEST_TIMEOUT
         else -> DataError.Network.UNKNOWN
     }

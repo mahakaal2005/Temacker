@@ -22,18 +22,21 @@ class FirestoreProjectRemoteDataSource(
     private val firestore: FirebaseFirestore
 ) : ProjectRemoteDataSource {
 
-    override fun observeUserProjects(userId: String): Flow<List<Project>> =
+    override fun observeUserProjects(userId: String): Flow<UserProjectsSnapshot> =
         firestore.collectionGroup("members")
             .whereEqualTo("userId", userId)
             .snapshots()
             .map { snapshot ->
                 // Member docs don't store their own projectId — it's implicit in the doc path
                 // (projects/{projectId}/members/{userId}) — so read it from the parent reference.
-                val projectIds = snapshot.documents.mapNotNull { it.reference.parent.parent?.id }
-                // Membership list changing re-fetches the (small, rarely-changing) project docs.
-                projectIds.mapNotNull { id ->
-                    firestore.collection(PROJECTS).document(id).get().await().toProject()
+                val memberships = snapshot.documents.mapNotNull { doc ->
+                    doc.reference.parent.parent?.id?.let { doc.toMembership(it) }
                 }
+                // Membership list changing re-fetches the (small, rarely-changing) project docs.
+                val projects = memberships.mapNotNull { m ->
+                    firestore.collection(PROJECTS).document(m.projectId).get().await().toProject()
+                }
+                UserProjectsSnapshot(projects, memberships, isAuthoritative = !snapshot.metadata.isFromCache)
             }
 
     override fun observeProject(projectId: String): Flow<Project?> =

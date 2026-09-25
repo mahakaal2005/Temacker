@@ -4,7 +4,19 @@ Read this first, every session, before touching code — it's the current status
 detail lives in each phase's spec file (`specs/office/phase-N-*.md`); this file only tracks
 done/left. Update it after every session or completed task.
 
-**Current phase: 5b — project switcher, fully done including the Board/Inbox entry point follow-up, verified on device end-to-end (2026-09-23, see phase-5b-project-switcher.md). Phase 6 next. Earlier: 5 done (2026-09-22). 4 — Truth about the team (implemented and verified on-device, 2026-09-19; unit tests still deferred). Phase 3 complete (2026-09-19): notifications + offline outbox built and verified on-device, see phase-3-notifications-offline.md (Phase 4 was pulled forward per explicit user request; see phase-4-team-truth.md's note).**
+**Current phase: 6 — Sustainability, fully built and device-verified (2026-09-23, see
+phase-6-sustainability.md). Both screens work end-to-end on RZCWA28EAZF: export (JSON+CSV), live counts,
+delete-account blocked-by-leadership path, and — with explicit user authorization on a real non-Leader test
+account (FAIQUA NAEEM) — the delete-account success path too (Firestore membership removed, Firebase Auth
+user gone). A real bug was found and fixed along the way: a stale Firestore listener raced the delete and
+briefly showed a confusing permission error with a stuck "Deleting…" button; fixed with the same
+isSigningOut-style guard ProfileViewModel already uses, rebuilt clean, not yet re-verified live. Firestore
+rules deployed to `temacker-a0252` by the user. Earlier: 5b — project
+switcher, fully done including the Board/Inbox entry point follow-up, verified on device end-to-end (2026-09-23,
+see phase-5b-project-switcher.md). 5 done (2026-09-22). 4 — Truth about the team (implemented and verified
+on-device, 2026-09-19; unit tests still deferred). Phase 3 complete (2026-09-19): notifications + offline outbox
+built and verified on-device, see phase-3-notifications-offline.md (Phase 4 was pulled forward per explicit user
+request; see phase-4-team-truth.md's note).**
 
 ## Phase 1 — Auth, projects, roles (`phase-1-auth-projects-roles.md`)
 - [x] Core layer: `Result`/`DataError` (core/domain/util), `SessionManager` interface + DataStore impl, `UiText`/`ObserveAsEvents` (core/presentation/util), `CoreModule` Koin wiring, `App.kt` + `startKoin`. `AppDatabase` deferred until the first Room entity exists (Room rejects `@Database` with zero entities).
@@ -194,8 +206,34 @@ Load/Stuck/Pulse read already exists and doesn't depend on notifications.
   tap opens Switch Project, switching updates Board/Inbox immediately, switch-back restores original state.
 
 ## Phase 6 — Sustainability (`phase-6-sustainability.md`)
-- [ ] Your data (export + delete-account)
-- [ ] Plan & limits screen
+- [x] Your data (export JSON/CSV + delete-account) — built, `./gradlew assembleDebug lintDebug testDebugUnitTest`
+  pass, see `specs/logs/2026-09-23-phase-6-your-data-plan-limits.md`. **Export device-verified** (JSON + CSV,
+  file contents pulled and confirmed correct via `run-as`, share sheet works). Firestore rules self-delete
+  change written, 93/93 `npm run test:rules` passing, and **deployed to `temacker-a0252` by the user
+  (2026-09-23)**. **Delete-account fully device-verified**: blocked-by-leadership path (Rudra Sharma, no
+  side effects) and the success path (FAIQUA NAEEM, user-authorized real test account — membership removed,
+  Auth account deleted). Found and fixed a real bug along the way: a stale Firestore listener raced the
+  deletion and briefly showed a wrong permission error + stuck button; fixed with an isSigningOut-style
+  guard, rebuilt clean, **not re-verified live** (would need a second real deletion on a fresh account).
+- [x] Plan & limits screen — built and **device-verified**, static except live task/member counts (hardcoded
+  200/25 caps, no other source of truth — flagged as open).
+
+## Phase 7 — Multi-project hardening (`phase-7-multi-project.md`)
+Spec agreed 2026-09-26 after a multi-project gap audit.
+- [~] Group A — bugs: coded, build/lint/unit tests pass, rules tests 96/96 (2026-09-26, see
+  `specs/logs/2026-09-26-phase-7-group-a-bugs.md`). Sign-out wipe, duplicate-join check, stale switcher rows. Per-user
+  outbox column dropped (wipe covers it). **Not yet device-verified; rules must be deployed before installing.**
+- [~] Group B — coded and tested (2026-09-26, see `specs/logs/2026-09-26-phase-7-group-b-inbox-push.md`): badge across
+  all projects, "Waiting in <project>" Inbox sections, project name in push. **Functions need redeploying; not yet
+  device-verified.**
+- [~] Group C — coded and tested (2026-09-26, see `specs/logs/2026-09-26-phase-7-group-c-leave-transfer.md`): leave
+  project, `onMemberRemoved` cleanup function, leadership transfer (rules tests 105/105). **Rules and functions need
+  deploying; not yet device-verified.**
+- [~] Group D — coded and tested (2026-09-26, see `specs/logs/2026-09-26-phase-7-group-d-polish.md`): create a second
+  project from the switcher, archived projects read-only in the rules (110/110), queued-changes strip for other
+  projects. **Rules need deploying; not yet device-verified.**
+- **Phase 7 release order:** deploy `firestore.rules` and `functions` first, then install the app build; then run the
+  two-account device checks listed in each group's log.
 
 ## Open decisions
 - Phase 6: extend `feature_profile` vs. new `feature_settings` — default is extend, revisit if it grows.

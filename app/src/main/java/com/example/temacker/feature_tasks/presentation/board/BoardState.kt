@@ -18,6 +18,7 @@ data class BoardState(
     val tasks: List<Task> = emptyList(),
     val pendingHandoffs: List<Handoff> = emptyList(),
     val pendingWrites: List<PendingWrite> = emptyList(),
+    val queuedInOtherProjects: Int = 0,
     val queuedNotice: QueuedNotice? = null,
     val isOnline: Boolean = true,
     val selectedTab: TaskStatus = TaskStatus.TODO,

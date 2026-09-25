@@ -1,5 +1,6 @@
 package com.example.temacker.core.domain.repository
 
+import com.example.temacker.core.domain.model.ProjectRef
 import com.example.temacker.core.domain.model.ProjectSummary
 import com.example.temacker.core.domain.util.DataError
 import com.example.temacker.core.domain.util.Result
@@ -16,4 +17,7 @@ interface CurrentProjectProvider {
     // project, trimmed to what the pill needs (architecture §8 — core can't see feature_project's
     // Project/Membership). Null once observeUserProjects() is empty (no project at all).
     fun observeCurrentProjectSummary(): Flow<Result<ProjectSummary?, DataError>>
+
+    // Phase 7, cross-project Inbox and badge: every non-archived project the user belongs to.
+    fun observeUserProjectRefs(): Flow<Result<List<ProjectRef>, DataError>>
 }
