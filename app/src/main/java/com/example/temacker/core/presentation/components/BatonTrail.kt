@@ -54,7 +54,9 @@ fun BatonTrail(nodes: List<TrailNode>, modifier: Modifier = Modifier) {
 private fun TrailRow(node: TrailNode, isFirst: Boolean, isLast: Boolean) {
     val reducedMotion = rememberReducedMotion()
     val pulseScale = remember { Animatable(1f) }
-    LaunchedEffect(isFirst, reducedMotion) {
+    // Keyed on the node itself too — not just isFirst/reducedMotion — so a genuinely new newest
+    // node re-triggers the pulse instead of silently reusing a prior effect for the same slot.
+    LaunchedEffect(node, isFirst, reducedMotion) {
         if (isFirst && !reducedMotion) {
             pulseScale.animateTo(1.4f, animationSpec = spatialExpressive())
             pulseScale.animateTo(1f, animationSpec = spatialDefault())

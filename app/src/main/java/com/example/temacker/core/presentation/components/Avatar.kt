@@ -43,10 +43,12 @@ fun Avatar(name: String, size: Dp = 36.dp, tone: AvatarTone = AvatarTone.NEUTRAL
     }
 }
 
+private val whitespaceRegex = Regex("\\s+")
+
 // "Mei-Ling Chow" -> "MC", not "ME" — first letter of the first and last word, not the first
 // two characters. A single word ("You") falls back to its first two letters.
 fun initialsOf(name: String): String {
-    val words = name.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+    val words = name.trim().split(whitespaceRegex).filter { it.isNotEmpty() }
     return when {
         words.isEmpty() -> ""
         words.size == 1 -> words.first().take(2).uppercase()
