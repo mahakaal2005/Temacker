@@ -259,7 +259,12 @@ named exception (visuals only). Not started.
   Decline, New task, Queue. All 7 screens coded 2026-09-25, see the 6 `specs/logs/2026-09-25-phase-8-group-d-*.md`
   logs. Hand off kept its existing full-screen nav destination rather than becoming a real modal
   bottom sheet (flagged as a navigation-graph change out of scope). **Not build-verified.**
-- [ ] Group E — Team, Project, Profile, Auth and onboarding screens.
+- [~] Group E — Team, Project, Profile, Auth and onboarding screens. Coded 2026-09-25 across 5 commits
+  (Auth; onboarding; Team/Roster/Load/Stuck/Pulse; Manage roles/Role explainer/Succession; Profile/Your
+  data/Plan & limits/Notification rationale), see the 5 `specs/logs/2026-09-25-phase-8-group-e-*.md` logs.
+  Notifications row on Profile opens Android's system notification settings via an Intent rather than a new
+  in-app nav route to the existing one-shot rationale screen (flagged as the presentation-only-safe choice).
+  **Not build-verified.**
 - [ ] Group F — system notification visuals.
 - **Blocker:** this cloud container has no Android SDK — `./gradlew` verification must run on the user's machine
   or after the environment setup script installs one, before any group is marked done (CLAUDE.md rule 12).
