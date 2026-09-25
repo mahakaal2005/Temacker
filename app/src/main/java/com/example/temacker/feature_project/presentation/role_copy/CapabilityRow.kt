@@ -25,11 +25,11 @@ import com.example.temacker.core.presentation.designsystem.TemackerTheme
 
 // One accessibility stop per row ("Invite members, needs a role") instead of an icon stop plus a text stop.
 @Composable
-fun CapabilityRow(label: String, allowed: Boolean, lockedColor: Color = Ink700) {
+fun CapabilityRow(label: String, allowed: Boolean, lockedColor: Color = Ink700, modifier: Modifier = Modifier) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.semantics(mergeDescendants = true) {
+        modifier = modifier.semantics(mergeDescendants = true) {
             contentDescription = "$label, ${if (allowed) "allowed" else "needs a role"}"
         }
     ) {

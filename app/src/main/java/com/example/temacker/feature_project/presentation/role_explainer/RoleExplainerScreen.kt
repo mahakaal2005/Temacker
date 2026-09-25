@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -26,8 +26,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.temacker.core.presentation.components.InsetGroup
 import com.example.temacker.core.presentation.designsystem.Ink500
 import com.example.temacker.core.presentation.designsystem.Ink700
+import com.example.temacker.core.presentation.designsystem.Spacing
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import com.example.temacker.core.presentation.util.ObserveAsEvents
 import com.example.temacker.core.presentation.util.UiText
@@ -63,7 +65,7 @@ fun RoleExplainerScreen(state: RoleExplainerState, onAction: (RoleExplainerActio
                 title = { Text(if (state.roleName.isBlank()) "What a role means" else "What ${state.roleName} can do") },
                 navigationIcon = {
                     IconButton(onClick = { onAction(RoleExplainerAction.OnBackClick) }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -93,10 +95,17 @@ fun RoleExplainerScreen(state: RoleExplainerState, onAction: (RoleExplainerActio
 
 @Composable
 private fun Group(title: String, group: CapabilityGroup, granted: List<Capability>) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(title, style = MaterialTheme.typography.labelSmall, color = Ink500, modifier = Modifier.semantics { heading() })
-        Capability.entries.filter { it.group == group }.forEach { capability ->
-            CapabilityRow(label = capability.label, allowed = capability in granted, lockedColor = Ink500)
+        InsetGroup {
+            Capability.entries.filter { it.group == group }.forEach { capability ->
+                CapabilityRow(
+                    label = capability.label,
+                    allowed = capability in granted,
+                    lockedColor = Ink500,
+                    modifier = Modifier.padding(horizontal = Spacing.m, vertical = Spacing.s)
+                )
+            }
         }
     }
 }
