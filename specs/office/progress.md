@@ -255,7 +255,10 @@ named exception (visuals only). Not started.
   `InsetGroup`, `StatusChip`, `InfoStrip`, `EmptyState`, `LoadingState` + `SkeletonList`, `TmkButton`,
   `SegmentedTabs`, `TmkSheet`, `ConfirmDialog`. Coded 2026-09-25, see
   `specs/logs/2026-09-25-phase-8-group-c-components.md`. Not yet wired into any screen. **Not build-verified.**
-- [ ] Group D — tasks feature: Board, Task detail + `BatonTrail`, Hand off (bottom sheet), Incoming (hero moment), Decline, New task, Queue.
+- [~] Group D — tasks feature: Board, Task detail + `BatonTrail`, Hand off, Incoming (hero moment),
+  Decline, New task, Queue. All 7 screens coded 2026-09-25, see the 6 `specs/logs/2026-09-25-phase-8-group-d-*.md`
+  logs. Hand off kept its existing full-screen nav destination rather than becoming a real modal
+  bottom sheet (flagged as a navigation-graph change out of scope). **Not build-verified.**
 - [ ] Group E — Team, Project, Profile, Auth and onboarding screens.
 - [ ] Group F — system notification visuals.
 - **Blocker:** this cloud container has no Android SDK — `./gradlew` verification must run on the user's machine
