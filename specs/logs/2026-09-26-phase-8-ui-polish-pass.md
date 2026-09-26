@@ -11,5 +11,6 @@ Device-checked on RZCWA28EAZF. Build, lint and unit tests pass.
 
 - Theme: surfaceContainer* set to white/neutral in AppTheme so dialogs, pickers, menus and sheets are no longer Material lavender. New role dialog buttons darkened for contrast.
 - Manage roles: roles are collapsed rows (one open at a time, "N of 7 permissions"), a new role opens itself.
+- Navigation motion (AppNavTransitions.kt): tabs slide side by side in tab order (Board, Inbox, Team, You); child pages stack in from the right over a dimmed, still parent and slide out to the right on Back; splash, sign-in and gate cross-fade; the bottom bar slides away with child pages. Verified by recording at 5x animation scale.
 
 Not done: Phase 7 two-account flows are still not device-verified. Body/label text and buttons still use the monospace label style app-wide.

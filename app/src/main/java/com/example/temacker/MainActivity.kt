@@ -1,5 +1,14 @@
 package com.example.temacker
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.background
+import com.example.temacker.core.presentation.designsystem.Ink900
+import com.example.temacker.core.presentation.designsystem.rememberReducedMotion
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -164,8 +173,17 @@ private fun TemackerApp(
         else -> null
     }
     CompositionLocalProvider(LocalInboxBadgeCount provides inboxBadge) {
-      Box(modifier = Modifier.fillMaxSize()) {
-        NavHost(navController = navController, startDestination = SplashRoute) {
+      // Dark behind the NavHost so a parent fading to 0.6 alpha under a stacked child reads as dimmed.
+      Box(modifier = Modifier.fillMaxSize().background(Ink900)) {
+        val reducedMotion = rememberReducedMotion()
+        NavHost(
+            navController = navController,
+            startDestination = SplashRoute,
+            enterTransition = appEnter(reducedMotion),
+            exitTransition = appExit(reducedMotion),
+            popEnterTransition = appPopEnter(reducedMotion),
+            popExitTransition = appPopExit(reducedMotion)
+        ) {
             authGraph(
                 navController = navController,
                 onNavigateToApp = {
@@ -207,10 +225,18 @@ private fun TemackerApp(
                 onNavigateToPlanLimits = { navController.navigate(PlanLimitsRoute) }
             )
         }
-        // One bar for all four tabs, above the NavHost, so it doesn't fade with the screens.
-        if (selectedTab != null) {
+        // One bar for all four tabs, above the NavHost, so it doesn't fade with the screens. It keeps the last
+        // tab while animating out so it slides away with a child page instead of snapping.
+        var lastTab by remember { mutableStateOf(AppDestination.BOARD) }
+        if (selectedTab != null) lastTab = selectedTab
+        AnimatedVisibility(
+            visible = selectedTab != null,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
             TmkBottomBar(
-                selected = selectedTab,
+                selected = lastTab,
                 onSelect = { tab ->
                     goToTab(
                         when (tab) {
@@ -220,8 +246,7 @@ private fun TemackerApp(
                             AppDestination.YOU -> ProfileRoute
                         }
                     )
-                },
-                modifier = Modifier.align(Alignment.BottomCenter)
+                }
             )
         }
       }
