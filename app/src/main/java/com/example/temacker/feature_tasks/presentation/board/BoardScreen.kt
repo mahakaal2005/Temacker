@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.temacker.core.presentation.components.memberCountLabel
 import com.example.temacker.core.presentation.components.AppDestination
 import com.example.temacker.core.presentation.components.AppScaffold
 import com.example.temacker.core.presentation.components.Avatar
@@ -145,7 +146,7 @@ fun BoardScreen(
             // Header never disappears while loading — SwitcherPill shows its own skeleton then.
             SwitcherPill(
                 projectName = state.projectSummary?.name,
-                metaLine = state.projectSummary?.let { "${it.memberCount} members · ${it.roleName}" },
+                metaLine = state.projectSummary?.let { "${memberCountLabel(it.memberCount)} · ${it.roleName}" },
                 hasOtherProjects = state.projectSummary?.hasOtherProjects ?: false,
                 onClick = onNavigateToSwitchProject
             )
@@ -257,7 +258,8 @@ fun BoardScreen(
                 }
             }
 
-            if (state.canCreateTask) {
+            // An empty board already shows "Add the first task", so the FAB would be a duplicate CTA.
+            if (state.canCreateTask && !state.isLoading && state.boardTasks().isNotEmpty()) {
                 // Compose-owned LazyListState driving a derived value — the one case the
                 // android-compose-ui skill calls out for derivedStateOf.
                 val fabExpanded by remember { derivedStateOf { lazyListState.firstVisibleItemIndex == 0 } }

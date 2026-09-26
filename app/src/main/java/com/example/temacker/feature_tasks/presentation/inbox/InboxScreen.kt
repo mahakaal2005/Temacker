@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Inbox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -23,8 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.temacker.core.presentation.components.memberCountLabel
 import com.example.temacker.core.presentation.components.AppDestination
 import com.example.temacker.core.presentation.components.AppScaffold
+import com.example.temacker.core.presentation.components.EmptyState
 import com.example.temacker.core.presentation.components.SwitcherPill
 import com.example.temacker.core.presentation.components.bottomBarContentPadding
 import com.example.temacker.core.presentation.designsystem.Amber
@@ -86,7 +90,7 @@ fun InboxScreen(
         header = {
             SwitcherPill(
                 projectName = state.projectSummary?.name,
-                metaLine = state.projectSummary?.let { "${it.memberCount} members · ${it.roleName}" },
+                metaLine = state.projectSummary?.let { "${memberCountLabel(it.memberCount)} · ${it.roleName}" },
                 hasOtherProjects = state.projectSummary?.hasOtherProjects ?: false,
                 onClick = onNavigateToSwitchProject
             )
@@ -175,19 +179,11 @@ private fun InboxRow(row: InboxRowUi, isWaiting: Boolean, onClick: () -> Unit) {
 
 @Composable
 private fun InboxEmptyState() {
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text("Nothing waiting on you", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            "When someone hands you a task, it shows up here — and in a push if you've turned those on.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = Ink500,
-            modifier = Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp)
-        )
-    }
+    EmptyState(
+        icon = Icons.Rounded.Inbox,
+        title = "You're all caught up",
+        body = "When someone hands you a task, it shows up here, and as a push if you've turned those on."
+    )
 }
 
 private val previewWaiting = listOf(
