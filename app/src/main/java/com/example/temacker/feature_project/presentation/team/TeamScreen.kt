@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Autorenew
+import com.example.temacker.core.presentation.components.TmkMenuItem
+import com.example.temacker.core.presentation.components.TmkOverflowMenu
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -23,6 +25,7 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.temacker.core.presentation.components.memberCountLabel
 import com.example.temacker.core.presentation.components.AppDestination
 import com.example.temacker.core.presentation.components.AppScaffold
 import com.example.temacker.core.presentation.components.SegmentedTabs
@@ -134,7 +137,7 @@ fun TeamScreen(
         header = {
             SwitcherPill(
                 projectName = rosterState.projectName,
-                metaLine = "${rosterState.members.size} members · ${if (rosterState.isLeader) "Leader" else "Member"}",
+                metaLine = "${memberCountLabel(rosterState.members.size)} · ${if (rosterState.isLeader) "Leader" else "Member"}",
                 hasOtherProjects = rosterState.hasOtherProjects,
                 onClick = onNavigateToSwitchProject,
                 trailing = {
@@ -143,18 +146,13 @@ fun TeamScreen(
                     // bare icon into a labelled overflow item — nobody could guess what a lone
                     // sparkle icon did.
                     if (rosterState.isLeader) {
-                        var menuOpen by remember { mutableStateOf(false) }
-                        Box {
-                            IconButton(onClick = { menuOpen = true }) {
-                                Icon(Icons.Rounded.MoreVert, contentDescription = "Team actions")
-                            }
-                            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                                DropdownMenuItem(
-                                    text = { Text("Start new cycle") },
-                                    leadingIcon = { Icon(Icons.Rounded.AutoAwesome, contentDescription = null) },
-                                    onClick = { menuOpen = false; onNavigateToSuccession() }
-                                )
-                            }
+                        TmkOverflowMenu(contentDescription = "Team actions") { dismiss ->
+                            TmkMenuItem(
+                                label = "Start new cycle",
+                                hint = "Archive this project, keep the team",
+                                icon = Icons.Rounded.Autorenew,
+                                onClick = { dismiss(); onNavigateToSuccession() }
+                            )
                         }
                     }
                 }

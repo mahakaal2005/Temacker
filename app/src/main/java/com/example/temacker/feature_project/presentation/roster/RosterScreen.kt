@@ -1,5 +1,16 @@
 package com.example.temacker.feature_project.presentation.roster
 
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.ui.text.font.FontWeight
+import com.example.temacker.core.presentation.components.SectionLabel
+import com.example.temacker.core.presentation.components.IconBadge
+import com.example.temacker.core.presentation.components.RowChevron
+import com.example.temacker.core.presentation.components.InsetDivider
+import com.example.temacker.core.presentation.designsystem.TealInk
+import com.example.temacker.core.presentation.designsystem.TealWash
+import com.example.temacker.core.presentation.designsystem.AmberInk
+import com.example.temacker.core.presentation.designsystem.AmberWash
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -18,8 +29,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import com.example.temacker.core.presentation.components.TmkDropdownMenu
+import com.example.temacker.core.presentation.components.TmkMenuItem
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.temacker.core.presentation.components.memberCountLabel
 import com.example.temacker.core.presentation.components.Avatar
 import com.example.temacker.core.presentation.components.AvatarTone
 import com.example.temacker.core.presentation.components.ChipTone
@@ -62,24 +74,6 @@ fun RosterTabContent(
 ) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "${state.members.size} members",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Ink500,
-                    modifier = Modifier.weight(1f)
-                )
-                if (state.canManageInvite) {
-                    FilledTonalButton(onClick = { onAction(RosterAction.OnInviteClick) }) {
-                        Icon(Icons.Rounded.PersonAdd, contentDescription = null, modifier = Modifier.padding(end = Spacing.xxs))
-                        Text("Invite")
-                    }
-                }
-            }
-
             state.error?.let { error ->
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 4.dp),
@@ -102,34 +96,56 @@ fun RosterTabContent(
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
-                    if (state.canManageRoles) {
-                        item(key = "manage-roles") {
-                            InsetGroup(modifier = Modifier.padding(bottom = Spacing.s)) {
-                                ListRow(
-                                    headline = "Manage roles",
-                                    trailing = { Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = Ink500) },
-                                    onClick = { onAction(RosterAction.OnManageRolesClick) }
-                                )
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = Spacing.m, end = Spacing.m, bottom = Spacing.l)
+                ) {
+                    if (state.canManageInvite || state.canManageRoles) {
+                        item(key = "admin") {
+                            InsetGroup(modifier = Modifier.padding(top = Spacing.s)) {
+                                if (state.canManageInvite) {
+                                    ListRow(
+                                        headline = "Invite teammates",
+                                        supporting = "Share a code so people can join",
+                                        leading = { IconBadge(Icons.Rounded.PersonAdd, TealInk, TealWash) },
+                                        trailing = { RowChevron() },
+                                        onClick = { onAction(RosterAction.OnInviteClick) }
+                                    )
+                                }
+                                if (state.canManageInvite && state.canManageRoles) InsetDivider()
+                                if (state.canManageRoles) {
+                                    ListRow(
+                                        headline = "Manage roles",
+                                        supporting = "Choose what each role can do",
+                                        leading = { IconBadge(Icons.Rounded.Tune, AmberInk, AmberWash) },
+                                        trailing = { RowChevron() },
+                                        onClick = { onAction(RosterAction.OnManageRolesClick) }
+                                    )
+                                }
                             }
                         }
                     }
-                    items(state.members, key = { it.userId }) { member ->
-                        MemberRow(
-                            member = member,
-                            canAct = state.canRemoveMembers || state.canManageRoles,
-                            isMenuOpen = state.menuForUserId == member.userId,
-                            canReassign = state.canManageRoles,
-                            canRemove = state.canRemoveMembers,
-                            canTransfer = state.isLeader,
-                            onClick = { onAction(RosterAction.OnMemberClick(member.userId)) },
-                            onMoreClick = { onAction(RosterAction.OnMemberMoreClick(member.userId)) },
-                            onDismissMenu = { onAction(RosterAction.OnDismissMemberMenu) },
-                            onReassignClick = { onAction(RosterAction.OnReassignRoleClick(member.userId)) },
-                            onMakeLeaderClick = { onAction(RosterAction.OnMakeLeaderClick(member.userId)) },
-                            onRemoveClick = { onAction(RosterAction.OnRemoveMemberClick(member.userId)) }
-                        )
-                        HorizontalDivider(color = Line)
+                    item(key = "members-label") { SectionLabel("Members · ${state.members.size}") }
+                    item(key = "members") {
+                        InsetGroup {
+                            state.members.forEachIndexed { index, member ->
+                                if (index > 0) InsetDivider(start = 72.dp)
+                                MemberRow(
+                                    member = member,
+                                    canAct = state.canRemoveMembers || state.canManageRoles,
+                                    isMenuOpen = state.menuForUserId == member.userId,
+                                    canReassign = state.canManageRoles,
+                                    canRemove = state.canRemoveMembers,
+                                    canTransfer = state.isLeader,
+                                    onClick = { onAction(RosterAction.OnMemberClick(member.userId)) },
+                                    onMoreClick = { onAction(RosterAction.OnMemberMoreClick(member.userId)) },
+                                    onDismissMenu = { onAction(RosterAction.OnDismissMemberMenu) },
+                                    onReassignClick = { onAction(RosterAction.OnReassignRoleClick(member.userId)) },
+                                    onMakeLeaderClick = { onAction(RosterAction.OnMakeLeaderClick(member.userId)) },
+                                    onRemoveClick = { onAction(RosterAction.OnRemoveMemberClick(member.userId)) }
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -182,12 +198,12 @@ private fun MemberRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClickLabel = "See what ${member.roleName} can do", onClick = onClick)
-            .padding(vertical = 12.dp),
+            .padding(start = Spacing.m, end = Spacing.xs, top = 12.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Avatar(name = member.displayName, tone = if (isLeader) AvatarTone.ACCENT else AvatarTone.NEUTRAL)
         Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
-            Text(member.displayName, style = MaterialTheme.typography.bodyLarge)
+            Text(member.displayName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
             StatusChip(
                 text = member.roleName,
                 tone = if (isLeader) ChipTone.WARNING else ChipTone.NEUTRAL,
@@ -199,24 +215,21 @@ private fun MemberRow(
                 IconButton(onClick = onMoreClick) {
                     Icon(Icons.Rounded.MoreVert, contentDescription = "More")
                 }
-                DropdownMenu(expanded = isMenuOpen, onDismissRequest = onDismissMenu) {
+                TmkDropdownMenu(expanded = isMenuOpen, onDismiss = onDismissMenu) {
                     if (canReassign) {
-                        DropdownMenuItem(text = { Text("Reassign role") }, onClick = onReassignClick)
+                        TmkMenuItem(label = "Reassign role", onClick = onReassignClick)
                     }
                     if (canTransfer) {
-                        DropdownMenuItem(text = { Text("Make Leader") }, onClick = onMakeLeaderClick)
+                        TmkMenuItem(label = "Make Leader", onClick = onMakeLeaderClick)
                     }
                     if (canRemove) {
-                        DropdownMenuItem(
-                            text = { Text("Remove from project", color = MaterialTheme.colorScheme.error) },
-                            onClick = onRemoveClick
-                        )
+                        TmkMenuItem(label = "Remove from project", destructive = true, onClick = onRemoveClick)
                     }
                 }
             }
         } else {
             // Chevron hint — tapping the row does something (opens the role explainer) even when there's no menu.
-            Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = Ink500)
+            Box(modifier = Modifier.padding(end = Spacing.xs)) { RowChevron() }
         }
     }
 }

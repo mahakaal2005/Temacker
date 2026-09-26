@@ -1,5 +1,33 @@
 package com.example.temacker.feature_profile.presentation.profile
 
+import com.example.temacker.core.presentation.components.SectionLabel
+import com.example.temacker.core.presentation.components.IconBadge
+import com.example.temacker.core.presentation.components.RowChevron
+import com.example.temacker.core.presentation.components.InsetDivider
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.rounded.Badge
+import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.Speed
+import androidx.compose.material.icons.automirrored.rounded.ExitToApp
+import androidx.compose.material.icons.automirrored.rounded.Logout
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import com.example.temacker.core.presentation.designsystem.AmberInk
+import com.example.temacker.core.presentation.designsystem.AmberWash
+import com.example.temacker.core.presentation.designsystem.CoralInk
+import com.example.temacker.core.presentation.designsystem.CoralWash
+import com.example.temacker.core.presentation.designsystem.Line
+import com.example.temacker.core.presentation.designsystem.NeutralWash
+import com.example.temacker.core.presentation.designsystem.TealInk
+import com.example.temacker.core.presentation.designsystem.TealWash
+import com.example.temacker.core.presentation.designsystem.White
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
@@ -32,6 +60,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.temacker.core.presentation.components.memberCountLabel
 import com.example.temacker.core.presentation.components.AppDestination
 import com.example.temacker.core.presentation.components.AppScaffold
 import com.example.temacker.core.presentation.components.Avatar
@@ -110,7 +139,7 @@ fun ProfileScreen(
         header = {
             SwitcherPill(
                 projectName = state.projectName.ifBlank { null },
-                metaLine = state.projectName.takeIf { it.isNotBlank() }?.let { "${state.memberCount} members · ${state.roleName.ifBlank { "Member" }}" },
+                metaLine = state.projectName.takeIf { it.isNotBlank() }?.let { "${memberCountLabel(state.memberCount)} · ${state.roleName.ifBlank { "Member" }}" },
                 hasOtherProjects = state.hasOtherProjects,
                 onClick = onNavigateToSwitchProject
             )
@@ -147,124 +176,88 @@ fun ProfileScreen(
                     val context = LocalContext.current
                     // Scrollable — Sign out / Leave project must stay reachable at large font
                     // scale or in a short window, not just when the content happens to fit.
-                    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp)) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Avatar(name = state.displayName, size = 56.dp, tone = AvatarTone.ACCENT)
-                            Text(
-                                text = state.displayName,
-                                style = MaterialTheme.typography.titleLarge,
-                                color = Ink900,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(top = 14.dp)
-                            )
-                            Text(
-                                text = state.email,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = Ink500,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(top = 4.dp)
-                            )
+                    Column(
+                        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.m),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
+                    ) {
+                        ProfileCard(name = state.displayName, email = state.email)
+
+                        if (state.projectName.isNotBlank()) {
+                            SectionLabel("In ${state.projectName}")
+                            InsetGroup {
+                                ListRow(
+                                    headline = "Your role",
+                                    supporting = state.memberSince.takeIf { it.isNotBlank() }?.let { "Member since $it" },
+                                    leading = { IconBadge(Icons.Rounded.Badge, AmberInk, AmberWash) },
+                                    trailing = {
+                                        StatusChip(
+                                            text = state.roleName.ifBlank { "Member" },
+                                            tone = if (state.isLeader) ChipTone.WARNING else ChipTone.NEUTRAL
+                                        )
+                                    }
+                                )
+                            }
                         }
 
-                        Text(
-                            "PROJECT",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Ink500,
-                            modifier = Modifier.padding(top = 24.dp, bottom = Spacing.xxs)
-                        )
-                        InsetGroup {
-                            ListRow(
-                                headline = "Current project",
-                                supporting = state.projectName.ifBlank { "—" },
-                                trailing = { Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = Ink500) },
-                                onClick = onNavigateToSwitchProject
-                            )
-                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-                            ListRow(
-                                headline = "Your role",
-                                trailing = {
-                                    StatusChip(
-                                        text = state.roleName.ifBlank { "—" },
-                                        tone = if (state.roleName == "Leader") ChipTone.WARNING else ChipTone.NEUTRAL
-                                    )
-                                }
-                            )
-                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
-                            ListRow(headline = "Member since", supporting = state.memberSince.ifBlank { "—" })
-                        }
-
-                        Text(
-                            "SETTINGS",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Ink500,
-                            modifier = Modifier.padding(top = Spacing.l, bottom = Spacing.xxs)
-                        )
+                        SectionLabel("Settings")
                         InsetGroup {
                             ListRow(
                                 headline = "Notifications",
-                                leading = { Icon(Icons.Rounded.Notifications, contentDescription = null, tint = Ink500) },
-                                trailing = { Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = Ink500) },
+                                supporting = "Handoff pushes and reminders",
+                                leading = { IconBadge(Icons.Rounded.Notifications, AmberInk, AmberWash) },
+                                trailing = { RowChevron() },
                                 onClick = {
                                     val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
                                         .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
                                     context.startActivity(intent)
                                 }
                             )
-                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                            InsetDivider()
                             ListRow(
                                 headline = "Your data",
-                                trailing = { Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = Ink500) },
+                                supporting = "Export or delete your account",
+                                leading = { IconBadge(Icons.Rounded.Shield, TealInk, TealWash) },
+                                trailing = { RowChevron() },
                                 onClick = onNavigateToYourData
                             )
-                            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
+                            InsetDivider()
                             ListRow(
                                 headline = "Plan & limits",
-                                trailing = { Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = Ink500) },
+                                supporting = "What your project can hold",
+                                leading = { IconBadge(Icons.Rounded.Speed, Ink500, NeutralWash) },
+                                trailing = { RowChevron() },
                                 onClick = onNavigateToPlanLimits
                             )
                         }
 
-                        // weight(1f) can't push content to the bottom inside a scrollable Column
-                        // (unbounded height), so this is a fixed gap instead of a push-to-bottom spacer.
-                        Spacer(modifier = Modifier.height(Spacing.xxl))
-
-                        if (state.projectName.isNotBlank()) {
-                            if (state.isLeader) {
-                                Text(
-                                    text = "You lead ${state.projectName}. Make another member Leader from the Team tab before you can leave.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Ink500,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth().padding(top = 20.dp)
-                                )
-                            } else {
-                                // Leave project stays the only coral (destructive) item on this screen.
-                                TmkButton(
-                                    text = "Leave ${state.projectName}",
-                                    onClick = { onAction(ProfileAction.OnLeaveProjectClick) },
-                                    variant = TmkButtonVariant.DESTRUCTIVE,
-                                    modifier = Modifier.padding(top = 20.dp)
-                                )
+                        SectionLabel("Account")
+                        InsetGroup {
+                            if (state.projectName.isNotBlank()) {
+                                if (state.isLeader) {
+                                    // Disabled row, not hidden, so Leaders learn why they can't leave yet.
+                                    ListRow(
+                                        headline = "Leave ${state.projectName}",
+                                        supporting = "Make another member Leader from the Team tab first",
+                                        leading = { IconBadge(Icons.AutoMirrored.Rounded.ExitToApp, Ink500.copy(alpha = 0.5f), NeutralWash) },
+                                        modifier = Modifier.alpha(0.6f)
+                                    )
+                                } else {
+                                    ListRow(
+                                        headline = "Leave ${state.projectName}",
+                                        supporting = "Your tasks go back to the Leader",
+                                        leading = { IconBadge(Icons.AutoMirrored.Rounded.ExitToApp, CoralInk, CoralWash) },
+                                        onClick = { onAction(ProfileAction.OnLeaveProjectClick) }
+                                    )
+                                }
+                                InsetDivider()
                             }
+                            ListRow(
+                                headline = "Sign out",
+                                leading = { IconBadge(Icons.AutoMirrored.Rounded.Logout, Ink500, NeutralWash) },
+                                onClick = { onAction(ProfileAction.OnSignOutClick) }
+                            )
                         }
-
-                        // Sign out is now a neutral text button — it isn't destructive the way leaving a project is.
-                        TmkButton(
-                            text = "Sign out",
-                            onClick = { onAction(ProfileAction.OnSignOutClick) },
-                            variant = TmkButtonVariant.TEXT,
-                            modifier = Modifier.fillMaxWidth().padding(top = 20.dp)
-                        )
-                        Text(
-                            text = "You'll need to sign in again to get back in.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Ink500,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 18.dp)
-                        )
+                        Spacer(modifier = Modifier.height(Spacing.l))
                     }
                 }
             }
@@ -290,6 +283,26 @@ fun ProfileScreen(
                 TextButton(onClick = { onAction(ProfileAction.OnLeaveProjectDismissed) }) { Text("Cancel") }
             }
         )
+    }
+}
+
+
+@Composable
+private fun ProfileCard(name: String, email: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = Spacing.xs)
+            .background(White, RoundedCornerShape(20.dp))
+            .border(1.dp, Line, RoundedCornerShape(20.dp))
+            .padding(Spacing.m),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Avatar(name = name, size = 56.dp, tone = AvatarTone.ACCENT)
+        Column(modifier = Modifier.weight(1f).padding(start = Spacing.m)) {
+            Text(name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Ink900, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(email, style = MaterialTheme.typography.bodyMedium, color = Ink500, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
     }
 }
 
