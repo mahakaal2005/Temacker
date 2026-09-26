@@ -7,10 +7,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 
-// AppDestination/LocalInboxBadgeCount live in TmkBottomBar.kt alongside the bar that renders them.
+// The floating bar is drawn once by MainActivity above the NavHost so it stays put while screens cross-fade; selected/onSelect are kept only so call sites and previews stay unchanged.
 @Composable
 fun AppScaffold(
     selected: AppDestination,
@@ -30,9 +29,6 @@ fun AppScaffold(
         // draws full-bleed behind it and each screen pads for TmkBottomBarReservedHeight itself.
         Box(modifier = Modifier.fillMaxSize()) {
             content(padding)
-            Box(modifier = Modifier.align(Alignment.BottomCenter)) {
-                TmkBottomBar(selected = selected, onSelect = onSelect)
-            }
         }
     }
 }

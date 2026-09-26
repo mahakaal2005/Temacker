@@ -1,8 +1,17 @@
 package com.example.temacker.core.presentation.components
 
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -77,8 +86,7 @@ private val barMargin = 12.dp
 // Total space a screen must reserve at the bottom so its last item clears the floating bar.
 val TmkBottomBarReservedHeight = barHeight + barMargin * 2
 
-// Floating pill nav (Phase 8) — replaces the full-width Material NavigationBar. The amber
-// selection pill slides between tabs instead of jumping, and each tab ticks once on select.
+// Floating pill nav (Phase 8). One amber pill slides behind the tabs; taps scale instead of rippling.
 @Composable
 fun TmkBottomBar(
     selected: AppDestination,
@@ -87,6 +95,13 @@ fun TmkBottomBar(
 ) {
     val inboxBadge = LocalInboxBadgeCount.current
     val haptics = rememberAppHaptics()
+    val reducedMotion = rememberReducedMotion()
+    val targetIndex = selected.ordinal
+    val pillPosition = remember { Animatable(targetIndex.toFloat()) }
+    LaunchedEffect(targetIndex) {
+        if (reducedMotion) pillPosition.snapTo(targetIndex.toFloat())
+        else pillPosition.animateTo(targetIndex.toFloat(), spatialExpressive())
+    }
     Surface(
         color = White,
         shape = RoundedCornerShape(32.dp),
@@ -97,39 +112,32 @@ fun TmkBottomBar(
             .height(barHeight)
             .floatingElevation(RoundedCornerShape(32.dp))
     ) {
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            AppDestination.entries.forEach { destination ->
-                val isSelected = destination == selected
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable(
-                            role = Role.Tab,
-                            onClickLabel = destination.label,
-                            onClick = {
-                                if (!isSelected) {
-                                    haptics.tick()
-                                    onSelect(destination)
-                                }
-                            }
-                        )
-                        .semantics {
-                            // this.selected, not the outer `selected: AppDestination` param — same name, different thing.
-                            this.selected = isSelected
-                            if (destination == AppDestination.INBOX && inboxBadge > 0) {
-                                stateDescription = "$inboxBadge waiting"
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp)) {
+            val slotWidth = maxWidth / AppDestination.entries.size
+            val slotWidthPx = with(LocalDensity.current) { slotWidth.roundToPx() }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .offset { IntOffset((slotWidthPx * pillPosition.value).roundToInt(), 0) }
+                    .width(slotWidth)
+                    .padding(horizontal = 4.dp)
+                    .height(barHeight - 12.dp)
+                    .background(Amber.copy(alpha = 0.22f), RoundedCornerShape(26.dp))
+            )
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                AppDestination.entries.forEach { destination ->
+                    val isSelected = destination == selected
+                    NavItem(
+                        destination = destination,
+                        isSelected = isSelected,
+                        badgeCount = if (destination == AppDestination.INBOX) inboxBadge else 0,
+                        onClick = {
+                            if (!isSelected) {
+                                haptics.tick()
+                                onSelect(destination)
                             }
                         },
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    NavPill(destination = destination, isSelected = isSelected, badgeCount = if (destination == AppDestination.INBOX) inboxBadge else 0)
-                    Text(
-                        destination.label,
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) Ink900 else Ink500,
-                        modifier = Modifier.padding(top = 2.dp)
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
@@ -138,20 +146,28 @@ fun TmkBottomBar(
 }
 
 @Composable
-private fun NavPill(destination: AppDestination, isSelected: Boolean, badgeCount: Int) {
-    val reducedMotion = rememberReducedMotion()
-    val pillWidth by animateDpAsState(
-        targetValue = if (isSelected) 56.dp else 0.dp,
-        animationSpec = if (reducedMotion) snap() else spatialExpressive(),
-        label = "navPillWidth"
-    )
-    Box(contentAlignment = Alignment.Center) {
-        Box(
-            modifier = Modifier
-                .height(32.dp)
-                .width(pillWidth)
-                .background(Amber.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
-        )
+private fun NavItem(
+    destination: AppDestination,
+    isSelected: Boolean,
+    badgeCount: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (isPressed) 0.88f else 1f, spatialExpressive(), label = "navPress")
+    Column(
+        modifier = modifier
+            .height(barHeight)
+            .clickable(interactionSource = interactionSource, indication = null, role = Role.Tab, onClickLabel = destination.label, onClick = onClick)
+            .semantics {
+                this.selected = isSelected
+                if (badgeCount > 0) stateDescription = "$badgeCount waiting"
+            }
+            .graphicsLayer { scaleX = scale; scaleY = scale },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
         Box {
             Crossfade(targetState = isSelected, label = "navIcon") { selected ->
                 Icon(
@@ -165,6 +181,13 @@ private fun NavPill(destination: AppDestination, isSelected: Boolean, badgeCount
                 InboxBadge(count = badgeCount, modifier = Modifier.align(Alignment.TopEnd).offset(x = 10.dp, y = (-4).dp))
             }
         }
+        Text(
+            destination.label,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+            color = if (isSelected) Ink900 else Ink500,
+            modifier = Modifier.padding(top = 2.dp)
+        )
     }
 }
 

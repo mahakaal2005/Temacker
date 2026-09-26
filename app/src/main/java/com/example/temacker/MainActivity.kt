@@ -8,7 +8,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,7 +30,9 @@ import org.koin.compose.koinInject
 import kotlinx.coroutines.flow.first
 import com.example.temacker.core.domain.repository.SelectedProjectStore
 import com.example.temacker.core.domain.util.Result
+import com.example.temacker.core.presentation.components.AppDestination
 import com.example.temacker.core.presentation.components.LocalInboxBadgeCount
+import com.example.temacker.core.presentation.components.TmkBottomBar
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import com.example.temacker.feature_auth.presentation.navigation.LoginRoute
 import com.example.temacker.feature_auth.presentation.navigation.SplashRoute
@@ -143,8 +149,22 @@ private fun TemackerApp(
         }
     }
     val inboxBadge by badgeViewModel.count.collectAsStateWithLifecycle()
-    val toInbox = { navController.navigate(InboxRoute) { launchSingleTop = true } }
+    // Every tab hangs off Board, so Back from any tab lands on Board and Back from Board exits.
+    val goToTab: (Any) -> Unit = { route ->
+        navController.navigate(route) {
+            popUpTo<BoardRoute> { inclusive = false }
+            launchSingleTop = true
+        }
+    }
+    val selectedTab = when {
+        destination?.hasRoute<BoardRoute>() == true -> AppDestination.BOARD
+        destination?.hasRoute<InboxRoute>() == true -> AppDestination.INBOX
+        destination?.hasRoute<TeamRoute>() == true -> AppDestination.TEAM
+        destination?.hasRoute<ProfileRoute>() == true -> AppDestination.YOU
+        else -> null
+    }
     CompositionLocalProvider(LocalInboxBadgeCount provides inboxBadge) {
+      Box(modifier = Modifier.fillMaxSize()) {
         NavHost(navController = navController, startDestination = SplashRoute) {
             authGraph(
                 navController = navController,
@@ -156,21 +176,22 @@ private fun TemackerApp(
             )
             projectGraph(
                 navController = navController,
-                onNavigateToBoard = { navController.navigate(BoardRoute) { launchSingleTop = true } },
-                onNavigateToInbox = { toInbox() },
-                onNavigateToProfile = { navController.navigate(ProfileRoute) { launchSingleTop = true } }
+                // Reached from the gate, Create project and first-run: Board becomes the base so Back from it exits.
+                onNavigateToBoard = { navController.navigate(BoardRoute) { popUpTo(0) { inclusive = true } } },
+                onNavigateToInbox = { goToTab(InboxRoute) },
+                onNavigateToProfile = { goToTab(ProfileRoute) }
             )
             tasksGraph(
                 navController = navController,
-                onNavigateToTeam = { navController.navigate(TeamRoute) { launchSingleTop = true } },
-                onNavigateToYou = { navController.navigate(ProfileRoute) { launchSingleTop = true } },
+                onNavigateToTeam = { goToTab(TeamRoute) },
+                onNavigateToYou = { goToTab(ProfileRoute) },
                 onNavigateToSwitchProject = { navController.navigate(SwitchProjectRoute) }
             )
             profileGraph(
                 navController = navController,
-                onNavigateToBoard = { navController.navigate(BoardRoute) { launchSingleTop = true } },
-                onNavigateToInbox = { toInbox() },
-                onNavigateToTeam = { navController.navigate(TeamRoute) { launchSingleTop = true } },
+                onNavigateToBoard = { goToTab(BoardRoute) },
+                onNavigateToInbox = { goToTab(InboxRoute) },
+                onNavigateToTeam = { goToTab(TeamRoute) },
                 onNavigateToLogin = {
                     navController.navigate(LoginRoute) {
                         popUpTo(0) { inclusive = true }
@@ -186,5 +207,23 @@ private fun TemackerApp(
                 onNavigateToPlanLimits = { navController.navigate(PlanLimitsRoute) }
             )
         }
+        // One bar for all four tabs, above the NavHost, so it doesn't fade with the screens.
+        if (selectedTab != null) {
+            TmkBottomBar(
+                selected = selectedTab,
+                onSelect = { tab ->
+                    goToTab(
+                        when (tab) {
+                            AppDestination.BOARD -> BoardRoute
+                            AppDestination.INBOX -> InboxRoute
+                            AppDestination.TEAM -> TeamRoute
+                            AppDestination.YOU -> ProfileRoute
+                        }
+                    )
+                },
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
+        }
+      }
     }
 }
