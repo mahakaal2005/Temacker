@@ -13,12 +13,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -29,6 +26,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.temacker.core.presentation.components.AppDestination
 import com.example.temacker.core.presentation.components.AppScaffold
 import com.example.temacker.core.presentation.components.SwitcherPill
+import com.example.temacker.core.presentation.components.bottomBarContentPadding
 import com.example.temacker.core.presentation.designsystem.Amber
 import com.example.temacker.core.presentation.designsystem.Ink500
 import com.example.temacker.core.presentation.designsystem.Line
@@ -66,7 +64,6 @@ fun InboxRoot(
     )
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InboxScreen(
     state: InboxState,
@@ -86,23 +83,16 @@ fun InboxScreen(
                 AppDestination.YOU -> onNavigateToYou()
             }
         },
-        header = state.projectSummary?.let { summary ->
-            {
-                SwitcherPill(
-                    projectName = summary.name,
-                    metaLine = "${summary.memberCount} members · ${summary.roleName}",
-                    hasOtherProjects = summary.hasOtherProjects,
-                    onClick = onNavigateToSwitchProject
-                )
-            }
+        header = {
+            SwitcherPill(
+                projectName = state.projectSummary?.name,
+                metaLine = state.projectSummary?.let { "${it.memberCount} members · ${it.roleName}" },
+                hasOtherProjects = state.projectSummary?.hasOtherProjects ?: false,
+                onClick = onNavigateToSwitchProject
+            )
         }
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background)) {
-            TopAppBar(
-                title = { Text("Inbox") },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-            )
-
+        Column(modifier = Modifier.fillMaxSize().padding(bottomBarContentPadding(padding)).background(MaterialTheme.colorScheme.background)) {
             state.error?.let { error ->
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 4.dp),

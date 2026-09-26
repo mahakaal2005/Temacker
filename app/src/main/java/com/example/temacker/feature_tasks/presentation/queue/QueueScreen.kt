@@ -1,6 +1,5 @@
 package com.example.temacker.feature_tasks.presentation.queue
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,16 +10,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -29,15 +26,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.temacker.core.presentation.designsystem.Amber
-import com.example.temacker.core.presentation.designsystem.AmberInk
-import com.example.temacker.core.presentation.designsystem.AmberWash
+import com.example.temacker.core.presentation.components.ChipTone
+import com.example.temacker.core.presentation.components.EmptyState
+import com.example.temacker.core.presentation.components.InfoStrip
+import com.example.temacker.core.presentation.components.InsetGroup
+import com.example.temacker.core.presentation.components.ListRow
+import com.example.temacker.core.presentation.components.LoadingState
+import com.example.temacker.core.presentation.components.StatusChip
 import com.example.temacker.core.presentation.designsystem.Ink500
 import com.example.temacker.core.presentation.designsystem.Line
+import com.example.temacker.core.presentation.designsystem.Spacing
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import org.koin.androidx.compose.koinViewModel
 
@@ -58,49 +58,47 @@ fun QueueScreen(state: QueueState, onAction: (QueueAction) -> Unit, onNavigateBa
             TopAppBar(
                 title = { Text("Queued changes") },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) { Icon(Icons.Default.ArrowBack, contentDescription = "Back") }
+                    IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
             )
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).background(MaterialTheme.colorScheme.background)) {
-            if (!state.isOnline) OfflineNote()
+            InfoStrip(
+                visible = !state.isOnline,
+                title = "You're offline",
+                detail = "They send when you're back",
+                background = MaterialTheme.colorScheme.surfaceVariant,
+                leading = { Icon(Icons.Rounded.CloudOff, contentDescription = null, tint = Ink500, modifier = Modifier.padding(end = Spacing.s)) }
+            )
 
             when {
-                state.isLoading -> Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
-
-                state.failed.isEmpty() && state.waiting.isEmpty() -> QueueEmptyState()
-
-                else -> LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
+                state.isLoading -> LoadingState()
+                state.failed.isEmpty() && state.waiting.isEmpty() -> EmptyState(
+                    icon = Icons.Rounded.CloudOff,
+                    title = "Nothing waiting",
+                    body = "Changes you make offline show up here until they send."
+                )
+                else -> LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = Spacing.s)) {
                     if (state.failed.isNotEmpty()) {
                         item(key = "failed-header") { SectionHeader("Not sent · ${state.failed.size}") }
-                        items(state.failed, key = { "f-${it.id}" }) { row -> QueueRow(row, onAction) }
+                        item(key = "failed-group") {
+                            InsetGroup(modifier = Modifier.padding(bottom = Spacing.s)) {
+                                state.failed.forEachIndexed { index, row -> QueueRow(row, onAction, showDivider = index != state.failed.lastIndex) }
+                            }
+                        }
                     }
                     if (state.waiting.isNotEmpty()) {
                         item(key = "waiting-header") { SectionHeader("Waiting to send · ${state.waiting.size}") }
-                        items(state.waiting, key = { "w-${it.id}" }) { row -> QueueRow(row, onAction) }
+                        item(key = "waiting-group") {
+                            InsetGroup {
+                                state.waiting.forEachIndexed { index, row -> QueueRow(row, onAction, showDivider = index != state.waiting.lastIndex) }
+                            }
+                        }
                     }
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun OfflineNote() {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = MaterialTheme.shapes.small,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)
-    ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)) {
-            Text("You're offline", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
-            Text("They send when you're back", style = MaterialTheme.typography.bodySmall, color = Ink500)
         }
     }
 }
@@ -111,54 +109,23 @@ private fun SectionHeader(text: String) {
         text = text,
         style = MaterialTheme.typography.labelLarge,
         color = Ink500,
-        modifier = Modifier.padding(start = 6.dp, top = 16.dp, bottom = 4.dp)
+        modifier = Modifier.padding(start = Spacing.xs, top = Spacing.m, bottom = Spacing.xxs)
     )
 }
 
 @Composable
-private fun QueueRow(row: QueueRowUi, onAction: (QueueAction) -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, if (row.isFailed) MaterialTheme.colorScheme.error else Line)
-    ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(row.title, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                StatusChip(isFailed = row.isFailed)
-            }
-            Text(row.taskTitle, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(top = 2.dp))
-            Text(row.detail, style = MaterialTheme.typography.bodySmall, color = Ink500, modifier = Modifier.padding(top = 4.dp))
-            Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.End) {
-                if (row.isFailed) TextButton(onClick = { onAction(QueueAction.OnRetryClick(row.id)) }) { Text("Retry") }
-                TextButton(onClick = { onAction(QueueAction.OnDiscardClick(row.id)) }) { Text("Discard") }
-            }
+private fun QueueRow(row: QueueRowUi, onAction: (QueueAction) -> Unit, showDivider: Boolean) {
+    Column {
+        ListRow(
+            headline = row.title,
+            supporting = "${row.taskTitle} · ${row.detail}",
+            trailing = { StatusChip(text = if (row.isFailed) "Not sent" else "Queued", tone = if (row.isFailed) ChipTone.DANGER else ChipTone.WARNING) }
+        )
+        Row(modifier = Modifier.fillMaxWidth().padding(end = Spacing.xs), horizontalArrangement = Arrangement.End) {
+            if (row.isFailed) TextButton(onClick = { onAction(QueueAction.OnRetryClick(row.id)) }) { Text("Retry") }
+            TextButton(onClick = { onAction(QueueAction.OnDiscardClick(row.id)) }) { Text("Discard") }
         }
-    }
-}
-
-@Composable
-private fun StatusChip(isFailed: Boolean) {
-    Surface(color = if (isFailed) MaterialTheme.colorScheme.errorContainer else AmberWash, shape = MaterialTheme.shapes.small) {
-        Text(
-            text = if (isFailed) "Not sent" else "Queued",
-            style = MaterialTheme.typography.labelSmall,
-            color = if (isFailed) MaterialTheme.colorScheme.onErrorContainer else AmberInk,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-        )
-    }
-}
-
-@Composable
-private fun QueueEmptyState() {
-    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("Nothing waiting", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            "Changes you make offline show up here until they send.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = Ink500,
-            modifier = Modifier.padding(top = 8.dp, start = 24.dp, end = 24.dp)
-        )
+        if (showDivider) HorizontalDivider(color = Line)
     }
 }
 

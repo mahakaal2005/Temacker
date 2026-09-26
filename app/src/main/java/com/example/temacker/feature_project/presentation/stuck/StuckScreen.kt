@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -22,9 +24,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.temacker.core.domain.model.StuckHandoff
-import com.example.temacker.core.presentation.designsystem.AmberInk
+import com.example.temacker.core.presentation.components.ChipTone
+import com.example.temacker.core.presentation.components.EmptyState
+import com.example.temacker.core.presentation.components.StatusChip
 import com.example.temacker.core.presentation.designsystem.Ink500
 import com.example.temacker.core.presentation.designsystem.Line
+import com.example.temacker.core.presentation.designsystem.Spacing
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import com.example.temacker.core.presentation.util.UiText
 import org.koin.androidx.compose.koinViewModel
@@ -65,13 +70,11 @@ fun StuckTabContent(
                 ) {
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
-                state.stuckHandoffs.isEmpty() -> Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text("Nothing's been sitting unanswered.", style = MaterialTheme.typography.bodyMedium, color = Ink500)
-                }
+                state.stuckHandoffs.isEmpty() -> EmptyState(
+                    icon = Icons.Rounded.Schedule,
+                    title = "Nothing's been sitting unanswered",
+                    body = "Handoffs that go quiet for a while will show up here so nothing gets forgotten."
+                )
                 else -> LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 18.dp)) {
                     items(state.stuckHandoffs, key = { it.handoffId }) { stuck ->
                         StuckHandoffRow(stuck)
@@ -92,10 +95,11 @@ private fun StuckHandoffRow(stuck: StuckHandoff) {
             style = MaterialTheme.typography.bodyMedium,
             color = Ink500
         )
-        Text(
-            "Unanswered for ${stuck.hoursStuck}h",
-            style = MaterialTheme.typography.labelMedium,
-            color = AmberInk
+        // Amber under 48h, coral at/after — matches the notification factory's own waiting-nudge threshold.
+        StatusChip(
+            text = "Unanswered for ${stuck.hoursStuck}h",
+            tone = if (stuck.hoursStuck >= 48) ChipTone.DANGER else ChipTone.WARNING,
+            modifier = Modifier.padding(top = Spacing.xxs)
         )
     }
 }

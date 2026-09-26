@@ -235,5 +235,45 @@ Spec agreed 2026-09-26 after a multi-project gap audit.
 - **Phase 7 release order:** deploy `firestore.rules` and `functions` first, then install the app build; then run the
   two-account device checks listed in each group's log.
 
+## Phase 8 — Look and feel redesign (`phase-8-ui-redesign.md`)
+Spec written 2026-09-25 after a full screen-by-screen UI/UX critique and empty-state audit; user approved the
+plan and 4 direction decisions (floating animated bottom bar, Roboto + Roboto Mono, expressive motion only at
+hero moments, restyle system-notification visuals). Presentation-layer only — no ViewModel/State/Action/Event,
+use case, repository, Room, Firestore or navigation route changes, with `HandoffNotificationFactory` as the one
+named exception (visuals only). Not started.
+- [~] Group A — foundation: Type, Spacing, Elevation, Motion, Haptics, icon swap (Material Symbols Rounded), Roboto Mono font.
+  Coded 2026-09-25, see `specs/logs/2026-09-25-phase-8-group-a-b-foundation-shell.md`. **Not build-verified — no
+  Android SDK in this container; user must run `./gradlew` locally.**
+- [~] Group B — shell: `TmkBottomBar` (floating pill), redesigned `SwitcherPill` (always-visible chevron, never
+  disappears while loading — the actual fix for "can't find project switcher"), duplicate per-tab `TopAppBar`s
+  removed from Board/Inbox/Team/Profile. Coded 2026-09-25, same log. `TmkToast` and the Board FAB restyle not
+  done yet. **Not build-verified.** CodeRabbit found 5 real Major-severity bugs in A/B on PR #1 (snackbar
+  hidden behind the bar, content/FAB could sit under the bar on a larger nav inset, missing TalkBack tab
+  state, Profile buttons potentially unreachable, switcher disabled during load) — all fixed, replied to and
+  resolved 2026-09-25, see `specs/logs/2026-09-25-phase-8-coderabbit-fixes.md`.
+- [~] Group C — shared components: `Avatar` (fixes the wrong-initials bug — "MC" not "ME"), `ListRow` +
+  `InsetGroup`, `StatusChip`, `InfoStrip`, `EmptyState`, `LoadingState` + `SkeletonList`, `TmkButton`,
+  `SegmentedTabs`, `TmkSheet`, `ConfirmDialog`. Coded 2026-09-25, see
+  `specs/logs/2026-09-25-phase-8-group-c-components.md`. Not yet wired into any screen. **Not build-verified.**
+- [~] Group D — tasks feature: Board, Task detail + `BatonTrail`, Hand off, Incoming (hero moment),
+  Decline, New task, Queue. All 7 screens coded 2026-09-25, see the 6 `specs/logs/2026-09-25-phase-8-group-d-*.md`
+  logs. Hand off kept its existing full-screen nav destination rather than becoming a real modal
+  bottom sheet (flagged as a navigation-graph change out of scope). **Not build-verified.**
+- [~] Group E — Team, Project, Profile, Auth and onboarding screens. Coded 2026-09-25 across 5 commits
+  (Auth; onboarding; Team/Roster/Load/Stuck/Pulse; Manage roles/Role explainer/Succession; Profile/Your
+  data/Plan & limits/Notification rationale), see the 5 `specs/logs/2026-09-25-phase-8-group-e-*.md` logs.
+  Notifications row on Profile opens Android's system notification settings via an Intent rather than a new
+  in-app nav route to the existing one-shot rationale screen (flagged as the presentation-only-safe choice).
+  **Not build-verified.**
+- [~] Group F — system notification visuals (`HandoffNotificationFactory`): large icon = actor's initials on
+  a wash circle (same algorithm as `Avatar`), waiting-nudge pushes get coral + a new `ic_stat_waiting.xml`,
+  Accept/Decline actions get real icons, `setGroup`/group-summary per project. Added one additive field
+  (`HandoffPush.actorName`) to carry the raw name needed for initials — flagged, no existing behavior
+  changed. Coded 2026-09-25, see `specs/logs/2026-09-25-phase-8-group-f-notifications.md`. **Not
+  build-verified.**
+- **Phase 8 — all 6 groups (A–F) coded as of 2026-09-25.** Nothing build-verified in this container.
+- **Blocker:** this cloud container has no Android SDK — `./gradlew` verification must run on the user's machine
+  or after the environment setup script installs one, before any group is marked done (CLAUDE.md rule 12).
+
 ## Open decisions
 - Phase 6: extend `feature_profile` vs. new `feature_settings` — default is extend, revisit if it grows.

@@ -2,29 +2,28 @@ package com.example.temacker.feature_project.presentation.no_project
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -35,8 +34,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.example.temacker.R
+import com.example.temacker.core.presentation.components.TmkButton
+import com.example.temacker.core.presentation.components.TmkButtonVariant
+import com.example.temacker.core.presentation.designsystem.AmberWash
 import com.example.temacker.core.presentation.designsystem.Ink500
 import com.example.temacker.core.presentation.designsystem.Ink900
+import com.example.temacker.core.presentation.designsystem.Spacing
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import com.example.temacker.core.presentation.util.ObserveAsEvents
 import org.koin.androidx.compose.koinViewModel
@@ -83,7 +86,7 @@ fun NoProjectScreen(onAction: (NoProjectAction) -> Unit) {
                 },
                 actions = {
                     IconButton(onClick = { onAction(NoProjectAction.OnProfileClick) }) {
-                        Icon(Icons.Default.Person, contentDescription = "Profile")
+                        Icon(Icons.Rounded.Person, contentDescription = "Profile")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -94,12 +97,12 @@ fun NoProjectScreen(onAction: (NoProjectAction) -> Unit) {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    Icons.Default.Lock,
-                    contentDescription = null,
-                    tint = Ink500,
-                    modifier = Modifier.height(48.dp)
-                )
+                // Baton-handoff illustration replaces the old Lock icon, which read as "forbidden" instead of "begin".
+                Surface(shape = CircleShape, color = AmberWash, modifier = Modifier.size(80.dp)) {
+                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                        Icon(Icons.Rounded.SwapHoriz, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp))
+                    }
+                }
                 Text(
                     text = "FIRST STEP",
                     style = MaterialTheme.typography.labelSmall,
@@ -123,24 +126,17 @@ fun NoProjectScreen(onAction: (NoProjectAction) -> Unit) {
 
                 Spacer(modifier = Modifier.height(28.dp))
 
-                Button(
+                TmkButton(
+                    text = "Create a project",
                     onClick = { onAction(NoProjectAction.OnCreateProjectClick) },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-                    modifier = Modifier.fillMaxWidth().height(56.dp)
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.height(20.dp))
-                    Text("Create a project", modifier = Modifier.padding(start = 8.dp))
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                OutlinedButton(
+                    icon = Icons.Rounded.Add
+                )
+                TmkButton(
+                    text = "I have an invite code",
                     onClick = { onAction(NoProjectAction.OnJoinProjectClick) },
-                    modifier = Modifier.fillMaxWidth().height(56.dp)
-                ) {
-                    Text("I have an invite code")
-                }
+                    variant = TmkButtonVariant.SECONDARY,
+                    modifier = Modifier.padding(top = Spacing.xs)
+                )
 
                 Text(
                     text = "You can belong to more than one project later.",

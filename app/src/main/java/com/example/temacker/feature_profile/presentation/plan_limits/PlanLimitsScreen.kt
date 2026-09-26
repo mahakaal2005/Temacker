@@ -1,5 +1,6 @@
 package com.example.temacker.feature_profile.presentation.plan_limits
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,8 +12,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,7 +28,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -41,6 +46,7 @@ import com.example.temacker.core.presentation.designsystem.Ink900
 import com.example.temacker.core.presentation.designsystem.NeutralWash
 import com.example.temacker.core.presentation.designsystem.TealInk
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
+import com.example.temacker.core.presentation.designsystem.effectsSpring
 import com.example.temacker.core.presentation.util.ObserveAsEvents
 import org.koin.androidx.compose.koinViewModel
 
@@ -69,7 +75,7 @@ fun PlanLimitsScreen(state: PlanLimitsState, onAction: (PlanLimitsAction) -> Uni
                 title = { Text("Plan & limits") },
                 navigationIcon = {
                     IconButton(onClick = { onAction(PlanLimitsAction.OnBackClick) }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -119,7 +125,7 @@ fun PlanLimitsScreen(state: PlanLimitsState, onAction: (PlanLimitsAction) -> Uni
                     }
 
                     Row(verticalAlignment = Alignment.Top) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = AmberInk, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Rounded.Info, contentDescription = null, tint = AmberInk, modifier = Modifier.size(20.dp))
                         Text(
                             "Temacker is free for teams like yours, permanently. Limits exist to keep it affordable to run, not to sell you an upgrade.",
                             style = MaterialTheme.typography.bodyMedium,
@@ -157,6 +163,14 @@ fun PlanLimitsScreen(state: PlanLimitsState, onAction: (PlanLimitsAction) -> Uni
 
 @Composable
 private fun UsageMeter(label: String, count: Int, cap: Int, color: androidx.compose.ui.graphics.Color) {
+    val target = (count.toFloat() / cap).coerceIn(0f, 1f)
+    var animateFrom0 by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { animateFrom0 = true }
+    val progress by animateFloatAsState(
+        targetValue = if (animateFrom0) target else 0f,
+        animationSpec = effectsSpring(),
+        label = "usageMeterProgress"
+    )
     Column {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(label, style = MaterialTheme.typography.bodyMedium, color = Ink500)
@@ -166,7 +180,7 @@ private fun UsageMeter(label: String, count: Int, cap: Int, color: androidx.comp
             }
         }
         LinearProgressIndicator(
-            progress = { (count.toFloat() / cap).coerceIn(0f, 1f) },
+            progress = { progress },
             color = color,
             trackColor = NeutralWash,
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp)

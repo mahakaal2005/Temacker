@@ -8,43 +8,45 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.PersonAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.example.temacker.core.presentation.designsystem.AmberInk
-import com.example.temacker.core.presentation.designsystem.AmberWash
+import com.example.temacker.core.presentation.components.Avatar
+import com.example.temacker.core.presentation.components.AvatarTone
+import com.example.temacker.core.presentation.components.ChipTone
+import com.example.temacker.core.presentation.components.InsetGroup
+import com.example.temacker.core.presentation.components.ListRow
+import com.example.temacker.core.presentation.components.StatusChip
+import com.example.temacker.core.presentation.components.TmkSheet
 import com.example.temacker.core.presentation.designsystem.Ink500
 import com.example.temacker.core.presentation.designsystem.Line
-import com.example.temacker.core.presentation.designsystem.TealInk
-import com.example.temacker.core.presentation.designsystem.TealWash
+import com.example.temacker.core.presentation.designsystem.Spacing
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import com.example.temacker.core.presentation.util.UiText
 import com.example.temacker.feature_project.domain.model.Membership
@@ -64,15 +66,16 @@ fun RosterTabContent(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("${state.members.size} members", style = MaterialTheme.typography.labelSmall, color = Ink500)
-                if (state.canManageRoles) {
-                    TextButton(onClick = { onAction(RosterAction.OnManageRolesClick) }) {
-                        Text("Manage roles →")
-                    }
-                }
+                Text(
+                    "${state.members.size} members",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Ink500,
+                    modifier = Modifier.weight(1f)
+                )
                 if (state.canManageInvite) {
-                    IconButton(onClick = { onAction(RosterAction.OnInviteClick) }) {
-                        Icon(Icons.Default.PersonAdd, contentDescription = "Invite member")
+                    FilledTonalButton(onClick = { onAction(RosterAction.OnInviteClick) }) {
+                        Icon(Icons.Rounded.PersonAdd, contentDescription = null, modifier = Modifier.padding(end = Spacing.xxs))
+                        Text("Invite")
                     }
                 }
             }
@@ -100,6 +103,17 @@ fun RosterTabContent(
                 }
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 12.dp)) {
+                    if (state.canManageRoles) {
+                        item(key = "manage-roles") {
+                            InsetGroup(modifier = Modifier.padding(bottom = Spacing.s)) {
+                                ListRow(
+                                    headline = "Manage roles",
+                                    trailing = { Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = Ink500) },
+                                    onClick = { onAction(RosterAction.OnManageRolesClick) }
+                                )
+                            }
+                        }
+                    }
                     items(state.members, key = { it.userId }) { member ->
                         MemberRow(
                             member = member,
@@ -164,25 +178,26 @@ private fun MemberRow(
     onRemoveClick: () -> Unit
 ) {
     val isLeader = member.isLeader
-    Row(modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "See what ${member.roleName} can do", onClick = onClick).padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Surface(shape = CircleShape, color = if (isLeader) AmberWash else TealWash, modifier = Modifier.size(40.dp)) {
-            Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    member.displayName.take(2).uppercase(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isLeader) AmberInk else TealInk
-                )
-            }
-        }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClickLabel = "See what ${member.roleName} can do", onClick = onClick)
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Avatar(name = member.displayName, tone = if (isLeader) AvatarTone.ACCENT else AvatarTone.NEUTRAL)
         Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
             Text(member.displayName, style = MaterialTheme.typography.bodyLarge)
-            Text(member.roleName, style = MaterialTheme.typography.bodyMedium, color = if (isLeader) AmberInk else Ink500)
+            StatusChip(
+                text = member.roleName,
+                tone = if (isLeader) ChipTone.WARNING else ChipTone.NEUTRAL,
+                modifier = Modifier.padding(top = 2.dp)
+            )
         }
         if (canAct && !isLeader) {
             Box {
                 IconButton(onClick = onMoreClick) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "More")
+                    Icon(Icons.Rounded.MoreVert, contentDescription = "More")
                 }
                 DropdownMenu(expanded = isMenuOpen, onDismissRequest = onDismissMenu) {
                     if (canReassign) {
@@ -199,6 +214,9 @@ private fun MemberRow(
                     }
                 }
             }
+        } else {
+            // Chevron hint — tapping the row does something (opens the role explainer) even when there's no menu.
+            Icon(Icons.Rounded.ChevronRight, contentDescription = null, tint = Ink500)
         }
     }
 }
@@ -211,7 +229,7 @@ private fun InviteCodeSheet(
     onCopy: () -> Unit,
     onGenerateNew: () -> Unit
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState()) {
+    TmkSheet(onDismissRequest = onDismiss) {
         Column(modifier = Modifier.fillMaxWidth().padding(24.dp)) {
             Text("Invite code", style = MaterialTheme.typography.titleLarge)
             Text(
@@ -272,32 +290,30 @@ private fun TransferLeadershipDialog(
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ReassignRoleDialog(
     roles: List<Role>,
     onDismiss: () -> Unit,
     onRoleSelected: (String) -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {},
-        title = { Text("Reassign role") },
-        text = {
-            Column {
-                roles.filterNot { it.isLeader }.forEach { role ->
-                    Text(
-                        text = role.name,
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onRoleSelected(role.id) }
-                            .padding(vertical = 12.dp)
-                    )
-                    HorizontalDivider(color = Line)
+    TmkSheet(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier.fillMaxWidth().padding(Spacing.l)) {
+            Text("Reassign role", style = MaterialTheme.typography.titleLarge)
+            roles.filterNot { it.isLeader }.forEach { role ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onRoleSelected(role.id) }
+                        .padding(vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(selected = false, onClick = { onRoleSelected(role.id) })
+                    Text(role.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = Spacing.s))
                 }
             }
         }
-    )
+    }
 }
 
 @Preview(showBackground = true)

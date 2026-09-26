@@ -1,5 +1,8 @@
 package com.example.temacker.feature_auth.presentation.splash
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -14,8 +17,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -31,7 +41,10 @@ import com.example.temacker.core.presentation.designsystem.DPrimary
 import com.example.temacker.core.presentation.designsystem.DSecondary
 import com.example.temacker.core.presentation.designsystem.Navy900
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
+import com.example.temacker.core.presentation.designsystem.rememberReducedMotion
+import com.example.temacker.core.presentation.designsystem.spatialExpressive
 import com.example.temacker.core.presentation.util.ObserveAsEvents
+import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -52,6 +65,32 @@ fun SplashRoot(
 
 @Composable
 fun SplashScreen() {
+    val reducedMotion = rememberReducedMotion()
+    var markScale by remember { mutableStateOf(if (reducedMotion) 1f else 0.92f) }
+    var markAlpha by remember { mutableStateOf(if (reducedMotion) 1f else 0f) }
+    LaunchedEffect(reducedMotion) {
+        if (!reducedMotion) {
+            markScale = 1f
+            markAlpha = 1f
+        }
+    }
+    val animatedScale by animateFloatAsState(
+        targetValue = markScale,
+        animationSpec = spatialExpressive(),
+        label = "splashMarkScale"
+    )
+    val animatedAlpha by animateFloatAsState(
+        targetValue = markAlpha,
+        animationSpec = spatialExpressive(),
+        label = "splashMarkAlpha"
+    )
+
+    var showSessionText by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(600)
+        showSessionText = true
+    }
+
     Surface(modifier = Modifier.fillMaxSize(), color = Navy900) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
@@ -59,7 +98,7 @@ fun SplashScreen() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Box(contentAlignment = Alignment.Center) {
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.scale(animatedScale).alpha(animatedAlpha)) {
                     Box(
                         modifier = Modifier
                             .size(280.dp)
@@ -105,13 +144,16 @@ fun SplashScreen() {
                     strokeWidth = 2.6.dp,
                     modifier = Modifier.size(26.dp)
                 )
-                Text(
-                    text = "Checking your session…",
-                    color = DSecondary,
-                    fontSize = 14.sp,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 15.dp)
-                )
+                // Delayed 600ms per spec — avoids a flash of "Checking…" on a fast, already-cached session check.
+                AnimatedVisibility(visible = showSessionText, enter = fadeIn()) {
+                    Text(
+                        text = "Checking your session…",
+                        color = DSecondary,
+                        fontSize = 14.sp,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 15.dp)
+                    )
+                }
             }
         }
     }

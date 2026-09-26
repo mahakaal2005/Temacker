@@ -11,12 +11,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -24,7 +22,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -43,9 +40,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.temacker.core.presentation.designsystem.Coral
+import com.example.temacker.core.presentation.components.TmkButton
+import com.example.temacker.core.presentation.components.TmkButtonVariant
+import com.example.temacker.core.presentation.designsystem.AppColors
 import com.example.temacker.core.presentation.designsystem.Ink500
 import com.example.temacker.core.presentation.designsystem.Ink900
+import com.example.temacker.core.presentation.designsystem.Spacing
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import com.example.temacker.core.presentation.util.ObserveAsEvents
 import com.example.temacker.core.presentation.util.UiText
@@ -90,7 +90,7 @@ fun YourDataScreen(state: YourDataState, onAction: (YourDataAction) -> Unit) {
                 title = { Text("Your data") },
                 navigationIcon = {
                     IconButton(onClick = { onAction(YourDataAction.OnBackClick) }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -155,7 +155,7 @@ fun YourDataScreen(state: YourDataState, onAction: (YourDataAction) -> Unit) {
                     }
 
                     Row(verticalAlignment = Alignment.Top) {
-                        Icon(Icons.Default.Info, contentDescription = null, tint = Ink500, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Rounded.Info, contentDescription = null, tint = Ink500, modifier = Modifier.size(20.dp))
                         Text(
                             "If Temacker ever stops being maintained, nobody loses their history.",
                             style = MaterialTheme.typography.bodyMedium,
@@ -164,27 +164,33 @@ fun YourDataScreen(state: YourDataState, onAction: (YourDataAction) -> Unit) {
                         )
                     }
 
-                    OutlinedButton(
-                        onClick = { onAction(YourDataAction.OnDeleteAccountClick) },
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Coral),
-                        enabled = !state.isDeletingAccount,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(if (state.isDeletingAccount) "Deleting…" else "Delete my account and data")
+                    // Danger zone — kept well below the primary Export action, not stacked right above it.
+                    Card(colors = CardDefaults.cardColors(containerColor = AppColors.dangerWash), modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(Spacing.m)) {
+                            Text("DANGER ZONE", style = MaterialTheme.typography.labelSmall, color = AppColors.onDanger)
+                            Text(
+                                "Permanent. You'll leave every project you're a member of.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = AppColors.onDanger,
+                                modifier = Modifier.padding(top = 4.dp, bottom = Spacing.s)
+                            )
+                            TmkButton(
+                                text = if (state.isDeletingAccount) "Deleting…" else "Delete my account and data",
+                                onClick = { onAction(YourDataAction.OnDeleteAccountClick) },
+                                variant = TmkButtonVariant.DESTRUCTIVE,
+                                isLoading = state.isDeletingAccount
+                            )
+                        }
                     }
                 }
 
-                Button(
+                TmkButton(
+                    text = if (state.isExporting) "Exporting…" else "Export ${state.projectName}",
                     onClick = { onAction(YourDataAction.OnExportClick) },
-                    enabled = !state.isExporting,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp)
-                ) {
-                    Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Text(
-                        text = if (state.isExporting) "Exporting…" else "Export ${state.projectName}",
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
-                }
+                    isLoading = state.isExporting,
+                    icon = Icons.Rounded.Download,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                )
             }
         }
     }

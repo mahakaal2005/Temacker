@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -31,14 +31,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.temacker.core.presentation.components.InsetGroup
 import com.example.temacker.core.presentation.designsystem.AmberInk
 import com.example.temacker.core.presentation.designsystem.AmberWash
 import com.example.temacker.core.presentation.designsystem.Ink500
+import com.example.temacker.core.presentation.designsystem.Spacing
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
+import com.example.temacker.core.presentation.designsystem.rememberAppHaptics
 import com.example.temacker.core.presentation.util.ObserveAsEvents
 import com.example.temacker.core.presentation.util.UiText
 import com.example.temacker.feature_project.domain.model.Role
@@ -70,12 +72,12 @@ fun ManageRolesScreen(state: ManageRolesState, onAction: (ManageRolesAction) -> 
                 title = { Text("Manage roles") },
                 navigationIcon = {
                     IconButton(onClick = { onAction(ManageRolesAction.OnBackClick) }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
                     }
                 },
                 actions = {
                     IconButton(onClick = { onAction(ManageRolesAction.OnAddRoleClick) }) {
-                        Icon(Icons.Default.Add, contentDescription = "New role")
+                        Icon(Icons.Rounded.Add, contentDescription = "New role")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
@@ -151,7 +153,7 @@ private fun LeaderRoleCard(role: Role) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Lock, contentDescription = null, tint = AmberInk, modifier = Modifier.padding(end = 10.dp))
+                Icon(Icons.Rounded.Lock, contentDescription = null, tint = AmberInk, modifier = Modifier.padding(end = 10.dp))
                 Text(role.name, style = MaterialTheme.typography.titleMedium, color = AmberInk)
             }
             Text(
@@ -170,14 +172,14 @@ private fun EditableRoleCard(
     onPermissionToggle: (RolePermissions) -> Unit,
     onDeleteClick: () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(role.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                TextButton(onClick = onDeleteClick) { Text("Delete", color = MaterialTheme.colorScheme.error) }
-            }
+    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = Spacing.xs)) {
+            Text(role.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            TextButton(onClick = onDeleteClick) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+        }
 
-            Text("TEAM", style = MaterialTheme.typography.labelSmall, color = Ink500, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
+        Text("TEAM", style = MaterialTheme.typography.labelSmall, color = Ink500, modifier = Modifier.padding(bottom = Spacing.xxs))
+        InsetGroup {
             PermissionRow("Invite members", "Can generate invite codes", role.permissions.manageInviteCode) {
                 onPermissionToggle(role.permissions.copy(manageInviteCode = it))
             }
@@ -190,8 +192,10 @@ private fun EditableRoleCard(
             PermissionRow("Delete project", "Permanent — cannot be undone", role.permissions.deleteProject) {
                 onPermissionToggle(role.permissions.copy(deleteProject = it))
             }
+        }
 
-            Text("TASKS", style = MaterialTheme.typography.labelSmall, color = Ink500, modifier = Modifier.padding(top = 14.dp, bottom = 4.dp))
+        Text("TASKS", style = MaterialTheme.typography.labelSmall, color = Ink500, modifier = Modifier.padding(top = Spacing.m, bottom = Spacing.xxs))
+        InsetGroup {
             PermissionRow("Assign tasks", null, role.permissions.assignTasks) {
                 onPermissionToggle(role.permissions.copy(assignTasks = it))
             }
@@ -207,12 +211,19 @@ private fun EditableRoleCard(
 
 @Composable
 private fun PermissionRow(name: String, subtitle: String?, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    val haptics = rememberAppHaptics()
+    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.m, vertical = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
             Text(name, style = MaterialTheme.typography.bodyLarge)
             subtitle?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Ink500) }
         }
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Switch(
+            checked = checked,
+            onCheckedChange = {
+                if (it) haptics.toggleOn() else haptics.toggleOff()
+                onCheckedChange(it)
+            }
+        )
     }
 }
 

@@ -1,6 +1,8 @@
 package com.example.temacker.feature_project.presentation.invited_first_run
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,9 +21,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
@@ -31,6 +38,7 @@ import com.example.temacker.core.presentation.designsystem.Ink500
 import com.example.temacker.core.presentation.designsystem.Ink700
 import com.example.temacker.core.presentation.designsystem.NeutralWash
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
+import com.example.temacker.core.presentation.designsystem.rememberReducedMotion
 import com.example.temacker.core.presentation.util.ObserveAsEvents
 import com.example.temacker.core.presentation.util.UiText
 import com.example.temacker.feature_project.presentation.role_copy.ALWAYS_ALLOWED
@@ -112,8 +120,29 @@ private fun Header(state: InvitedFirstRunState) {
 private fun Section(title: String, items: List<String>, allowed: Boolean) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(title, style = MaterialTheme.typography.labelSmall, color = Ink500, modifier = Modifier.semantics { heading() })
-        items.forEach { item -> CapabilityRow(label = item, allowed = allowed) }
+        items.forEachIndexed { index, item ->
+            if (allowed) {
+                StaggerIn(index = index) { CapabilityRow(label = item, allowed = true) }
+            } else {
+                CapabilityRow(label = item, allowed = false)
+            }
+        }
     }
+}
+
+// Only the "what you can do now" rows stagger in — the celebratory half of the screen, per spec.
+// The locked rows stay static so the eye isn't drawn to what's off-limits.
+@Composable
+private fun StaggerIn(index: Int, content: @Composable () -> Unit) {
+    val reducedMotion = rememberReducedMotion()
+    var visible by remember { mutableStateOf(reducedMotion) }
+    LaunchedEffect(reducedMotion) { if (!reducedMotion) visible = true }
+    val alpha by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(220, delayMillis = index * 45),
+        label = "capabilityRowStagger"
+    )
+    Column(modifier = Modifier.alpha(alpha)) { content() }
 }
 
 private val previewNeeds = listOf("Invite members", "Change roles", "Remove members", "Create tasks", "Delete tasks — permanent, cannot be undone")
