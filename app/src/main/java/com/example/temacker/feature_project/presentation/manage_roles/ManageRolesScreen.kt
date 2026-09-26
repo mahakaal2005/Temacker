@@ -1,5 +1,20 @@
 package com.example.temacker.feature_project.presentation.manage_roles
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.text.style.TextOverflow
+import com.example.temacker.core.presentation.designsystem.Line
+import com.example.temacker.core.presentation.designsystem.White
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.PaddingValues
@@ -120,13 +135,27 @@ fun ManageRolesScreen(state: ManageRolesState, onAction: (ManageRolesAction) -> 
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(start = Spacing.m, end = Spacing.m, bottom = Spacing.xl)) {
+                // One role open at a time keeps ten roles scannable; a role you just created opens itself.
+                var expandedId by rememberSaveable { mutableStateOf<String?>(null) }
+                var knownIds by remember { mutableStateOf<Set<String>?>(null) }
+                LaunchedEffect(state.roles) {
+                    val ids = state.roles.map { it.id }.toSet()
+                    knownIds?.let { known -> (ids - known).firstOrNull()?.let { expandedId = it } }
+                    knownIds = ids
+                }
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = Spacing.m, end = Spacing.m, bottom = Spacing.xl),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     items(state.roles.sortedByDescending { it.isLeader }, key = { it.id }) { role ->
                         if (role.isLeader) {
                             LeaderRoleCard(role)
                         } else {
                             EditableRoleCard(
                                 role = role,
+                                expanded = expandedId == role.id,
+                                onToggleExpanded = { expandedId = if (expandedId == role.id) null else role.id },
                                 onPermissionToggle = { permissions -> onAction(ManageRolesAction.OnPermissionToggle(role.id, permissions)) },
                                 onDeleteClick = { onAction(ManageRolesAction.OnDeleteRoleClick(role.id)) }
                             )
@@ -140,7 +169,7 @@ fun ManageRolesScreen(state: ManageRolesState, onAction: (ManageRolesAction) -> 
     if (state.isCreateDialogVisible) {
         AlertDialog(
             onDismissRequest = { onAction(ManageRolesAction.OnDismissCreateDialog) },
-            title = { Text("New role") },
+            title = { Text("New role", fontWeight = FontWeight.Bold) },
             text = {
                 OutlinedTextField(
                     value = state.newRoleName,
@@ -151,10 +180,10 @@ fun ManageRolesScreen(state: ManageRolesState, onAction: (ManageRolesAction) -> 
                 )
             },
             confirmButton = {
-                TextButton(onClick = { onAction(ManageRolesAction.OnCreateRoleConfirm) }) { Text("Create") }
+                TextButton(onClick = { onAction(ManageRolesAction.OnCreateRoleConfirm) }) { Text("Create", color = AmberInk) }
             },
             dismissButton = {
-                TextButton(onClick = { onAction(ManageRolesAction.OnDismissCreateDialog) }) { Text("Cancel") }
+                TextButton(onClick = { onAction(ManageRolesAction.OnDismissCreateDialog) }) { Text("Cancel", color = Ink500) }
             }
         )
     }
@@ -165,7 +194,6 @@ private fun LeaderRoleCard(role: Role) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = Spacing.m)
             .background(AmberWash, RoundedCornerShape(18.dp))
             .border(1.dp, Amber.copy(alpha = 0.4f), RoundedCornerShape(18.dp))
             .padding(Spacing.m),
@@ -187,36 +215,65 @@ private fun LeaderRoleCard(role: Role) {
 @Composable
 private fun EditableRoleCard(
     role: Role,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
     onPermissionToggle: (RolePermissions) -> Unit,
     onDeleteClick: () -> Unit
 ) {
     val p = role.permissions
-    Column(modifier = Modifier.fillMaxWidth().padding(top = Spacing.m)) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = Spacing.xxs)) {
-            Text(role.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            IconButton(onClick = onDeleteClick) {
-                Icon(Icons.Rounded.DeleteOutline, contentDescription = "Delete ${role.name}", tint = CoralInk)
+    val enabledCount = listOf(p.manageInviteCode, p.manageRoles, p.removeMembers, p.deleteProject, p.assignTasks, p.editAnyTask, p.manageTags).count { it }
+    val shape = RoundedCornerShape(18.dp)
+    val chevronRotation by animateFloatAsState(if (expanded) 180f else 0f, label = "roleChevron")
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(White, shape)
+            .border(1.dp, if (expanded) Amber else Line, shape)
+            .clip(shape)
+            .animateContentSize()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClickLabel = if (expanded) "Collapse ${role.name}" else "Edit ${role.name}", onClick = onToggleExpanded)
+                .padding(horizontal = Spacing.m, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(role.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    if (enabledCount == 0) "No permissions yet" else "$enabledCount of 7 permissions",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Ink500
+                )
             }
+            Icon(Icons.Rounded.ExpandMore, contentDescription = null, tint = Ink500, modifier = Modifier.rotate(chevronRotation))
         }
+        if (expanded) {
+            HorizontalDivider(color = Line)
+            Column(modifier = Modifier.padding(bottom = Spacing.xs)) {
+                SectionLabel("Team", modifier = Modifier.padding(start = Spacing.m))
+                PermissionRow("Invite members", "Create and share invite codes", p.manageInviteCode) { onPermissionToggle(p.copy(manageInviteCode = it)) }
+                InsetDivider(start = Spacing.m)
+                PermissionRow("Reassign roles", "Change which role a member has", p.manageRoles) { onPermissionToggle(p.copy(manageRoles = it)) }
+                InsetDivider(start = Spacing.m)
+                PermissionRow("Remove members", "Take someone out of the project", p.removeMembers) { onPermissionToggle(p.copy(removeMembers = it)) }
+                InsetDivider(start = Spacing.m)
+                PermissionRow("Delete project", "Permanent, can't be undone", p.deleteProject, isDangerous = true) { onPermissionToggle(p.copy(deleteProject = it)) }
 
-        SectionLabel("Team", modifier = Modifier.padding(top = 0.dp))
-        InsetGroup {
-            PermissionRow("Invite members", "Create and share invite codes", p.manageInviteCode) { onPermissionToggle(p.copy(manageInviteCode = it)) }
-            InsetDivider(start = Spacing.m)
-            PermissionRow("Reassign roles", "Change which role a member has", p.manageRoles) { onPermissionToggle(p.copy(manageRoles = it)) }
-            InsetDivider(start = Spacing.m)
-            PermissionRow("Remove members", "Take someone out of the project", p.removeMembers) { onPermissionToggle(p.copy(removeMembers = it)) }
-            InsetDivider(start = Spacing.m)
-            PermissionRow("Delete project", "Permanent, can't be undone", p.deleteProject, isDangerous = true) { onPermissionToggle(p.copy(deleteProject = it)) }
-        }
+                SectionLabel("Tasks", modifier = Modifier.padding(start = Spacing.m))
+                PermissionRow("Assign tasks", "Give tasks to other members", p.assignTasks) { onPermissionToggle(p.copy(assignTasks = it)) }
+                InsetDivider(start = Spacing.m)
+                PermissionRow("Edit any task", "Not just the ones they hold", p.editAnyTask) { onPermissionToggle(p.copy(editAnyTask = it)) }
+                InsetDivider(start = Spacing.m)
+                PermissionRow("Manage tags", "Create, rename and delete tags", p.manageTags) { onPermissionToggle(p.copy(manageTags = it)) }
 
-        SectionLabel("Tasks")
-        InsetGroup {
-            PermissionRow("Assign tasks", "Give tasks to other members", p.assignTasks) { onPermissionToggle(p.copy(assignTasks = it)) }
-            InsetDivider(start = Spacing.m)
-            PermissionRow("Edit any task", "Not just the ones they hold", p.editAnyTask) { onPermissionToggle(p.copy(editAnyTask = it)) }
-            InsetDivider(start = Spacing.m)
-            PermissionRow("Manage tags", "Create, rename and delete tags", p.manageTags) { onPermissionToggle(p.copy(manageTags = it)) }
+                HorizontalDivider(color = Line, modifier = Modifier.padding(top = Spacing.xs))
+                TextButton(onClick = onDeleteClick, modifier = Modifier.padding(horizontal = Spacing.xs)) {
+                    Icon(Icons.Rounded.DeleteOutline, contentDescription = null, tint = CoralInk, modifier = Modifier.size(18.dp))
+                    Text("Delete role", color = CoralInk, modifier = Modifier.padding(start = 6.dp))
+                }
+            }
         }
     }
 }
