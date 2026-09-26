@@ -9,4 +9,7 @@ Device-checked on RZCWA28EAZF. Build, lint and unit tests pass.
 - Switch project, You, Team roster and Manage roles restyled as grouped cards. New shared parts: TmkMenu, TmkSwitch, SettingsParts.
 - New task: due-date field opens the picker (readOnly field swallowed the wrapper's click), clear button, past dates blocked, themed dialog.
 
+- Theme: surfaceContainer* set to white/neutral in AppTheme so dialogs, pickers, menus and sheets are no longer Material lavender. New role dialog buttons darkened for contrast.
+- Manage roles: roles are collapsed rows (one open at a time, "N of 7 permissions"), a new role opens itself.
+
 Not done: Phase 7 two-account flows are still not device-verified. Body/label text and buttons still use the monospace label style app-wide.

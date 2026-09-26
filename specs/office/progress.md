@@ -275,5 +275,11 @@ named exception (visuals only). Not started.
 - **Blocker:** this cloud container has no Android SDK — `./gradlew` verification must run on the user's machine
   or after the environment setup script installs one, before any group is marked done (CLAUDE.md rule 12).
 
+## Phase 8 polish pass (2026-09-26, device-checked)
+- [x] Shared bottom bar above the NavHost, Board-rooted back stack, card-style project header, You/Team/Manage roles/Switch project restyle (grouped cards), branded menu/switch/dialog theme, collapsible roles, due-date picker fix. See `specs/logs/2026-09-26-phase-8-ui-polish-pass.md`.
+
+## Deferred
+- [ ] Phase 9 — per-member extra permissions, plus rebuilding the out-of-date role explainer. Spec draft: `specs/office/phase-9-extra-permissions.md` (not approved, not started).
+
 ## Open decisions
 - Phase 6: extend `feature_profile` vs. new `feature_settings` — default is extend, revisit if it grows.
