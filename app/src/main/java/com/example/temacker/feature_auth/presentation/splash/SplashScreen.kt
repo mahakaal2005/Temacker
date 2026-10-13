@@ -1,7 +1,14 @@
 package com.example.temacker.feature_auth.presentation.splash
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -24,7 +31,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -42,7 +48,6 @@ import com.example.temacker.core.presentation.designsystem.DSecondary
 import com.example.temacker.core.presentation.designsystem.Navy900
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import com.example.temacker.core.presentation.designsystem.rememberReducedMotion
-import com.example.temacker.core.presentation.designsystem.spatialExpressive
 import com.example.temacker.core.presentation.util.ObserveAsEvents
 import kotlinx.coroutines.delay
 import org.koin.androidx.compose.koinViewModel
@@ -66,23 +71,19 @@ fun SplashRoot(
 @Composable
 fun SplashScreen() {
     val reducedMotion = rememberReducedMotion()
-    var markScale by remember { mutableStateOf(if (reducedMotion) 1f else 0.92f) }
-    var markAlpha by remember { mutableStateOf(if (reducedMotion) 1f else 0f) }
-    LaunchedEffect(reducedMotion) {
-        if (!reducedMotion) {
-            markScale = 1f
-            markAlpha = 1f
-        }
-    }
-    val animatedScale by animateFloatAsState(
-        targetValue = markScale,
-        animationSpec = spatialExpressive(),
-        label = "splashMarkScale"
-    )
-    val animatedAlpha by animateFloatAsState(
-        targetValue = markAlpha,
-        animationSpec = spatialExpressive(),
-        label = "splashMarkAlpha"
+    // The mark starts fully visible so it continues the system launch window seamlessly; the words rise in after it.
+    var revealed by remember { mutableStateOf(reducedMotion) }
+    LaunchedEffect(Unit) { revealed = true }
+    val titleAlpha by animateFloatAsState(if (revealed) 1f else 0f, tween(700, delayMillis = 80, easing = FastOutSlowInEasing), label = "splashTitleAlpha")
+    val titleShift by animateFloatAsState(if (revealed) 0f else 18f, tween(900, delayMillis = 80, easing = FastOutSlowInEasing), label = "splashTitleShift")
+    val tagAlpha by animateFloatAsState(if (revealed) 1f else 0f, tween(700, delayMillis = 240, easing = FastOutSlowInEasing), label = "splashTagAlpha")
+    val tagShift by animateFloatAsState(if (revealed) 0f else 14f, tween(900, delayMillis = 240, easing = FastOutSlowInEasing), label = "splashTagShift")
+    val glow = rememberInfiniteTransition(label = "splashGlow")
+    val glowScale by glow.animateFloat(
+        initialValue = 0.9f,
+        targetValue = if (reducedMotion) 0.9f else 1.08f,
+        animationSpec = infiniteRepeatable(tween(1400, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "splashGlowScale"
     )
 
     var showSessionText by remember { mutableStateOf(false) }
@@ -98,10 +99,11 @@ fun SplashScreen() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Box(contentAlignment = Alignment.Center, modifier = Modifier.scale(animatedScale).alpha(animatedAlpha)) {
+                Box(contentAlignment = Alignment.Center) {
                     Box(
                         modifier = Modifier
                             .size(280.dp)
+                            .scale(glowScale)
                             .background(
                                 Brush.radialGradient(
                                     colors = listOf(Amber.copy(alpha = 0.17f), Amber.copy(alpha = 0.05f), Color.Transparent)
@@ -109,7 +111,7 @@ fun SplashScreen() {
                             )
                     )
                     Image(
-                        painter = painterResource(R.drawable.ic_temacker_mark),
+                        painter = painterResource(R.drawable.ic_temacker_mark_on_dark),
                         contentDescription = null,
                         modifier = Modifier.size(88.dp)
                     )
@@ -121,13 +123,13 @@ fun SplashScreen() {
                     fontSize = 42.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.035f).em,
-                    modifier = Modifier.padding(top = 26.dp)
+                    modifier = Modifier.padding(top = 26.dp).graphicsLayer { alpha = titleAlpha; translationY = titleShift.dp.toPx() }
                 )
                 Text(
                     text = "TEAM COORDINATION",
                     color = Amber,
                     style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.padding(top = 12.dp)
+                    modifier = Modifier.padding(top = 12.dp).graphicsLayer { alpha = tagAlpha; translationY = tagShift.dp.toPx() }
                 )
             }
 

@@ -3,4 +3,11 @@
 
     <!-- Light parent — app is primarily light mode (warm paper surfaces); Compose's TemackerTheme supplies the real palette. -->
     <style name="Theme.Temacker" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Launch window: same navy and mark as the Compose splash, so the hand-over is seamless. -->
+    <style name="Theme.Temacker.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#12141C</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_icon</item>
+        <item name="postSplashScreenTheme">@style/Theme.Temacker</item>
+    </style>
 </resources>
