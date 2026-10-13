@@ -34,3 +34,4 @@
 - `core/data/firebase/CrashReporting.kt`: `reportIfUnexpected()` records non-fatals from `safeFirestoreCall` and both snapshot listeners, skipping UNAVAILABLE/DEADLINE_EXCEEDED.
 - Verified: debug + release builds, lint, 78 unit tests pass; release on RZCWA28EAZF logs "Initializing Firebase Crashlytics 20.0.3 for com.temacker.app" and settings status "activated".
 - Screen views: `MainActivity` logs `screen_view` on each destination change with the short route name (e.g. `Board`, `TaskDetail`), never route args. Verified on device with Analytics debug mode (Splash → Login events seen).
+- Verified by the user: Google sign-in works in the signed release build of `com.temacker.app`, and Crashlytics shows "App detected" for it.
