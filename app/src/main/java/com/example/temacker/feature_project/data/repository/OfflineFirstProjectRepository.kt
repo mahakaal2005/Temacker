@@ -8,21 +8,26 @@ import com.example.temacker.core.data.database.RoleDao
 import com.example.temacker.core.data.firebase.toFirestoreDataError
 import com.example.temacker.core.domain.session.SessionManager
 import com.example.temacker.core.domain.util.DataError
+import com.example.temacker.core.domain.util.EmptyResult
 import com.example.temacker.core.domain.util.Result
 import com.example.temacker.core.domain.util.onSuccess
 import com.example.temacker.feature_project.data.mapper.toDomain
 import com.example.temacker.feature_project.data.mapper.toEntity
 import com.example.temacker.feature_project.data.remote.ProjectRemoteDataSource
+import com.example.temacker.feature_project.data.remote.UserProjectsSnapshot
 import com.example.temacker.feature_project.domain.model.Project
 import com.example.temacker.feature_project.domain.repository.ProjectRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import com.example.temacker.core.domain.util.map as resultMap
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -46,16 +51,7 @@ class OfflineFirstProjectRepository(
             remote.observeUserProjects(uid)
                 // Offline — the Room-backed emission below keeps serving cached rows regardless.
                 .catch { e -> send(Result.Error(e.toFirestoreDataError())) }
-                .collect { snapshot ->
-                    appDatabase.withTransaction {
-                        projectDao.upsertAll(snapshot.projects.map { it.toEntity() })
-                        membershipDao.upsertAll(snapshot.memberships.map { it.toEntity() })
-                        // Drops projects the user was removed from; cache-served snapshots may lag, so skip them.
-                        if (snapshot.isAuthoritative) {
-                            membershipDao.deleteMissingForUser(uid, snapshot.memberships.map { it.projectId })
-                        }
-                    }
-                }
+                .collect { snapshot -> cacheSnapshot(uid, snapshot) }
         }
 
         membershipDao.observeByUser(uid)
@@ -65,6 +61,32 @@ class OfflineFirstProjectRepository(
             .collect { send(Result.Success(it)) }
 
         awaitClose { }
+    }
+
+    override suspend fun syncUserProjects(): EmptyResult<DataError> {
+        val uid = sessionManager.getUid() ?: return Result.Error(DataError.Network.UNAUTHORIZED)
+        return try {
+            // Cache-served snapshots can be empty on a fresh install, so only a server answer counts.
+            val snapshot = withTimeoutOrNull(SYNC_TIMEOUT_MS) { remote.observeUserProjects(uid).first { it.isAuthoritative } }
+                ?: return Result.Error(DataError.Network.REQUEST_TIMEOUT)
+            cacheSnapshot(uid, snapshot)
+            Result.Success(Unit)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.Error(e.toFirestoreDataError())
+        }
+    }
+
+    private suspend fun cacheSnapshot(uid: String, snapshot: UserProjectsSnapshot) {
+        appDatabase.withTransaction {
+            projectDao.upsertAll(snapshot.projects.map { it.toEntity() })
+            membershipDao.upsertAll(snapshot.memberships.map { it.toEntity() })
+            // Drops projects the user was removed from; cache-served snapshots may lag, so skip them.
+            if (snapshot.isAuthoritative) {
+                membershipDao.deleteMissingForUser(uid, snapshot.memberships.map { it.projectId })
+            }
+        }
     }
 
     override fun observeProject(projectId: String): Flow<Result<Project?, DataError>> = channelFlow {
@@ -111,3 +133,5 @@ class OfflineFirstProjectRepository(
             }
             .resultMap { it.newProject }
 }
+
+private const val SYNC_TIMEOUT_MS = 10_000L

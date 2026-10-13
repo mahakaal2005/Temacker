@@ -35,3 +35,8 @@
 - Verified: debug + release builds, lint, 78 unit tests pass; release on RZCWA28EAZF logs "Initializing Firebase Crashlytics 20.0.3 for com.temacker.app" and settings status "activated".
 - Screen views: `MainActivity` logs `screen_view` on each destination change with the short route name (e.g. `Board`, `TaskDetail`), never route args. Verified on device with Analytics debug mode (Splash → Login events seen).
 - Verified by the user: Google sign-in works in the signed release build of `com.temacker.app`, and Crashlytics shows "App detected" for it.
+
+## Fix: fresh sign-in landed on No-project despite having projects
+- Root cause: `ProjectGateViewModel` decided on the first Success of `observeUserProjects()`, which is Room's emission. On a fresh install Room is empty, and that emission races ahead of the Firestore listener's write, so the gate saw `[]`. Earlier fixes only covered phones that already had a cache.
+- Fix: `ProjectRepository.syncUserProjects()` waits (10 s timeout) for the first authoritative (server, not cache) snapshot and writes it to Room. The gate goes straight to Home on a non-empty cache; with an empty cache it syncs first, then decides. Offline with an empty cache still falls back to No-project.
+- `ProjectGateViewModelTest`: 4 cases; the fresh-install case failed before the fix. 82/82 unit tests, debug + release builds and lint pass.

@@ -36,6 +36,7 @@ import com.example.temacker.feature_project.domain.use_case.ObservePulseUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveRolesUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveStuckHandoffsUseCase
 import com.example.temacker.feature_project.domain.use_case.ObserveUserProjectsUseCase
+import com.example.temacker.feature_project.domain.use_case.SyncUserProjectsUseCase
 import com.example.temacker.feature_project.domain.use_case.LeaveProjectUseCase
 import com.example.temacker.feature_project.domain.use_case.ReassignMemberRoleUseCase
 import com.example.temacker.feature_project.domain.use_case.SetMemberExtraPermissionsUseCase
@@ -78,6 +79,7 @@ val projectModule = module {
     singleOf(::ProjectCurrentProjectProvider) { bind<CurrentProjectProvider>() }
 
     factoryOf(::ObserveUserProjectsUseCase)
+    factoryOf(::SyncUserProjectsUseCase)
     factoryOf(::CreateProjectUseCase)
     factoryOf(::ObserveProjectUseCase)
     factoryOf(::ObserveMembersUseCase)

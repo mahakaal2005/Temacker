@@ -39,6 +39,7 @@ class ProjectCurrentProjectProviderTest {
     private class FakeProjectRepository(projects: List<Project>) : ProjectRepository {
         val projects = MutableStateFlow<Result<List<Project>, DataError>>(Result.Success(projects))
         override fun observeUserProjects(): Flow<Result<List<Project>, DataError>> = projects
+        override suspend fun syncUserProjects() = throw NotImplementedError()
         override fun observeProject(projectId: String) = throw NotImplementedError()
         override suspend fun createProject(name: String, ownerDisplayName: String, ownerPhotoUrl: String?) =
             throw NotImplementedError()
