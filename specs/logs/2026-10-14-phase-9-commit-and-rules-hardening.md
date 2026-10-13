@@ -9,8 +9,12 @@
   - Extras now accept only known permission keys.
   - A transfer request's `targetDisplayName` must match the target member's `displayName`, so an approver can't be shown the wrong name.
 
+## Deployed
+- The user ran `firebase deploy --only firestore:rules,firestore:indexes,functions --project temacker-a0252`. Rules and indexes released.
+- All 3 functions were skipped as unchanged, so they had been deployed earlier even though progress.md said they hadn't. Flagged per rule 16; progress.md corrected.
+- `.firebaserc` default is `demo-temacker` (the emulator project), so a bare `firebase deploy` fails. Always pass `--project temacker-a0252`.
+
 ## Still open
-- Not deployed: Phase 7 + 9 rules, indexes and functions to `temacker-a0252` (waiting on user approval).
 - Not device-verified: Phase 7 groups A–D, Phase 9.
 - Open design question: holders of `assignTasks` or `approveTaskRequests` can reassign any unfinished task, and that update branch doesn't freeze status/description/due date.
 - Pre-existing: a `manageRoles` holder can edit a non-Leader role to include `deleteProject`.

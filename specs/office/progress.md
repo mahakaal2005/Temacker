@@ -222,16 +222,16 @@ Load/Stuck/Pulse read already exists and doesn't depend on notifications.
 Spec agreed 2026-09-26 after a multi-project gap audit.
 - [~] Group A — bugs: coded, build/lint/unit tests pass, rules tests 96/96 (2026-09-26, see
   `specs/logs/2026-09-26-phase-7-group-a-bugs.md`). Sign-out wipe, duplicate-join check, stale switcher rows. Per-user
-  outbox column dropped (wipe covers it). **Not yet device-verified; rules must be deployed before installing.**
+  outbox column dropped (wipe covers it). Rules deployed 2026-10-14. **Not yet device-verified.**
 - [~] Group B — coded and tested (2026-09-26, see `specs/logs/2026-09-26-phase-7-group-b-inbox-push.md`): badge across
-  all projects, "Waiting in <project>" Inbox sections, project name in push. **Functions need redeploying; not yet
+  all projects, "Waiting in <project>" Inbox sections, project name in push. Functions live (2026-10-14 deploy found them unchanged). **Not yet
   device-verified.**
 - [~] Group C — coded and tested (2026-09-26, see `specs/logs/2026-09-26-phase-7-group-c-leave-transfer.md`): leave
-  project, `onMemberRemoved` cleanup function, leadership transfer (rules tests 105/105). **Rules and functions need
-  deploying; not yet device-verified.**
+  project, `onMemberRemoved` cleanup function, leadership transfer (rules tests 105/105). Rules deployed 2026-10-14, functions already live. **Not
+  yet device-verified.**
 - [~] Group D — coded and tested (2026-09-26, see `specs/logs/2026-09-26-phase-7-group-d-polish.md`): create a second
   project from the switcher, archived projects read-only in the rules (110/110), queued-changes strip for other
-  projects. **Rules need deploying; not yet device-verified.**
+  projects. Rules deployed 2026-10-14. **Not yet device-verified.**
 - **Phase 7 release order:** deploy `firestore.rules` and `functions` first, then install the app build; then run the
   two-account device checks listed in each group's log.
 
@@ -279,7 +279,7 @@ named exception (visuals only). Not started.
 - [x] Shared bottom bar above the NavHost, Board-rooted back stack, card-style project header, You/Team/Manage roles/Switch project restyle (grouped cards), branded menu/switch/dialog theme, collapsible roles, due-date picker fix. See `specs/logs/2026-09-26-phase-8-ui-polish-pass.md`.
 
 ## Deferred
-- [ ] **Phase 9 — task assignment, JSON import, drop/transfer requests, extra permissions** (spec approved 2026-09-26: `specs/office/phase-9-task-assignment.md`). Groups: [x] A permissions plumbing, [x] B Leader assigns/reassigns, [x] C JSON import, [x] D drop/transfer requests. Code, unit tests and emulator rules tests done 2026-09-26 (17 Jest). Rules hardened 2026-10-14 after a security review: joiners can no longer self-grant extras, role reassignment cannot touch extras, extras accept only known keys, and a transfer target name must match the target member (133 rules tests); NOT yet deployed (rules/functions) and NOT yet device-verified. Deviations: JSON matches assignee by display name (member docs store no email); unmatched assignees go to the importer (no unassigned tasks); "assigned to you" push not built. Known pre-existing gap: task rules let any member take a task via the accept branch.
+- [ ] **Phase 9 — task assignment, JSON import, drop/transfer requests, extra permissions** (spec approved 2026-09-26: `specs/office/phase-9-task-assignment.md`). Groups: [x] A permissions plumbing, [x] B Leader assigns/reassigns, [x] C JSON import, [x] D drop/transfer requests. Code, unit tests and emulator rules tests done 2026-09-26 (17 Jest). Rules hardened 2026-10-14 after a security review: joiners can no longer self-grant extras, role reassignment cannot touch extras, extras accept only known keys, and a transfer target name must match the target member (133 rules tests); Rules and indexes deployed to `temacker-a0252` 2026-10-14 (functions were already live, deploy skipped them as unchanged); NOT yet device-verified. Deviations: JSON matches assignee by display name (member docs store no email); unmatched assignees go to the importer (no unassigned tasks); "assigned to you" push not built. Known pre-existing gap: task rules let any member take a task via the accept branch.
 
 ## Open decisions
 - Phase 6: extend `feature_profile` vs. new `feature_settings` — default is extend, revisit if it grows.
