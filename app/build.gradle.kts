@@ -27,7 +27,7 @@ android {
         applicationId = "com.temacker.app"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
+        versionCode = 2
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -49,7 +49,12 @@ android {
             // Unsigned without keystore.properties, so debug builds keep working on machines without the key.
             if (!keystoreProperties.isEmpty) signingConfig = signingConfigs.getByName("release")
             optimization {
-                enable = false
+                enable = true
+            }
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // Packages native symbol tables in the bundle so Play can symbolicate native crashes.
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
             }
         }
     }
