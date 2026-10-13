@@ -35,6 +35,8 @@ import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.core.os.bundleOf
+import com.google.firebase.analytics.FirebaseAnalytics
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import kotlinx.coroutines.flow.first
@@ -143,6 +145,15 @@ private fun TemackerApp(
     ).none { destination.hasRoute(it) }
     val rationaleSeen by rationaleGate.seen.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    // Single-activity app, so Analytics only sees screens we log; the short name keeps route args out.
+    LaunchedEffect(destination?.route) {
+        val screen = destination?.route?.substringBefore('/')?.substringBefore('?')?.substringAfterLast('.')?.removeSuffix("Route")
+            ?: return@LaunchedEffect
+        FirebaseAnalytics.getInstance(context).logEvent(
+            FirebaseAnalytics.Event.SCREEN_VIEW,
+            bundleOf(FirebaseAnalytics.Param.SCREEN_NAME to screen, FirebaseAnalytics.Param.SCREEN_CLASS to "MainActivity")
+        )
+    }
     // Shown once, API 33+ only, and never to someone who already granted the permission.
     val needsRationale = rationaleSeen == false && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
