@@ -17,7 +17,6 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,6 +51,8 @@ import com.example.temacker.core.presentation.util.UiText
 import com.example.temacker.feature_profile.domain.model.ExportFormat
 import org.koin.androidx.compose.koinViewModel
 import java.io.File
+import com.example.temacker.core.presentation.components.LoadingState
+import androidx.compose.material.icons.rounded.Storage
 
 @Composable
 fun YourDataRoot(
@@ -112,9 +113,7 @@ fun YourDataScreen(state: YourDataState, onAction: (YourDataAction) -> Unit) {
             }
 
             if (state.isLoading) {
-                Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
+                LoadingState(icon = Icons.Rounded.Storage, title = "Counting your data", body = "Adding up your projects and tasks…")
             } else {
                 Column(
                     modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),

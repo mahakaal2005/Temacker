@@ -16,7 +16,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -44,6 +43,9 @@ import com.example.temacker.core.presentation.util.UiText
 import com.example.temacker.feature_project.presentation.role_copy.ALWAYS_ALLOWED
 import com.example.temacker.feature_project.presentation.role_copy.CapabilityRow
 import org.koin.androidx.compose.koinViewModel
+import com.example.temacker.core.presentation.components.LoadingState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Celebration
 
 @Composable
 fun InvitedFirstRunRoot(
@@ -68,20 +70,19 @@ fun InvitedFirstRunRoot(
 fun InvitedFirstRunScreen(state: InvitedFirstRunState, onAction: (InvitedFirstRunAction) -> Unit) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(modifier = Modifier.fillMaxSize().statusBarsPadding()) {
-            Column(
+            // Outside the scroll so it can centre in the space above the button.
+            if (state.isLoading) {
+                LoadingState(icon = Icons.Rounded.Celebration, title = "Setting up your welcome", body = "Loading what your role can do…", modifier = Modifier.weight(1f))
+            } else Column(
                 modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                if (state.isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-                } else {
-                    Header(state)
-                    Section(title = "WHAT YOU CAN DO NOW", items = state.canDo, allowed = true)
-                    if (state.needsRole.isNotEmpty()) {
-                        Section(title = "WHAT NEEDS A ROLE", items = state.needsRole, allowed = false)
-                        state.leaderName?.let {
-                            Text("Ask $it, the Leader, for a role.", style = MaterialTheme.typography.bodyMedium, color = Ink500)
-                        }
+                Header(state)
+                Section(title = "WHAT YOU CAN DO NOW", items = state.canDo, allowed = true)
+                if (state.needsRole.isNotEmpty()) {
+                    Section(title = "WHAT NEEDS A ROLE", items = state.needsRole, allowed = false)
+                    state.leaderName?.let {
+                        Text("Ask $it, the Leader, for a role.", style = MaterialTheme.typography.bodyMedium, color = Ink500)
                     }
                 }
                 state.error?.let { Text(it.asString(), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium) }

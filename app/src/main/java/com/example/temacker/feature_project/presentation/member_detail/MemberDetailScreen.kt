@@ -20,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -116,7 +117,7 @@ fun MemberDetailScreen(state: MemberDetailState, onAction: (MemberDetailAction) 
                 }
             }
             when {
-                state.isLoading -> LoadingState()
+                state.isLoading -> LoadingState(icon = Icons.Rounded.Person, title = "Loading member", body = "Getting their role and permissions…")
                 member != null -> MemberContent(state, member, onAction)
             }
         }

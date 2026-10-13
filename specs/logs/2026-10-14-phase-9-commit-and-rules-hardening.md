@@ -40,3 +40,11 @@
 - Root cause: `ProjectGateViewModel` decided on the first Success of `observeUserProjects()`, which is Room's emission. On a fresh install Room is empty, and that emission races ahead of the Firestore listener's write, so the gate saw `[]`. Earlier fixes only covered phones that already had a cache.
 - Fix: `ProjectRepository.syncUserProjects()` waits (10 s timeout) for the first authoritative (server, not cache) snapshot and writes it to Room. The gate goes straight to Home on a non-empty cache; with an empty cache it syncs first, then decides. Offline with an empty cache still falls back to No-project.
 - `ProjectGateViewModelTest`: 4 cases; the fresh-install case failed before the fix. 82/82 unit tests, debug + release builds and lint pass.
+
+## Fresh sign-in gate: server read instead of listener metadata
+- The first gate fix still took 10.2 s on device, exactly the timeout. The listener's switch from cache to server is a metadata-only change, which is never delivered without `MetadataChanges.INCLUDE`. `syncUserProjects()` now uses `ProjectRemoteDataSource.fetchUserProjects()` (`get(Source.SERVER)`). Measured on device after the change: 3.7 s from gate to Board on a fresh install.
+- R8 is on for release (mapping in the bundle, `proguard-rules.pro` keeps line numbers), with `ndk.debugSymbolLevel = SYMBOL_TABLE` and versionCode 2. APK 19.7 MB → 4.4 MB. Play's native-symbols warning may persist: the only `.so` files are AndroidX's prebuilt, stripped `graphics.path` and `datastore_shared_counter`.
+
+## Loading states
+- User asked for loading screens that say what is happening. `LoadingState(icon, title, body)` and `SkeletonList(caption)` are in `core/presentation/components/LoadingState.kt`, with a 400 ms text delay, a 6 s slow-connection hint, a polite live region, and reduced-motion support. Rolled out to the gate, 9 detail screens and 8 list screens. InvitedFirstRun's loading moved outside its scroll so it centres.
+- Noticed, not fixed (rule 14): deprecated `Icons.Rounded.Send` (PulseScreen) and `Icons.Rounded.Assignment` (BoardScreen) warnings, both pre-existing.

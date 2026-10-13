@@ -46,7 +46,6 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -77,6 +76,7 @@ import com.example.temacker.feature_project.domain.model.RolePermissions
 import com.example.temacker.feature_project.presentation.role_copy.CapabilityGroup
 import com.example.temacker.feature_project.presentation.role_copy.PermissionInfo
 import org.koin.androidx.compose.koinViewModel
+import com.example.temacker.core.presentation.components.SkeletonList
 
 @Composable
 fun ManageRolesRoot(
@@ -133,9 +133,7 @@ fun ManageRolesScreen(state: ManageRolesState, onAction: (ManageRolesAction) -> 
             }
 
             if (state.isLoading) {
-                Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
+                SkeletonList(caption = "Loading roles…")
             } else {
                 // One role open at a time keeps ten roles scannable; a role you just created opens itself.
                 var expandedId by rememberSaveable { mutableStateOf<String?>(null) }

@@ -11,7 +11,6 @@ import com.example.temacker.core.presentation.designsystem.TealInk
 import com.example.temacker.core.presentation.designsystem.TealWash
 import com.example.temacker.core.presentation.designsystem.AmberInk
 import com.example.temacker.core.presentation.designsystem.AmberWash
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,7 +27,6 @@ import androidx.compose.material.icons.rounded.PersonAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import com.example.temacker.core.presentation.components.TmkDropdownMenu
 import com.example.temacker.core.presentation.components.TmkMenuItem
 import androidx.compose.material3.FilledTonalButton
@@ -64,6 +62,7 @@ import com.example.temacker.core.presentation.util.UiText
 import com.example.temacker.feature_project.domain.model.Membership
 import com.example.temacker.feature_project.domain.model.Role
 import com.example.temacker.feature_project.domain.model.RolePermissions
+import com.example.temacker.core.presentation.components.SkeletonList
 
 // Roster's own tab inside the Team screen (TabRow/HorizontalPager host) — no longer owns a
 // top-level AppScaffold/bottom nav, see feature_project/presentation/team/TeamScreen.kt.
@@ -92,9 +91,7 @@ fun RosterTabContent(
             }
 
             if (state.isLoading) {
-                Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
+                SkeletonList(caption = "Loading the team…")
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),

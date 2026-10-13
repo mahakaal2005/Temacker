@@ -232,7 +232,7 @@ fun BoardScreen(
                 }
 
                 if (state.isLoading) {
-                    SkeletonList()
+                    SkeletonList(caption = "Loading tasks…")
                 } else {
                     val now = remember { System.currentTimeMillis() }
                     val visibleTasks = if (state.isFilteredToPending) {

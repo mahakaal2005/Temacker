@@ -58,6 +58,7 @@ import org.koin.core.parameter.parametersOf
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.material.icons.automirrored.rounded.Assignment
 
 @Composable
 fun TaskDetailRoot(
@@ -131,7 +132,7 @@ fun TaskDetailScreen(state: TaskDetailState, onAction: (TaskDetailAction) -> Uni
             }
 
             if (state.isLoading || state.task == null) {
-                LoadingState()
+                LoadingState(icon = Icons.AutoMirrored.Rounded.Assignment, title = "Opening task", body = "Getting the latest details…")
             } else {
                 val task = state.task
                 // Scrollable — a long trail used to push Hand off / Mark done off-screen entirely.

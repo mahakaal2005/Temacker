@@ -64,6 +64,7 @@ import org.koin.core.parameter.parametersOf
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.material.icons.rounded.MoveToInbox
 
 @Composable
 fun IncomingRoot(
@@ -121,7 +122,7 @@ fun IncomingScreen(state: IncomingState, onAction: (IncomingAction) -> Unit, onN
                     onPrimaryClick = onNavigateBack
                 )
             } else if (state.isLoading || state.task == null || state.handoff == null) {
-                LoadingState()
+                LoadingState(icon = Icons.Rounded.MoveToInbox, title = "Opening request", body = "Getting the hand-off details…")
             } else {
                 val task = state.task
                 val handoff = state.handoff

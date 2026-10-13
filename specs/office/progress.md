@@ -278,6 +278,8 @@ named exception (visuals only). Not started.
 ## Phase 8 polish pass (2026-09-26, device-checked)
 - [x] Shared bottom bar above the NavHost, Board-rooted back stack, card-style project header, You/Team/Manage roles/Switch project restyle (grouped cards), branded menu/switch/dialog theme, collapsible roles, due-date picker fix. See `specs/logs/2026-09-26-phase-8-ui-polish-pass.md`.
 
+- [x] Loading states that say what is happening (2026-10-14): `LoadingState(icon, title, body)` on the gate and 9 detail screens, and a captioned `SkeletonList` on 8 list screens, both with a 6 s slow-connection hint.
+
 ## Deferred
 - [ ] **Phase 9 — task assignment, JSON import, drop/transfer requests, extra permissions** (spec approved 2026-09-26: `specs/office/phase-9-task-assignment.md`). Groups: [x] A permissions plumbing, [x] B Leader assigns/reassigns, [x] C JSON import, [x] D drop/transfer requests. Code, unit tests and emulator rules tests done 2026-09-26 (17 Jest). Rules hardened 2026-10-14 after a security review: joiners can no longer self-grant extras, role reassignment cannot touch extras, extras accept only known keys, and a transfer target name must match the target member (133 rules tests); Rules and indexes deployed to `temacker-a0252` 2026-10-14 (functions were already live, deploy skipped them as unchanged); NOT yet device-verified. Deviations: JSON matches assignee by display name (member docs store no email); unmatched assignees go to the importer (no unassigned tasks); "assigned to you" push not built. Known pre-existing gap: task rules let any member take a task via the accept branch.
 

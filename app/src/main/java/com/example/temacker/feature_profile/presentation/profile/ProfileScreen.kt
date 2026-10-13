@@ -44,7 +44,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -81,6 +80,8 @@ import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import com.example.temacker.core.presentation.util.ObserveAsEvents
 import com.example.temacker.core.presentation.util.UiText
 import org.koin.androidx.compose.koinViewModel
+import com.example.temacker.core.presentation.components.LoadingState
+import androidx.compose.material.icons.rounded.Person
 
 @Composable
 fun ProfileRoot(
@@ -165,13 +166,7 @@ fun ProfileScreen(
                 }
 
                 if (state.isLoading) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                    }
+                    LoadingState(icon = Icons.Rounded.Person, title = "Loading your profile", body = "Getting your account details…")
                 } else {
                     val context = LocalContext.current
                     // Scrollable — Sign out / Leave project must stay reachable at large font

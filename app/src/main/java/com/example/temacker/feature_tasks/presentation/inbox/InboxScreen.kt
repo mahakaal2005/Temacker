@@ -1,7 +1,6 @@
 package com.example.temacker.feature_tasks.presentation.inbox
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,7 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Inbox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -38,6 +36,7 @@ import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import com.example.temacker.core.presentation.util.ObserveAsEvents
 import com.example.temacker.core.presentation.util.UiText
 import org.koin.androidx.compose.koinViewModel
+import com.example.temacker.core.presentation.components.SkeletonList
 
 @Composable
 fun InboxRoot(
@@ -113,11 +112,7 @@ fun InboxScreen(
             }
 
             when {
-                state.isLoading -> Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
+                state.isLoading -> SkeletonList(caption = "Loading your inbox…")
 
                 state.waiting.isEmpty() && state.earlier.isEmpty() && state.otherProjects.isEmpty() -> InboxEmptyState()
 

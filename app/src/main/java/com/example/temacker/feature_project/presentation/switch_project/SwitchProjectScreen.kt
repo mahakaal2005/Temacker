@@ -34,7 +34,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +51,7 @@ import com.example.temacker.core.presentation.designsystem.TealInk
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import com.example.temacker.core.presentation.util.ObserveAsEvents
 import org.koin.androidx.compose.koinViewModel
+import com.example.temacker.core.presentation.components.SkeletonList
 
 @Composable
 fun SwitchProjectRoot(
@@ -131,12 +131,7 @@ fun SwitchProjectScreen(
 
 @Composable
 private fun LoadingBody(padding: PaddingValues) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(padding),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        CircularProgressIndicator(modifier = Modifier.padding(top = 48.dp))
-    }
+    SkeletonList(caption = "Loading your projects…", modifier = Modifier.padding(padding))
 }
 
 @Composable
