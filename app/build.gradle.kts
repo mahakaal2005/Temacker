@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -8,6 +10,12 @@ plugins {
     alias(libs.plugins.google.services)
 }
 
+// Release signing secrets live in the gitignored keystore.properties at the repo root.
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
 android {
     namespace = "com.example.temacker"
     compileSdk {
@@ -15,7 +23,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.temacker"
+        applicationId = "com.temacker.app"
         minSdk = 24
         targetSdk = 37
         versionCode = 1
@@ -24,8 +32,21 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            if (!keystoreProperties.isEmpty) {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            // Unsigned without keystore.properties, so debug builds keep working on machines without the key.
+            if (!keystoreProperties.isEmpty) signingConfig = signingConfigs.getByName("release")
             optimization {
                 enable = false
             }

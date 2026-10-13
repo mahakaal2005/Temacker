@@ -22,3 +22,8 @@
 - Not device-verified: Phase 7 groups A–D, Phase 9.
 - Pre-existing: a `manageRoles` holder can edit a non-Leader role to include `deleteProject`.
 - Play Store blockers: `com.example` applicationId, no release signing, release/Play SHA-1s in Firebase.
+
+## Release setup (sideload via Innogeeks, not Play Store for now)
+- applicationId changed to `com.temacker.app` (namespace stays `com.example.temacker`). Registered in Firebase via CLI (app `1:83858186212:android:e5973d93cfee79c23d31f1`) with debug and release SHA-1s; new `google-services.json` has Android OAuth clients for both.
+- Release signing reads the gitignored `keystore.properties` (key at `~/keys/temacker-release.jks`, alias `temacker`, SHA-1 `72:F0:B0:C9:…:01:F9`). Without the file, release builds are unsigned.
+- `assembleRelease` output verified with apksigner: signed by the release key, package `com.temacker.app`, versionCode 1.
