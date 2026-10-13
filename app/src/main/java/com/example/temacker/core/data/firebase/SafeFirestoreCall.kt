@@ -16,9 +16,11 @@ suspend fun <T> safeFirestoreCall(action: suspend () -> T): Result<T, DataError>
         throw e
     } catch (e: FirebaseFirestoreException) {
         Log.e(TAG, "safeFirestoreCall: Firestore call failed (code=${e.code})", e)
+        e.reportIfUnexpected()
         Result.Error(e.toFirestoreDataError())
     } catch (e: Exception) {
         Log.e(TAG, "safeFirestoreCall: unexpected exception", e)
+        e.reportIfUnexpected()
         Result.Error(DataError.Network.UNKNOWN)
     }
 }

@@ -284,4 +284,5 @@ named exception (visuals only). Not started.
 ## Open decisions
 - Decided 2026-10-14: task reassignment stays unrestricted. Holders of `assignTasks` or `approveTaskRequests` can move any unfinished task without an open request, and the move may also change other task fields. Intentional, not a rules gap.
 - Approved 2026-10-14: `androidx.core:core-splashscreen:1.0.1` dependency (rule 10).
+- Approved 2026-10-14: Firebase Crashlytics (plugin 3.0.8) + Analytics, versions via the Firebase BoM. Release builds only; non-fatals from SafeFirestoreCall/FirestoreFlow, skipping offline/timeouts.
 - Phase 6: extend `feature_profile` vs. new `feature_settings` — default is extend, revisit if it grows.

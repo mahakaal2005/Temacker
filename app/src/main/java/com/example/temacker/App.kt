@@ -1,6 +1,7 @@
 package com.example.temacker
 
 import android.app.Application
+import android.content.pm.ApplicationInfo
 import com.example.temacker.core.di.coreModule
 import com.example.temacker.core.domain.notification.PushTokenRegistrar
 import com.example.temacker.core.domain.session.SessionManager
@@ -9,6 +10,9 @@ import com.example.temacker.feature_profile.di.profileModule
 import com.example.temacker.feature_project.di.projectModule
 import com.example.temacker.feature_tasks.data.notification.HandoffNotificationChannel
 import com.example.temacker.feature_tasks.di.tasksModule
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -24,6 +28,7 @@ class App : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        setUpCrashAndAnalytics()
         startKoin {
             androidContext(this@App)
             modules(
@@ -36,6 +41,20 @@ class App : Application() {
         }
         HandoffNotificationChannel.create(this)
         registerPushTokenOnLogin()
+    }
+
+    // Debug builds stay out of the dashboards; reports carry only the Firebase uid, never name or email.
+    private fun setUpCrashAndAnalytics() {
+        val isDebuggable = (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+        val crashlytics = FirebaseCrashlytics.getInstance()
+        val analytics = FirebaseAnalytics.getInstance(this)
+        crashlytics.setCrashlyticsCollectionEnabled(!isDebuggable)
+        analytics.setAnalyticsCollectionEnabled(!isDebuggable)
+        FirebaseAuth.getInstance().addAuthStateListener { auth ->
+            val uid = auth.currentUser?.uid
+            crashlytics.setUserId(uid.orEmpty())
+            analytics.setUserId(uid)
+        }
     }
 
     // Covers both fresh sign-ins and users who were already signed in when the app launched.
