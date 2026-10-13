@@ -46,10 +46,20 @@ fun parseHandoffPush(data: Map<String, String>): HandoffPush? {
     val reason = data["declineReason"].orEmpty()
     val hours = data["hoursWaiting"].orEmpty().ifBlank { "18" }
 
+    val kind = data["kind"].orEmpty()
+    val isRequest = kind == "DROP_REQUEST" || kind == "TRANSFER_REQUEST"
+    val target = data["targetDisplayName"].orEmpty().ifBlank { "someone else" }
+
     val (title, text) = when (type) {
-        HandoffPushType.OFFERED -> "$from is handing you \"$task\"" to note.ifBlank { "Open it to accept or decline." }
-        HandoffPushType.ACCEPTED -> "$to accepted \"$task\"" to "It's theirs now."
-        HandoffPushType.DECLINED -> "$to declined \"$task\"" to reason.ifBlank { "It's still yours." }
+        HandoffPushType.OFFERED -> when (kind) {
+            "DROP_REQUEST" -> "$from wants to drop \"$task\"" to "Open it to approve or decline."
+            "TRANSFER_REQUEST" -> "$from asks to move \"$task\" to $target" to "Open it to approve or decline."
+            else -> "$from is handing you \"$task\"" to note.ifBlank { "Open it to accept or decline." }
+        }
+        HandoffPushType.ACCEPTED ->
+            if (isRequest) "$to approved your request for \"$task\"" to "It's been moved." else "$to accepted \"$task\"" to "It's theirs now."
+        HandoffPushType.DECLINED ->
+            (if (isRequest) "$to declined your request for \"$task\"" else "$to declined \"$task\"") to reason.ifBlank { "It's still yours." }
         HandoffPushType.NUDGE_OFFERER ->
             "Still waiting — nobody has taken this yet" to "You offered \"$task\" to $to $hours hours ago. It's still yours."
         HandoffPushType.NUDGE_RECIPIENT ->

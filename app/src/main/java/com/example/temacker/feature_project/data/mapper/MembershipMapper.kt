@@ -26,7 +26,8 @@ fun DocumentSnapshot.toMembership(projectId: String): Membership? {
         isLeader = isLeader,
         roleSetByUid = getString("roleSetByUid"),
         roleSetByDisplayName = getString("roleSetByDisplayName"),
-        roleSetAt = getLong("roleSetAt")
+        roleSetAt = getLong("roleSetAt"),
+        extraPermissions = (get("extraPermissions") as? Map<String, Any?> ?: emptyMap()).toRolePermissions()
     )
 }
 
@@ -41,5 +42,6 @@ fun Membership.toFirestoreMap(): Map<String, Any?> = mapOf(
     "isLeader" to isLeader,
     "roleSetByUid" to roleSetByUid,
     "roleSetByDisplayName" to roleSetByDisplayName,
-    "roleSetAt" to roleSetAt
+    "roleSetAt" to roleSetAt,
+    "extraPermissions" to extraPermissions.toFirestoreMap()
 )

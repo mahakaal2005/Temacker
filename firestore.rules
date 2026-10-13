@@ -42,7 +42,11 @@ service cloud.firestore {
     }
 
     function hasPermission(projectId, perm) {
-      return isMember(projectId) && membership(projectId).permissions[perm] == true;
+      // Leader always; otherwise the role's grant OR an add-only extra on the member doc (Phase 9).
+      return isMember(projectId) && (
+        membership(projectId).get('isLeader', false) == true ||
+        membership(projectId).permissions.get(perm, false) == true ||
+        membership(projectId).get('extraPermissions', {}).get(perm, false) == true);
     }
 
     function roleDoc(projectId, roleId) {
@@ -95,6 +99,15 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/projects/$(projectId)).data.get('isArchived', false) == true;
     }
 
+    // Approvers of drop/transfer requests: the Leader, or anyone holding approveTaskRequests via role or extra.
+    function canApproveRequests(projectId, uid) {
+      let m = get(/databases/$(database)/documents/projects/$(projectId)/members/$(uid)).data;
+      return exists(/databases/$(database)/documents/projects/$(projectId)/members/$(uid)) && (
+        m.get('isLeader', false) == true ||
+        m.permissions.get('approveTaskRequests', false) == true ||
+        m.get('extraPermissions', {}).get('approveTaskRequests', false) == true);
+    }
+
     function taskDoc(projectId, taskId) {
       return get(/databases/$(database)/documents/projects/$(projectId)/tasks/$(taskId)).data;
     }
@@ -102,14 +115,16 @@ service cloud.firestore {
     function fullPermissions() {
       return {
         'manageRoles': true, 'manageInviteCode': true, 'removeMembers': true,
-        'deleteProject': true, 'assignTasks': true, 'editAnyTask': true, 'manageTags': true
+        'deleteProject': true, 'assignTasks': true, 'editAnyTask': true, 'manageTags': true,
+        'importTasks': true, 'approveTaskRequests': true
       };
     }
 
     function noPermissions() {
       return {
         'manageRoles': false, 'manageInviteCode': false, 'removeMembers': false,
-        'deleteProject': false, 'assignTasks': false, 'editAnyTask': false, 'manageTags': false
+        'deleteProject': false, 'assignTasks': false, 'editAnyTask': false, 'manageTags': false,
+        'importTasks': false, 'approveTaskRequests': false
       };
     }
 
@@ -207,7 +222,12 @@ service cloud.firestore {
           request.resource.data.roleSetByUid == request.auth.uid) ||
           // Leadership transfer (Phase 7) — the only way the Leader membership ever changes.
           isLeaderPromotion(projectId, userId) ||
-          isLeaderDemotion(projectId, userId);
+          isLeaderDemotion(projectId, userId) ||
+          // Phase 9 extra permissions: only that one field changes, never on the Leader, never deleteProject.
+          (hasPermission(projectId, 'manageRoles') &&
+            resource.data.roleName != 'Leader' &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['extraPermissions']) &&
+            request.resource.data.extraPermissions.get('deleteProject', false) == false);
         // Remove-member roster action, or self-delete (Phase 6 delete-account leaving every non-Leader
         // project) — never the Leader either way.
         allow delete: if (hasPermission(projectId, 'removeMembers') || request.auth.uid == userId) &&
@@ -217,8 +237,10 @@ service cloud.firestore {
       match /tasks/{taskId} {
         allow read: if isMember(projectId);
         // Creating a task makes you its initial holder — see specs/office/phase-2-board-baton.md.
-        allow create: if !isArchived(projectId) && hasPermission(projectId, 'assignTasks') &&
-          request.resource.data.holderUid == request.auth.uid &&
+        allow create: if !isArchived(projectId) &&
+          (hasPermission(projectId, 'assignTasks') || hasPermission(projectId, 'importTasks')) &&
+          (request.resource.data.holderUid == request.auth.uid ||
+            exists(/databases/$(database)/documents/projects/$(projectId)/members/$(request.resource.data.holderUid))) &&
           request.resource.data.createdByUid == request.auth.uid &&
           request.resource.data.status == 'TODO' &&
           request.resource.data.timesHandedOver == 0;
@@ -232,6 +254,12 @@ service cloud.firestore {
             request.resource.data.timesHandedOver == resource.data.timesHandedOver) ||
           (request.auth.uid == request.resource.data.holderUid &&
             request.auth.uid != resource.data.holderUid &&
+            request.resource.data.timesHandedOver == resource.data.timesHandedOver + 1) ||
+          // Phase 9: assignTasks holders reassign an unfinished task to any current member.
+          ((hasPermission(projectId, 'assignTasks') || hasPermission(projectId, 'approveTaskRequests')) &&
+            resource.data.status != 'DONE' &&
+            request.resource.data.holderUid != resource.data.holderUid &&
+            exists(/databases/$(database)/documents/projects/$(projectId)/members/$(request.resource.data.holderUid)) &&
             request.resource.data.timesHandedOver == resource.data.timesHandedOver + 1)
         ) && request.resource.data.title == resource.data.title &&
           request.resource.data.createdByUid == resource.data.createdByUid;
@@ -246,7 +274,13 @@ service cloud.firestore {
             request.auth.uid == taskDoc(projectId, taskId).holderUid &&
             request.resource.data.fromUid == request.auth.uid &&
             request.resource.data.status == 'OFFERED' &&
-            request.resource.data.projectId == projectId;
+            request.resource.data.projectId == projectId &&
+            // Phase 9: a drop/transfer request must be addressed to an approver (a transfer also names a real member).
+            (request.resource.data.get('kind', 'OFFER') == 'OFFER' ||
+              (canApproveRequests(projectId, request.resource.data.toUid) &&
+                (request.resource.data.kind == 'DROP_REQUEST' ||
+                  (request.resource.data.kind == 'TRANSFER_REQUEST' &&
+                    exists(/databases/$(database)/documents/projects/$(projectId)/members/$(request.resource.data.targetUid))))));
           // Only the offered toUid may accept/decline, and only while still OFFERED.
           allow update: if isMember(projectId) && !isArchived(projectId) &&
             resource.data.status == 'OFFERED' &&
@@ -264,7 +298,7 @@ service cloud.firestore {
         allow create: if isMember(projectId) &&
           request.resource.data.byUid == request.auth.uid &&
           request.resource.data.type in [
-            'TASK_CREATED', 'TASK_DELETED', 'HANDOFF_OFFERED', 'HANDOFF_ACCEPTED', 'HANDOFF_DECLINED', 'TASK_MARKED_DONE'
+            'TASK_CREATED', 'TASK_DELETED', 'HANDOFF_OFFERED', 'HANDOFF_ACCEPTED', 'HANDOFF_DECLINED', 'TASK_MARKED_DONE', 'TASK_REASSIGNED'
           ];
         allow update, delete: if false;
       }

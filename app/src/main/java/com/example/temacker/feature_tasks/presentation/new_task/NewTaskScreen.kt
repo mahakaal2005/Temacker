@@ -33,6 +33,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material.icons.rounded.UnfoldMore
+import com.example.temacker.core.presentation.components.TmkDropdownMenu
+import com.example.temacker.core.presentation.components.TmkMenuItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -143,11 +147,36 @@ fun NewTaskScreen(state: NewTaskState, onAction: (NewTaskAction) -> Unit) {
                     modifier = Modifier.fillMaxWidth().padding(top = Spacing.s)
                 )
 
+                if (state.canAssign) {
+                    var menuOpen by remember { mutableStateOf(false) }
+                    val assigneeInteraction = remember { MutableInteractionSource() }
+                    LaunchedEffect(assigneeInteraction) {
+                        assigneeInteraction.interactions.collect { if (it is PressInteraction.Release) menuOpen = true }
+                    }
+                    Box(modifier = Modifier.fillMaxWidth().padding(top = Spacing.s)) {
+                        OutlinedTextField(
+                            value = state.members.firstOrNull { it.uid == state.assigneeUid }?.displayName ?: "Me",
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Assign to") },
+                            interactionSource = assigneeInteraction,
+                            trailingIcon = { Icon(Icons.Rounded.UnfoldMore, contentDescription = null) },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        TmkDropdownMenu(expanded = menuOpen, onDismiss = { menuOpen = false }) {
+                            TmkMenuItem(label = "Me", onClick = { menuOpen = false; onAction(NewTaskAction.OnAssigneeSelected(null)) })
+                            state.members.forEach { member ->
+                                TmkMenuItem(label = member.displayName, hint = member.roleName, onClick = { menuOpen = false; onAction(NewTaskAction.OnAssigneeSelected(member.uid)) })
+                            }
+                        }
+                    }
+                }
+
                 Surface(color = AmberWash, shape = MaterialTheme.shapes.medium, modifier = Modifier.fillMaxWidth().padding(top = Spacing.l)) {
                     Row(modifier = Modifier.padding(Spacing.s), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Rounded.Info, contentDescription = null, tint = AmberInk)
                         Text(
-                            "You'll hold this task until you hand it off and someone accepts it.",
+                            if (state.assigneeUid == null) "You'll hold this task until you hand it off and someone accepts it." else "They'll see it on their Board right away and get a notification.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = AmberInk,
                             modifier = Modifier.padding(start = Spacing.xs)

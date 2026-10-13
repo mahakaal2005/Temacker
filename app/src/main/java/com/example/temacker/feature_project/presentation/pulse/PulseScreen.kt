@@ -122,6 +122,7 @@ private fun TeamEventType.describe(): String = when (this) {
     TeamEventType.HANDOFF_ACCEPTED -> "accepted a hand-off for"
     TeamEventType.HANDOFF_DECLINED -> "declined a hand-off for"
     TeamEventType.TASK_MARKED_DONE -> "marked done"
+    TeamEventType.TASK_REASSIGNED -> "reassigned"
 }
 
 private fun TeamEventType.icon(): ImageVector = when (this) {
@@ -131,6 +132,7 @@ private fun TeamEventType.icon(): ImageVector = when (this) {
     TeamEventType.HANDOFF_ACCEPTED -> Icons.Rounded.CheckCircle
     TeamEventType.HANDOFF_DECLINED -> Icons.Rounded.Cancel
     TeamEventType.TASK_MARKED_DONE -> Icons.Rounded.TaskAlt
+    TeamEventType.TASK_REASSIGNED -> Icons.Rounded.Send
 }
 
 private val dayHeaderFormat = java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.getDefault())

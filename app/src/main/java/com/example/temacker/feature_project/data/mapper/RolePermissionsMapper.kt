@@ -10,7 +10,9 @@ fun Map<String, Any?>.toRolePermissions(): RolePermissions = RolePermissions(
     deleteProject = this["deleteProject"] as? Boolean ?: false,
     assignTasks = this["assignTasks"] as? Boolean ?: false,
     editAnyTask = this["editAnyTask"] as? Boolean ?: false,
-    manageTags = this["manageTags"] as? Boolean ?: false
+    manageTags = this["manageTags"] as? Boolean ?: false,
+    importTasks = this["importTasks"] as? Boolean ?: false,
+    approveTaskRequests = this["approveTaskRequests"] as? Boolean ?: false
 )
 
 fun RolePermissions.toFirestoreMap(): Map<String, Any?> = mapOf(
@@ -20,5 +22,7 @@ fun RolePermissions.toFirestoreMap(): Map<String, Any?> = mapOf(
     "deleteProject" to deleteProject,
     "assignTasks" to assignTasks,
     "editAnyTask" to editAnyTask,
-    "manageTags" to manageTags
+    "manageTags" to manageTags,
+    "importTasks" to importTasks,
+    "approveTaskRequests" to approveTaskRequests
 )

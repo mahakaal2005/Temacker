@@ -1,6 +1,6 @@
-# Phase 9 — Per-member extra permissions (deferred, not started)
+# Phase 9 — Per-member extra permissions (merged into phase-9-task-assignment.md)
 
-Status: idea agreed 2026-09-26, spec not yet approved. Do not start before the spec is reviewed (CLAUDE.md rules 2 and 3).
+Status: merged 2026-09-26 into `phase-9-task-assignment.md`; this file is kept as design background.
 
 ## Why
 Permissions belong only to roles today. Giving one person a single extra ability (e.g. Editor + Invite members) means minting a whole new role, which gets unwieldy.

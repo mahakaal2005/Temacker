@@ -10,7 +10,7 @@ import com.example.temacker.feature_project.presentation.invited_first_run.Invit
 import com.example.temacker.feature_project.presentation.join_project.JoinProjectRoot
 import com.example.temacker.feature_project.presentation.manage_roles.ManageRolesRoot
 import com.example.temacker.feature_project.presentation.no_project.NoProjectRoot
-import com.example.temacker.feature_project.presentation.role_explainer.RoleExplainerRoot
+import com.example.temacker.feature_project.presentation.member_detail.MemberDetailRoot
 import com.example.temacker.feature_project.presentation.succession.SuccessionRoot
 import com.example.temacker.feature_project.presentation.switch_project.SwitchProjectRoot
 import com.example.temacker.feature_project.presentation.team.TeamRoot
@@ -77,7 +77,7 @@ fun NavGraphBuilder.projectGraph(
     }
     composable<RoleExplainerRoute> { backStackEntry ->
         val route: RoleExplainerRoute = backStackEntry.toRoute()
-        RoleExplainerRoot(userId = route.userId, onNavigateBack = { navController.popBackStack() })
+        MemberDetailRoot(userId = route.userId, onNavigateBack = { navController.popBackStack() })
     }
     composable<ManageRolesRoute> {
         ManageRolesRoot(onNavigateBack = { navController.popBackStack() })

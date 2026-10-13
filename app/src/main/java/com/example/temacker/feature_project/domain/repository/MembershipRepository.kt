@@ -1,5 +1,6 @@
 package com.example.temacker.feature_project.domain.repository
 
+import com.example.temacker.feature_project.domain.model.RolePermissions
 import com.example.temacker.core.domain.util.DataError
 import com.example.temacker.core.domain.util.EmptyResult
 import com.example.temacker.core.domain.util.Result
@@ -13,5 +14,6 @@ interface MembershipRepository {
     suspend fun joinProject(code: String, displayName: String, photoUrl: String?): Result<Membership, DataError>
     suspend fun removeMember(projectId: String, userId: String): EmptyResult<DataError>
     suspend fun reassignRole(projectId: String, userId: String, roleId: String, byUid: String, byDisplayName: String): EmptyResult<DataError>
+    suspend fun setExtraPermissions(projectId: String, userId: String, extras: RolePermissions): EmptyResult<DataError>
     suspend fun transferLeadership(projectId: String, fromUid: String, fromDisplayName: String, toUid: String): EmptyResult<DataError>
 }

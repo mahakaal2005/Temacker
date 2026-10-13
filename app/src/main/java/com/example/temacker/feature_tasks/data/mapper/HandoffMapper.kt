@@ -1,6 +1,7 @@
 package com.example.temacker.feature_tasks.data.mapper
 
 import com.example.temacker.feature_tasks.domain.model.Handoff
+import com.example.temacker.feature_tasks.domain.model.HandoffKind
 import com.example.temacker.feature_tasks.domain.model.HandoffStatus
 import com.google.firebase.firestore.DocumentSnapshot
 
@@ -21,7 +22,10 @@ fun DocumentSnapshot.toHandoff(taskId: String): Handoff? {
         status = status,
         declineReason = getString("declineReason"),
         offeredAt = getLong("offeredAt") ?: 0L,
-        respondedAt = getLong("respondedAt")
+        respondedAt = getLong("respondedAt"),
+        kind = getString("kind")?.let { runCatching { HandoffKind.valueOf(it) }.getOrNull() } ?: HandoffKind.OFFER,
+        targetUid = getString("targetUid"),
+        targetDisplayName = getString("targetDisplayName")
     )
 }
 
@@ -39,5 +43,8 @@ fun Handoff.toFirestoreMap(projectId: String): Map<String, Any?> = mapOf(
     "status" to status.name,
     "declineReason" to declineReason,
     "offeredAt" to offeredAt,
-    "respondedAt" to respondedAt
+    "respondedAt" to respondedAt,
+    "kind" to kind.name,
+    "targetUid" to targetUid,
+    "targetDisplayName" to targetDisplayName
 )

@@ -13,6 +13,7 @@ import com.example.temacker.feature_tasks.data.mapper.toTask
 import com.example.temacker.feature_tasks.domain.model.Event
 import com.example.temacker.feature_tasks.domain.model.EventType
 import com.example.temacker.feature_tasks.domain.model.Handoff
+import com.example.temacker.feature_tasks.domain.model.HandoffKind
 import com.example.temacker.feature_tasks.domain.model.HandoffStatus
 import com.example.temacker.feature_tasks.domain.model.Task
 import com.example.temacker.feature_tasks.domain.model.TaskStatus
@@ -25,7 +26,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
 
 class FirestoreTaskRemoteDataSource(
-    private val firestore: FirebaseFirestore
+    private val firestore: FirebaseFirestore,
+    private val auth: com.google.firebase.auth.FirebaseAuth
 ) : TaskRemoteDataSource {
 
     private fun tasksRef(projectId: String) =
@@ -86,6 +88,7 @@ class FirestoreTaskRemoteDataSource(
     ): Result<Task, DataError> = safeFirestoreCall {
         // A queued create carries its own id so a replay overwrites the same doc instead of duplicating it.
         val ref = taskId?.let { tasksRef(projectId).document(it) } ?: tasksRef(projectId).document()
+        val creatorUid = auth.currentUser?.uid ?: holderUid
         val now = System.currentTimeMillis()
         val task = Task(
             id = ref.id,
@@ -97,14 +100,15 @@ class FirestoreTaskRemoteDataSource(
             status = TaskStatus.TODO,
             dueDate = dueDate,
             timesHandedOver = 0,
-            createdByUid = holderUid,
+            // The creator can differ from the holder when a Leader assigns a task to someone else.
+            createdByUid = creatorUid,
             createdByDisplayName = createdByDisplayName,
             createdAt = now,
             updatedAt = now
         )
         firestore.batch()
             .set(ref, task.toFirestoreMap())
-            .set(eventsRef(projectId).document(), eventFirestoreMap(EventType.TASK_CREATED, task.id, title, holderUid, createdByDisplayName))
+            .set(eventsRef(projectId).document(), eventFirestoreMap(EventType.TASK_CREATED, task.id, title, creatorUid, createdByDisplayName))
             .commit()
             .await()
         task
@@ -115,7 +119,10 @@ class FirestoreTaskRemoteDataSource(
         taskId: String,
         toUid: String,
         toDisplayName: String,
-        note: String?
+        note: String?,
+        kind: HandoffKind,
+        targetUid: String?,
+        targetDisplayName: String?
     ): Result<Handoff, DataError> = safeFirestoreCall {
         val taskRef = tasksRef(projectId).document(taskId)
         val handoffRef = handoffsRef(projectId, taskId).document()
@@ -137,7 +144,10 @@ class FirestoreTaskRemoteDataSource(
                 status = HandoffStatus.OFFERED,
                 declineReason = null,
                 offeredAt = now,
-                respondedAt = null
+                respondedAt = null,
+                kind = kind,
+                targetUid = targetUid,
+                targetDisplayName = targetDisplayName
             )
             txn.set(handoffRef, handoff.toFirestoreMap(projectId))
             txn.set(eventsRef(projectId).document(), eventFirestoreMap(EventType.HANDOFF_OFFERED, taskId, taskTitle, fromUid, fromDisplayName))
@@ -158,6 +168,10 @@ class FirestoreTaskRemoteDataSource(
                 val toUid = handoffSnap.getString("toUid")
                     ?: throw FirebaseFirestoreException("Handoff not found", FirebaseFirestoreException.Code.NOT_FOUND)
                 val toDisplayName = handoffSnap.getString("toDisplayName") ?: toUid
+                // An approved transfer request moves the task to the person named in it, not to the approver.
+                val isTransfer = handoffSnap.getString("kind") == HandoffKind.TRANSFER_REQUEST.name
+                val newHolderUid = if (isTransfer) handoffSnap.getString("targetUid") ?: toUid else toUid
+                val newHolderName = if (isTransfer) handoffSnap.getString("targetDisplayName") ?: toDisplayName else toDisplayName
                 val now = System.currentTimeMillis()
 
                 val taskSnap = txn.get(taskRef)
@@ -173,8 +187,8 @@ class FirestoreTaskRemoteDataSource(
                 txn.update(
                     taskRef,
                     mapOf(
-                        "holderUid" to toUid,
-                        "holderDisplayName" to toDisplayName,
+                        "holderUid" to newHolderUid,
+                        "holderDisplayName" to newHolderName,
                         "status" to newStatus.name,
                         "timesHandedOver" to timesHandedOver,
                         "updatedAt" to now
@@ -182,8 +196,8 @@ class FirestoreTaskRemoteDataSource(
                 )
                 txn.set(eventsRef(projectId).document(), eventFirestoreMap(EventType.HANDOFF_ACCEPTED, taskId, taskTitle, toUid, toDisplayName))
                 taskSnap.toTask(projectId)?.copy(
-                    holderUid = toUid,
-                    holderDisplayName = toDisplayName,
+                    holderUid = newHolderUid,
+                    holderDisplayName = newHolderName,
                     status = newStatus,
                     timesHandedOver = timesHandedOver,
                     updatedAt = now
@@ -213,6 +227,30 @@ class FirestoreTaskRemoteDataSource(
                 txn.set(eventsRef(projectId).document(), eventFirestoreMap(EventType.HANDOFF_DECLINED, taskId, taskTitle, toUid, toDisplayName))
                 handoffSnap.toHandoff(taskId)?.copy(status = HandoffStatus.DECLINED, declineReason = reason, respondedAt = now)
                     ?: throw FirebaseFirestoreException("Handoff not found", FirebaseFirestoreException.Code.NOT_FOUND)
+            }.await()
+        }
+
+    override suspend fun reassignTask(projectId: String, taskId: String, toUid: String, toDisplayName: String, byDisplayName: String): Result<Task, DataError> =
+        safeFirestoreCall {
+            val taskRef = tasksRef(projectId).document(taskId)
+            val byUid = auth.currentUser?.uid ?: throw FirebaseFirestoreException("Not signed in", FirebaseFirestoreException.Code.UNAUTHENTICATED)
+            firestore.runTransaction { txn ->
+                val snap = txn.get(taskRef)
+                if (snap.getString("status") == TaskStatus.DONE.name) {
+                    throw FirebaseFirestoreException("Task already done", FirebaseFirestoreException.Code.FAILED_PRECONDITION)
+                }
+                val now = System.currentTimeMillis()
+                val handedOver = (snap.getLong("timesHandedOver") ?: 0L).toInt() + 1
+                txn.update(
+                    taskRef,
+                    mapOf("holderUid" to toUid, "holderDisplayName" to toDisplayName, "timesHandedOver" to handedOver, "updatedAt" to now)
+                )
+                txn.set(
+                    eventsRef(projectId).document(),
+                    eventFirestoreMap(EventType.TASK_REASSIGNED, taskId, snap.getString("title") ?: "Untitled task", byUid, byDisplayName)
+                )
+                snap.toTask(projectId)?.copy(holderUid = toUid, holderDisplayName = toDisplayName, timesHandedOver = handedOver, updatedAt = now)
+                    ?: throw FirebaseFirestoreException("Task not found", FirebaseFirestoreException.Code.NOT_FOUND)
             }.await()
         }
 

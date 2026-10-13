@@ -24,6 +24,7 @@ data class BoardState(
     val selectedTab: TaskStatus = TaskStatus.TODO,
     val isFilteredToPending: Boolean = false,
     val canCreateTask: Boolean = false,
+    val canImportTasks: Boolean = false,
     val isLoading: Boolean = true,
     val error: UiText? = null
 )

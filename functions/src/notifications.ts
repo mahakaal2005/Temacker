@@ -19,6 +19,9 @@ export interface HandoffData {
   nudgedAt?: number | null;
   // Set when a member's removal auto-closed this offer; that member gets no push about it.
   closedForUid?: string | null;
+  // Phase 9: OFFER (or absent) is an ordinary hand-off; the request kinds go to an approver.
+  kind?: string | null;
+  targetDisplayName?: string | null;
 }
 
 export interface HandoffContext {
@@ -46,7 +49,9 @@ const baseData = (type: PushType, h: HandoffData, ctx: HandoffContext): Record<s
   toUid: h.toUid,
   toDisplayName: h.toDisplayName,
   note: h.note ?? "",
-  declineReason: h.declineReason ?? ""
+  declineReason: h.declineReason ?? "",
+  kind: h.kind ?? "OFFER",
+  targetDisplayName: h.targetDisplayName ?? ""
 });
 
 // Offer → recipient; accept/decline → offerer; anything else (incl. the nudgedAt stamp) is silent.

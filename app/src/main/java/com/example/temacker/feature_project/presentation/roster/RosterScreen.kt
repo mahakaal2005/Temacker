@@ -137,6 +137,8 @@ fun RosterTabContent(
                                     canReassign = state.canManageRoles,
                                     canRemove = state.canRemoveMembers,
                                     canTransfer = state.isLeader,
+                                    canGrantExtras = state.canManageRoles,
+                                    onExtrasClick = { onAction(RosterAction.OnExtraPermissionsClick(member.userId)) },
                                     onClick = { onAction(RosterAction.OnMemberClick(member.userId)) },
                                     onMoreClick = { onAction(RosterAction.OnMemberMoreClick(member.userId)) },
                                     onDismissMenu = { onAction(RosterAction.OnDismissMemberMenu) },
@@ -169,6 +171,16 @@ fun RosterTabContent(
         )
     }
 
+    state.extrasTargetUserId?.let { targetId ->
+        state.members.firstOrNull { it.userId == targetId }?.let { member ->
+            ExtraPermissionsSheet(
+                member = member,
+                onChange = { onAction(RosterAction.OnExtrasChanged(it)) },
+                onDismiss = { onAction(RosterAction.OnDismissExtras) }
+            )
+        }
+    }
+
     state.reassignTargetUserId?.let {
         ReassignRoleDialog(
             roles = state.roles,
@@ -186,6 +198,8 @@ private fun MemberRow(
     canReassign: Boolean,
     canRemove: Boolean,
     canTransfer: Boolean,
+    canGrantExtras: Boolean,
+    onExtrasClick: () -> Unit,
     onClick: () -> Unit,
     onMoreClick: () -> Unit,
     onDismissMenu: () -> Unit,
@@ -197,7 +211,7 @@ private fun MemberRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClickLabel = "See what ${member.roleName} can do", onClick = onClick)
+            .clickable(onClickLabel = "Open ${member.displayName}", onClick = onClick)
             .padding(start = Spacing.m, end = Spacing.xs, top = 12.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -205,7 +219,7 @@ private fun MemberRow(
         Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
             Text(member.displayName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
             StatusChip(
-                text = member.roleName,
+                text = member.roleName + extraPermissionCount(member.extraPermissions, member.permissions).let { if (it > 0) " + $it extra" else "" },
                 tone = if (isLeader) ChipTone.WARNING else ChipTone.NEUTRAL,
                 modifier = Modifier.padding(top = 2.dp)
             )
@@ -218,6 +232,9 @@ private fun MemberRow(
                 TmkDropdownMenu(expanded = isMenuOpen, onDismiss = onDismissMenu) {
                     if (canReassign) {
                         TmkMenuItem(label = "Reassign role", onClick = onReassignClick)
+                    }
+                    if (canGrantExtras) {
+                        TmkMenuItem(label = "Extra permissions", onClick = onExtrasClick)
                     }
                     if (canTransfer) {
                         TmkMenuItem(label = "Make Leader", onClick = onMakeLeaderClick)

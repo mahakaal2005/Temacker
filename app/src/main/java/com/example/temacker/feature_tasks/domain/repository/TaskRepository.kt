@@ -4,6 +4,7 @@ import com.example.temacker.core.domain.util.DataError
 import com.example.temacker.core.domain.util.EmptyResult
 import com.example.temacker.core.domain.util.Result
 import com.example.temacker.feature_tasks.domain.model.Handoff
+import com.example.temacker.feature_tasks.domain.model.HandoffKind
 import com.example.temacker.feature_tasks.domain.model.InboxEntry
 import com.example.temacker.feature_tasks.domain.model.Task
 import kotlinx.coroutines.flow.Flow
@@ -27,11 +28,26 @@ interface TaskRepository {
         createdByDisplayName: String
     ): Result<Task, DataError>
 
+    // Online-only: an assignTasks holder moves an unfinished task straight to another member.
+    suspend fun reassignTask(projectId: String, taskId: String, toUid: String, toDisplayName: String, byDisplayName: String): EmptyResult<DataError>
+
     suspend fun offerHandoff(
         projectId: String,
         taskId: String,
         toUid: String,
         toDisplayName: String,
+        note: String?
+    ): EmptyResult<DataError>
+
+    // Online-only request to the approver; approving moves the task (TRANSFER to targetUid, DROP to the approver).
+    suspend fun requestTaskChange(
+        projectId: String,
+        taskId: String,
+        kind: HandoffKind,
+        approverUid: String,
+        approverDisplayName: String,
+        targetUid: String?,
+        targetDisplayName: String?,
         note: String?
     ): EmptyResult<DataError>
 

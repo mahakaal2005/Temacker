@@ -17,11 +17,14 @@ data class MembershipEntity(
     val assignTasks: Boolean,
     val editAnyTask: Boolean,
     val manageTags: Boolean,
+    @ColumnInfo(defaultValue = "0") val importTasks: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val approveTaskRequests: Boolean = false,
     val displayName: String,
     val photoUrl: String?,
     val joinedAt: Long,
     @ColumnInfo(defaultValue = "0") val isLeader: Boolean = false,
     val roleSetByUid: String? = null,
     val roleSetByDisplayName: String? = null,
-    val roleSetAt: Long? = null
+    val roleSetAt: Long? = null,
+    @ColumnInfo(defaultValue = "0") val extraPermissionBits: Int = 0
 )

@@ -52,6 +52,7 @@ import com.example.temacker.core.presentation.designsystem.rememberAppHaptics
 import com.example.temacker.core.presentation.designsystem.rememberReducedMotion
 import com.example.temacker.core.presentation.designsystem.spatialDefault
 import com.example.temacker.core.presentation.util.ObserveAsEvents
+import com.example.temacker.feature_tasks.domain.model.HandoffKind
 import com.example.temacker.feature_tasks.domain.model.Handoff
 import com.example.temacker.feature_tasks.domain.model.HandoffStatus
 import com.example.temacker.feature_tasks.domain.model.Task
@@ -95,7 +96,7 @@ fun IncomingScreen(state: IncomingState, onAction: (IncomingAction) -> Unit, onN
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(modifier = Modifier.fillMaxSize()) {
             TopAppBar(
-                title = { Text("Handoff to you") },
+                title = { Text(if (state.handoff?.kind == HandoffKind.OFFER || state.handoff == null) "Handoff to you" else "Task request") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
                 },
@@ -163,7 +164,11 @@ fun IncomingScreen(state: IncomingState, onAction: (IncomingAction) -> Unit, onN
                         }
                     }
                     Text(
-                        "Until you accept, this task stays with ${handoff.fromDisplayName} and still counts as theirs.",
+                        when (handoff.kind) {
+                            HandoffKind.OFFER -> "Until you accept, this task stays with ${handoff.fromDisplayName} and still counts as theirs."
+                            HandoffKind.DROP_REQUEST -> "${handoff.fromDisplayName} wants to drop this. Approve and it becomes yours; until then it stays with them."
+                            HandoffKind.TRANSFER_REQUEST -> "${handoff.fromDisplayName} wants to move this to ${handoff.targetDisplayName ?: "someone else"}. Approve and it goes there; until then it stays with them."
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = Ink500,
                         modifier = Modifier.padding(top = Spacing.m)
@@ -171,7 +176,7 @@ fun IncomingScreen(state: IncomingState, onAction: (IncomingAction) -> Unit, onN
                 }
                 Column(modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(Spacing.l)) {
                     TmkButton(
-                        text = "Accept the baton",
+                        text = if (handoff.kind == HandoffKind.OFFER) "Accept the baton" else "Approve",
                         onClick = { haptics.confirm(); onAction(IncomingAction.OnAcceptClick) },
                         enabled = !state.isResponding,
                         isLoading = state.isResponding,

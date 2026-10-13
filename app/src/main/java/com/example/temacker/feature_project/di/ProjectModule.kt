@@ -38,6 +38,7 @@ import com.example.temacker.feature_project.domain.use_case.ObserveStuckHandoffs
 import com.example.temacker.feature_project.domain.use_case.ObserveUserProjectsUseCase
 import com.example.temacker.feature_project.domain.use_case.LeaveProjectUseCase
 import com.example.temacker.feature_project.domain.use_case.ReassignMemberRoleUseCase
+import com.example.temacker.feature_project.domain.use_case.SetMemberExtraPermissionsUseCase
 import com.example.temacker.feature_project.domain.use_case.TransferLeadershipUseCase
 import com.example.temacker.feature_project.domain.use_case.RemoveMemberUseCase
 import com.example.temacker.feature_project.domain.use_case.TriggerSuccessionUseCase
@@ -54,7 +55,7 @@ import com.example.temacker.feature_project.presentation.roster.RosterViewModel
 import com.example.temacker.feature_project.presentation.stuck.StuckViewModel
 import com.example.temacker.feature_project.presentation.succession.SuccessionViewModel
 import com.example.temacker.feature_project.presentation.switch_project.SwitchProjectViewModel
-import com.example.temacker.feature_project.presentation.role_explainer.RoleExplainerViewModel
+import com.example.temacker.feature_project.presentation.member_detail.MemberDetailViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.factoryOf
@@ -88,6 +89,7 @@ val projectModule = module {
     factoryOf(::DeleteRoleUseCase)
     factoryOf(::RemoveMemberUseCase)
     factoryOf(::ReassignMemberRoleUseCase)
+    factoryOf(::SetMemberExtraPermissionsUseCase)
     factoryOf(::TransferLeadershipUseCase)
     factoryOf(::LeaveProjectUseCase)
     factoryOf(::GenerateInviteCodeUseCase)
@@ -102,7 +104,7 @@ val projectModule = module {
     viewModelOf(::CreateProjectViewModel)
     viewModelOf(::JoinProjectViewModel)
     viewModelOf(::InvitedFirstRunViewModel)
-    viewModel { (userId: String) -> RoleExplainerViewModel(userId, get(), get(), get()) }
+    viewModel { (userId: String) -> MemberDetailViewModel(userId, get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModelOf(::RosterViewModel)
     viewModelOf(::ManageRolesViewModel)
     viewModelOf(::LoadViewModel)

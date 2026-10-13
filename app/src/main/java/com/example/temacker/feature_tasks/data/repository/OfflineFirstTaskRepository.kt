@@ -18,6 +18,7 @@ import com.example.temacker.feature_tasks.data.mapper.toDomain
 import com.example.temacker.feature_tasks.data.mapper.toEntity
 import com.example.temacker.feature_tasks.data.remote.TaskRemoteDataSource
 import com.example.temacker.feature_tasks.domain.model.Handoff
+import com.example.temacker.feature_tasks.domain.model.HandoffKind
 import com.example.temacker.feature_tasks.domain.model.InboxEntry
 import com.example.temacker.feature_tasks.data.worker.PendingWriteScheduler
 import com.example.temacker.feature_tasks.domain.model.PendingWriteStatus
@@ -173,6 +174,25 @@ class OfflineFirstTaskRepository(
             .onSuccess { handoffDao.upsertAll(listOf(it.toEntity(projectId))) }
             .asEmptyResult()
     }
+
+    override suspend fun requestTaskChange(
+        projectId: String,
+        taskId: String,
+        kind: HandoffKind,
+        approverUid: String,
+        approverDisplayName: String,
+        targetUid: String?,
+        targetDisplayName: String?,
+        note: String?
+    ): EmptyResult<DataError> =
+        remote.offerHandoff(projectId, taskId, approverUid, approverDisplayName, note, kind, targetUid, targetDisplayName)
+            .onSuccess { handoffDao.upsertAll(listOf(it.toEntity(projectId))) }
+            .asEmptyResult()
+
+    override suspend fun reassignTask(projectId: String, taskId: String, toUid: String, toDisplayName: String, byDisplayName: String): EmptyResult<DataError> =
+        remote.reassignTask(projectId, taskId, toUid, toDisplayName, byDisplayName)
+            .onSuccess { taskDao.upsertAll(listOf(it.toEntity())) }
+            .asEmptyResult()
 
     override suspend fun acceptHandoff(projectId: String, taskId: String, handoffId: String): EmptyResult<DataError> =
         writeOrQueue(projectId, taskId, PendingPayload.Accept(handoffId)) {

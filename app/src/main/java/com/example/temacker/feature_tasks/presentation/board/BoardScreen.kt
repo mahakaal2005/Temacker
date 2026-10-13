@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.FileUpload
 import androidx.compose.material.icons.rounded.Assignment
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Schedule
@@ -56,6 +57,8 @@ import com.example.temacker.core.presentation.components.SegmentedTabs
 import com.example.temacker.core.presentation.components.SkeletonList
 import com.example.temacker.core.presentation.components.StatusChip
 import com.example.temacker.core.presentation.components.SwitcherPill
+import com.example.temacker.core.presentation.components.TmkMenuItem
+import com.example.temacker.core.presentation.components.TmkOverflowMenu
 import com.example.temacker.core.presentation.components.bottomBarContentPadding
 import com.example.temacker.core.presentation.designsystem.Amber
 import com.example.temacker.core.presentation.designsystem.AmberInk
@@ -84,6 +87,7 @@ fun BoardRoot(
     onNavigateToTeam: () -> Unit,
     onNavigateToYou: () -> Unit,
     onNavigateToNewTask: () -> Unit,
+    onNavigateToImportTasks: () -> Unit,
     onNavigateToTaskDetail: (String) -> Unit,
     onNavigateToIncoming: (String, String) -> Unit,
     onNavigateToQueue: () -> Unit,
@@ -95,6 +99,7 @@ fun BoardRoot(
     ObserveAsEvents(viewModel.events) { event ->
         when (event) {
             BoardEvent.NavigateToNewTask -> onNavigateToNewTask()
+            BoardEvent.NavigateToImportTasks -> onNavigateToImportTasks()
             BoardEvent.NavigateToQueue -> onNavigateToQueue()
             is BoardEvent.NavigateToTaskDetail -> onNavigateToTaskDetail(event.taskId)
             is BoardEvent.NavigateToIncoming -> onNavigateToIncoming(event.taskId, event.handoffId)
@@ -148,7 +153,19 @@ fun BoardScreen(
                 projectName = state.projectSummary?.name,
                 metaLine = state.projectSummary?.let { "${memberCountLabel(it.memberCount)} · ${it.roleName}" },
                 hasOtherProjects = state.projectSummary?.hasOtherProjects ?: false,
-                onClick = onNavigateToSwitchProject
+                onClick = onNavigateToSwitchProject,
+                trailing = {
+                    if (state.canImportTasks) {
+                        TmkOverflowMenu(contentDescription = "Board actions") { dismiss ->
+                            TmkMenuItem(
+                                label = "Import tasks",
+                                hint = "Create many at once from a JSON file",
+                                icon = Icons.Rounded.FileUpload,
+                                onClick = { dismiss(); onAction(BoardAction.OnImportClick) }
+                            )
+                        }
+                    }
+                }
             )
         }
     ) { padding ->

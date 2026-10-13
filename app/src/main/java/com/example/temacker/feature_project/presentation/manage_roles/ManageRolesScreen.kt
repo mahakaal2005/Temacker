@@ -74,6 +74,8 @@ import com.example.temacker.core.presentation.util.ObserveAsEvents
 import com.example.temacker.core.presentation.util.UiText
 import com.example.temacker.feature_project.domain.model.Role
 import com.example.temacker.feature_project.domain.model.RolePermissions
+import com.example.temacker.feature_project.presentation.role_copy.CapabilityGroup
+import com.example.temacker.feature_project.presentation.role_copy.PermissionInfo
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -221,7 +223,7 @@ private fun EditableRoleCard(
     onDeleteClick: () -> Unit
 ) {
     val p = role.permissions
-    val enabledCount = listOf(p.manageInviteCode, p.manageRoles, p.removeMembers, p.deleteProject, p.assignTasks, p.editAnyTask, p.manageTags).count { it }
+    val enabledCount = PermissionInfo.entries.count { it.get(p) }
     val shape = RoundedCornerShape(18.dp)
     val chevronRotation by animateFloatAsState(if (expanded) 180f else 0f, label = "roleChevron")
     Column(
@@ -242,7 +244,7 @@ private fun EditableRoleCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(role.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
-                    if (enabledCount == 0) "No permissions yet" else "$enabledCount of 7 permissions",
+                    if (enabledCount == 0) "No permissions yet" else "$enabledCount of ${PermissionInfo.entries.size} permissions",
                     style = MaterialTheme.typography.bodySmall,
                     color = Ink500
                 )
@@ -252,21 +254,13 @@ private fun EditableRoleCard(
         if (expanded) {
             HorizontalDivider(color = Line)
             Column(modifier = Modifier.padding(bottom = Spacing.xs)) {
-                SectionLabel("Team", modifier = Modifier.padding(start = Spacing.m))
-                PermissionRow("Invite members", "Create and share invite codes", p.manageInviteCode) { onPermissionToggle(p.copy(manageInviteCode = it)) }
-                InsetDivider(start = Spacing.m)
-                PermissionRow("Reassign roles", "Change which role a member has", p.manageRoles) { onPermissionToggle(p.copy(manageRoles = it)) }
-                InsetDivider(start = Spacing.m)
-                PermissionRow("Remove members", "Take someone out of the project", p.removeMembers) { onPermissionToggle(p.copy(removeMembers = it)) }
-                InsetDivider(start = Spacing.m)
-                PermissionRow("Delete project", "Permanent, can't be undone", p.deleteProject, isDangerous = true) { onPermissionToggle(p.copy(deleteProject = it)) }
-
-                SectionLabel("Tasks", modifier = Modifier.padding(start = Spacing.m))
-                PermissionRow("Assign tasks", "Give tasks to other members", p.assignTasks) { onPermissionToggle(p.copy(assignTasks = it)) }
-                InsetDivider(start = Spacing.m)
-                PermissionRow("Edit any task", "Not just the ones they hold", p.editAnyTask) { onPermissionToggle(p.copy(editAnyTask = it)) }
-                InsetDivider(start = Spacing.m)
-                PermissionRow("Manage tags", "Create, rename and delete tags", p.manageTags) { onPermissionToggle(p.copy(manageTags = it)) }
+                CapabilityGroup.entries.forEach { group ->
+                    SectionLabel(if (group == CapabilityGroup.TEAM) "Team" else "Tasks", modifier = Modifier.padding(start = Spacing.m))
+                    PermissionInfo.entries.filter { it.group == group }.forEachIndexed { index, info ->
+                        if (index > 0) InsetDivider(start = Spacing.m)
+                        PermissionRow(info.label, info.subtitle, info.get(p), isDangerous = info.isDangerous) { onPermissionToggle(info.set(p, it)) }
+                    }
+                }
 
                 HorizontalDivider(color = Line, modifier = Modifier.padding(top = Spacing.xs))
                 TextButton(onClick = onDeleteClick, modifier = Modifier.padding(horizontal = Spacing.xs)) {

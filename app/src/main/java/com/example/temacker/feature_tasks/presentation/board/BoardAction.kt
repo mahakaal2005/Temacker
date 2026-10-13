@@ -7,6 +7,7 @@ sealed interface BoardAction {
     data object OnWaitingOnYouClick : BoardAction
     data class OnTaskClick(val taskId: String) : BoardAction
     data class OnIncomingTaskClick(val taskId: String, val handoffId: String) : BoardAction
+    data object OnImportClick : BoardAction
     data object OnFabClick : BoardAction
     data object OnSyncStripClick : BoardAction
     data object OnErrorDismissed : BoardAction

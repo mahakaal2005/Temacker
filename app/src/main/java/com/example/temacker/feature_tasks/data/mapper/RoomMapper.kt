@@ -5,6 +5,7 @@ import com.example.temacker.core.data.database.HandoffEntity
 import com.example.temacker.core.data.database.TaskEntity
 import com.example.temacker.feature_tasks.domain.model.Event
 import com.example.temacker.feature_tasks.domain.model.EventType
+import com.example.temacker.feature_tasks.domain.model.HandoffKind
 import com.example.temacker.feature_tasks.domain.model.Handoff
 import com.example.temacker.feature_tasks.domain.model.HandoffStatus
 import com.example.temacker.feature_tasks.domain.model.Task
@@ -54,7 +55,10 @@ fun Handoff.toEntity(projectId: String) = HandoffEntity(
     status = status.name,
     declineReason = declineReason,
     offeredAt = offeredAt,
-    respondedAt = respondedAt
+    respondedAt = respondedAt,
+    kind = kind.name,
+    targetUid = targetUid,
+    targetDisplayName = targetDisplayName
 )
 
 fun HandoffEntity.toDomain() = Handoff(
@@ -68,7 +72,10 @@ fun HandoffEntity.toDomain() = Handoff(
     status = HandoffStatus.valueOf(status),
     declineReason = declineReason,
     offeredAt = offeredAt,
-    respondedAt = respondedAt
+    respondedAt = respondedAt,
+    kind = runCatching { HandoffKind.valueOf(kind) }.getOrDefault(HandoffKind.OFFER),
+    targetUid = targetUid,
+    targetDisplayName = targetDisplayName
 )
 
 fun Event.toEntity() = EventEntity(

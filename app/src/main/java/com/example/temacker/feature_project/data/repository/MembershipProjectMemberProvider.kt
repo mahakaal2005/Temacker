@@ -30,6 +30,9 @@ private fun Membership.toProjectMember(): ProjectMember = ProjectMember(
     displayName = displayName,
     photoUrl = photoUrl,
     roleName = roleName,
-    canAssignTasks = permissions.assignTasks,
-    canEditAnyTask = permissions.editAnyTask
+    canAssignTasks = effectivePermissions.assignTasks,
+    canEditAnyTask = effectivePermissions.editAnyTask,
+    canImportTasks = effectivePermissions.importTasks,
+    canApproveTaskRequests = effectivePermissions.approveTaskRequests,
+    isLeader = isLeader
 )

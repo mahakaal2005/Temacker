@@ -24,6 +24,8 @@ fun Role.toEntity() = RoleEntity(
     assignTasks = permissions.assignTasks,
     editAnyTask = permissions.editAnyTask,
     manageTags = permissions.manageTags,
+    importTasks = permissions.importTasks,
+    approveTaskRequests = permissions.approveTaskRequests,
     isLeader = isLeader
 )
 
@@ -31,7 +33,7 @@ fun RoleEntity.toDomain() = Role(
     id = id,
     projectId = projectId,
     name = name,
-    permissions = RolePermissions(manageRoles, manageInviteCode, removeMembers, deleteProject, assignTasks, editAnyTask, manageTags),
+    permissions = RolePermissions(manageRoles, manageInviteCode, removeMembers, deleteProject, assignTasks, editAnyTask, manageTags, importTasks, approveTaskRequests),
     isLeader = isLeader
 )
 
@@ -47,13 +49,16 @@ fun Membership.toEntity() = MembershipEntity(
     assignTasks = permissions.assignTasks,
     editAnyTask = permissions.editAnyTask,
     manageTags = permissions.manageTags,
+    importTasks = permissions.importTasks,
+    approveTaskRequests = permissions.approveTaskRequests,
     displayName = displayName,
     photoUrl = photoUrl,
     joinedAt = joinedAt,
     isLeader = isLeader,
     roleSetByUid = roleSetByUid,
     roleSetByDisplayName = roleSetByDisplayName,
-    roleSetAt = roleSetAt
+    roleSetAt = roleSetAt,
+    extraPermissionBits = extraPermissions.toBits()
 )
 
 fun MembershipEntity.toDomain() = Membership(
@@ -61,14 +66,15 @@ fun MembershipEntity.toDomain() = Membership(
     userId = userId,
     roleId = roleId,
     roleName = roleName,
-    permissions = RolePermissions(manageRoles, manageInviteCode, removeMembers, deleteProject, assignTasks, editAnyTask, manageTags),
+    permissions = RolePermissions(manageRoles, manageInviteCode, removeMembers, deleteProject, assignTasks, editAnyTask, manageTags, importTasks, approveTaskRequests),
     displayName = displayName,
     photoUrl = photoUrl,
     joinedAt = joinedAt,
     isLeader = isLeader,
     roleSetByUid = roleSetByUid,
     roleSetByDisplayName = roleSetByDisplayName,
-    roleSetAt = roleSetAt
+    roleSetAt = roleSetAt,
+    extraPermissions = RolePermissions.fromBits(extraPermissionBits)
 )
 
 fun InviteCode.toEntity() = InviteCodeEntity(code, projectId, expiresAt, isActive)
