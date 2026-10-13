@@ -54,3 +54,8 @@
 - `SwitcherPill` gained `previousProjectName`/`nextProjectName` and the swipe callbacks. Faces slide via `graphicsLayer`, a custom `Layout` sizes the slot to the current face only, a release past 40% or a fling commits, there's a tick haptic, and TalkBack gets custom actions. If the new name hasn't arrived after 4 s, it slides back. Wired into Board, Inbox, Team and You.
 - Bug found on device: the peek promised one project and the switch landed on another. `ProjectDao.observeActiveByIds` had no ORDER BY, and Room's REPLACE upserts reshuffle row order, so the project order drifted between emissions (the Switch project list too). Fixed with `ORDER BY createdAt, id` (query only, no migration).
 - Verified on RZCWA28EAZF: up/down switches in under 0.5 s with the pill and board agreeing, swiping up on the last project bounces and stays, and Team switches too. 6 new ViewModel tests, 88/88 overall.
+
+## Privacy policy and account-deletion pages (Play requirement)
+- Free Firebase Hosting on `temacker-a0252`: `hosting/public/` (index, privacy, delete-account, style.css), with `firebase.json` hosting config and `cleanUrls`. Deployed by the user's go-ahead with `firebase deploy --only hosting --project temacker-a0252`.
+- Live: https://temacker-a0252.web.app/privacy and https://temacker-a0252.web.app/delete-account (both return 200).
+- Content was checked against the code: account deletion removes the Auth user, memberships and this device's FCM token, and wipes local data; it is blocked for Leaders. Contact is the user's personal Gmail for now; the user plans to change it later.
