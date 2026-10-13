@@ -199,6 +199,7 @@ service cloud.firestore {
               roleDoc(projectId, request.resource.data.roleId).isLeader == false &&
               request.resource.data.roleName == roleDoc(projectId, request.resource.data.roleId).name &&
               request.resource.data.permissions == roleDoc(projectId, request.resource.data.roleId).permissions &&
+              request.resource.data.get('extraPermissions', noPermissions()) == noPermissions() &&
               request.resource.data.isLeader == false) ||
             // Succession's roster copy: the new project's Leader (auth.uid) writes every copied
             // member doc, not just their own — the one case where request.auth.uid == userId is
@@ -219,6 +220,7 @@ service cloud.firestore {
           request.resource.data.roleName == roleDoc(projectId, request.resource.data.roleId).name &&
           request.resource.data.permissions == roleDoc(projectId, request.resource.data.roleId).permissions &&
           request.resource.data.isLeader == false &&
+          request.resource.data.get('extraPermissions', {}) == resource.data.get('extraPermissions', {}) &&
           request.resource.data.roleSetByUid == request.auth.uid) ||
           // Leadership transfer (Phase 7) — the only way the Leader membership ever changes.
           isLeaderPromotion(projectId, userId) ||
@@ -227,6 +229,7 @@ service cloud.firestore {
           (hasPermission(projectId, 'manageRoles') &&
             resource.data.roleName != 'Leader' &&
             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['extraPermissions']) &&
+            request.resource.data.extraPermissions.keys().hasOnly(noPermissions().keys()) &&
             request.resource.data.extraPermissions.get('deleteProject', false) == false);
         // Remove-member roster action, or self-delete (Phase 6 delete-account leaving every non-Leader
         // project) — never the Leader either way.
@@ -280,7 +283,9 @@ service cloud.firestore {
               (canApproveRequests(projectId, request.resource.data.toUid) &&
                 (request.resource.data.kind == 'DROP_REQUEST' ||
                   (request.resource.data.kind == 'TRANSFER_REQUEST' &&
-                    exists(/databases/$(database)/documents/projects/$(projectId)/members/$(request.resource.data.targetUid))))));
+                    exists(/databases/$(database)/documents/projects/$(projectId)/members/$(request.resource.data.targetUid)) &&
+                    request.resource.data.targetDisplayName ==
+                      get(/databases/$(database)/documents/projects/$(projectId)/members/$(request.resource.data.targetUid)).data.displayName))));
           // Only the offered toUid may accept/decline, and only while still OFFERED.
           allow update: if isMember(projectId) && !isArchived(projectId) &&
             resource.data.status == 'OFFERED' &&

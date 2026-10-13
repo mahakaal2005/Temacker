@@ -575,6 +575,34 @@ describe("projects/{projectId}/members/{userId}", () => {
       );
     });
 
+    const joinAs = (extraPermissions) => asOutsider().collection(members()).doc(OUTSIDER_UID).set({
+      userId: OUTSIDER_UID, roleId: DEFAULT_ROLE_ID, roleName: "Default", permissions: noPermissions(),
+      displayName: "Joiner", photoUrl: null, joinedAt: Date.now(), isLeader: false, ...roleStamp(LEADER_UID), extraPermissions
+    });
+
+    test("joining with an all-false extras map (what the app writes) is allowed", async () => {
+      await assertSucceeds(joinAs(noPermissions()));
+    });
+
+    test("a joiner cannot grant themselves extras", async () => {
+      await assertFails(joinAs({ ...noPermissions(), manageRoles: true, deleteProject: true }));
+    });
+
+    test("reassigning a role cannot change extras on the side", async () => {
+      await assertFails(
+        asLeader().collection(members()).doc(MEMBER_UID).update({
+          roleId: "role-manager", roleName: "Manager", permissions: managerPermissions(), isLeader: false,
+          ...roleStamp(LEADER_UID), extraPermissions: { ...noPermissions(), deleteProject: true }
+        })
+      );
+    });
+
+    test("extras cannot carry unknown permission keys", async () => {
+      await assertFails(
+        asLeader().collection(members()).doc(MEMBER_UID).update({ extraPermissions: { ...noPermissions(), isLeader: true } })
+      );
+    });
+
     test("an extra assignTasks lets a member create a task", async () => {
       await testEnv.withSecurityRulesDisabled(async (ctx) => {
         await ctx.firestore().collection(members()).doc(MEMBER_UID).update({ extraPermissions: { ...noPermissions(), assignTasks: true } });
@@ -1129,6 +1157,12 @@ describe("projects/{projectId}/tasks/{taskId}/handoffs/{handoffId}", () => {
     test("a transfer request naming a non-member target is denied", async () => {
       await assertFails(
         asMember().collection(handoffs()).doc("req-bad2").set(request("TRANSFER_REQUEST", { targetUid: OUTSIDER_UID, targetDisplayName: "Outsider" }))
+      );
+    });
+
+    test("a transfer request whose target name does not match the target member is denied", async () => {
+      await assertFails(
+        asMember().collection(handoffs()).doc("req-bad4").set(request("TRANSFER_REQUEST", { targetUid: LEADER_UID, targetDisplayName: "Someone Else" }))
       );
     });
 
