@@ -23,7 +23,6 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -66,8 +65,8 @@ class OfflineFirstProjectRepository(
     override suspend fun syncUserProjects(): EmptyResult<DataError> {
         val uid = sessionManager.getUid() ?: return Result.Error(DataError.Network.UNAUTHORIZED)
         return try {
-            // Cache-served snapshots can be empty on a fresh install, so only a server answer counts.
-            val snapshot = withTimeoutOrNull(SYNC_TIMEOUT_MS) { remote.observeUserProjects(uid).first { it.isAuthoritative } }
+            // The cache can be empty on a fresh install, so ask the server directly.
+            val snapshot = withTimeoutOrNull(SYNC_TIMEOUT_MS) { remote.fetchUserProjects(uid) }
                 ?: return Result.Error(DataError.Network.REQUEST_TIMEOUT)
             cacheSnapshot(uid, snapshot)
             Result.Success(Unit)
