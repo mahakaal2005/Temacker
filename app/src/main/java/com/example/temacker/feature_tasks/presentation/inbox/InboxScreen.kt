@@ -37,6 +37,9 @@ import com.example.temacker.core.presentation.util.ObserveAsEvents
 import com.example.temacker.core.presentation.util.UiText
 import org.koin.androidx.compose.koinViewModel
 import com.example.temacker.core.presentation.components.SkeletonList
+import com.example.temacker.core.presentation.switcher.ProjectSwitcherAction
+import com.example.temacker.core.presentation.switcher.ProjectSwitcherState
+import com.example.temacker.core.presentation.switcher.ProjectSwitcherViewModel
 
 @Composable
 fun InboxRoot(
@@ -46,9 +49,11 @@ fun InboxRoot(
     onNavigateToIncoming: (String, String) -> Unit,
     onNavigateToTaskDetail: (String) -> Unit,
     onNavigateToSwitchProject: () -> Unit,
-    viewModel: InboxViewModel = koinViewModel()
+    viewModel: InboxViewModel = koinViewModel(),
+    switcherViewModel: ProjectSwitcherViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val switcherState by switcherViewModel.state.collectAsStateWithLifecycle()
 
     ObserveAsEvents(viewModel.events) { event ->
         when (event) {
@@ -63,7 +68,9 @@ fun InboxRoot(
         onNavigateToBoard = onNavigateToBoard,
         onNavigateToTeam = onNavigateToTeam,
         onNavigateToYou = onNavigateToYou,
-        onNavigateToSwitchProject = onNavigateToSwitchProject
+        onNavigateToSwitchProject = onNavigateToSwitchProject,
+        switcher = switcherState,
+        onSwitcherAction = switcherViewModel::onAction
     )
 }
 
@@ -74,7 +81,9 @@ fun InboxScreen(
     onNavigateToBoard: () -> Unit,
     onNavigateToTeam: () -> Unit,
     onNavigateToYou: () -> Unit,
-    onNavigateToSwitchProject: () -> Unit
+    onNavigateToSwitchProject: () -> Unit,
+    switcher: ProjectSwitcherState = ProjectSwitcherState(),
+    onSwitcherAction: (ProjectSwitcherAction) -> Unit = {}
 ) {
     AppScaffold(
         selected = AppDestination.INBOX,
@@ -91,7 +100,11 @@ fun InboxScreen(
                 projectName = state.projectSummary?.name,
                 metaLine = state.projectSummary?.let { "${memberCountLabel(it.memberCount)} · ${it.roleName}" },
                 hasOtherProjects = state.projectSummary?.hasOtherProjects ?: false,
-                onClick = onNavigateToSwitchProject
+                onClick = onNavigateToSwitchProject,
+                previousProjectName = switcher.previous?.name,
+                nextProjectName = switcher.next?.name,
+                onSwipeToPrevious = { onSwitcherAction(ProjectSwitcherAction.OnSwipeToPrevious) },
+                onSwipeToNext = { onSwitcherAction(ProjectSwitcherAction.OnSwipeToNext) }
             )
         }
     ) { padding ->

@@ -14,7 +14,8 @@ interface ProjectDao {
     fun observeByIds(ids: List<String>): Flow<List<ProjectEntity>>
 
     // Succession archives the old project cycle — active screens observe this, not observeByIds.
-    @Query("SELECT * FROM projects WHERE id IN (:ids) AND isArchived = 0")
+    // Ordered so Switch project and the pill's swipe share one stable line; upserts reshuffle row order otherwise.
+    @Query("SELECT * FROM projects WHERE id IN (:ids) AND isArchived = 0 ORDER BY createdAt, id")
     fun observeActiveByIds(ids: List<String>): Flow<List<ProjectEntity>>
 
     @Query("SELECT * FROM projects WHERE id = :id")

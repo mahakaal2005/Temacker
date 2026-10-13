@@ -82,6 +82,9 @@ import com.example.temacker.core.presentation.util.UiText
 import org.koin.androidx.compose.koinViewModel
 import com.example.temacker.core.presentation.components.LoadingState
 import androidx.compose.material.icons.rounded.Person
+import com.example.temacker.core.presentation.switcher.ProjectSwitcherAction
+import com.example.temacker.core.presentation.switcher.ProjectSwitcherState
+import com.example.temacker.core.presentation.switcher.ProjectSwitcherViewModel
 
 @Composable
 fun ProfileRoot(
@@ -93,9 +96,11 @@ fun ProfileRoot(
     onNavigateToSwitchProject: () -> Unit,
     onNavigateToYourData: () -> Unit,
     onNavigateToPlanLimits: () -> Unit,
-    viewModel: ProfileViewModel = koinViewModel()
+    viewModel: ProfileViewModel = koinViewModel(),
+    switcherViewModel: ProjectSwitcherViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val switcherState by switcherViewModel.state.collectAsStateWithLifecycle()
 
     ObserveAsEvents(viewModel.events) { event ->
         when (event) {
@@ -112,7 +117,9 @@ fun ProfileRoot(
         onNavigateToTeam = onNavigateToTeam,
         onNavigateToSwitchProject = onNavigateToSwitchProject,
         onNavigateToYourData = onNavigateToYourData,
-        onNavigateToPlanLimits = onNavigateToPlanLimits
+        onNavigateToPlanLimits = onNavigateToPlanLimits,
+        switcher = switcherState,
+        onSwitcherAction = switcherViewModel::onAction
     )
 }
 
@@ -125,7 +132,9 @@ fun ProfileScreen(
     onNavigateToTeam: () -> Unit,
     onNavigateToSwitchProject: () -> Unit,
     onNavigateToYourData: () -> Unit,
-    onNavigateToPlanLimits: () -> Unit
+    onNavigateToPlanLimits: () -> Unit,
+    switcher: ProjectSwitcherState = ProjectSwitcherState(),
+    onSwitcherAction: (ProjectSwitcherAction) -> Unit = {}
 ) {
     AppScaffold(
         selected = AppDestination.YOU,
@@ -142,7 +151,11 @@ fun ProfileScreen(
                 projectName = state.projectName.ifBlank { null },
                 metaLine = state.projectName.takeIf { it.isNotBlank() }?.let { "${memberCountLabel(state.memberCount)} · ${state.roleName.ifBlank { "Member" }}" },
                 hasOtherProjects = state.hasOtherProjects,
-                onClick = onNavigateToSwitchProject
+                onClick = onNavigateToSwitchProject,
+                previousProjectName = switcher.previous?.name,
+                nextProjectName = switcher.next?.name,
+                onSwipeToPrevious = { onSwitcherAction(ProjectSwitcherAction.OnSwipeToPrevious) },
+                onSwipeToNext = { onSwitcherAction(ProjectSwitcherAction.OnSwipeToNext) }
             )
         }
     ) { padding ->

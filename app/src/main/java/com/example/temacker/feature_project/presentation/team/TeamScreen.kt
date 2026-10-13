@@ -52,6 +52,9 @@ import com.example.temacker.feature_project.presentation.stuck.StuckState
 import com.example.temacker.feature_project.presentation.stuck.StuckTabContent
 import com.example.temacker.feature_project.presentation.stuck.StuckViewModel
 import org.koin.androidx.compose.koinViewModel
+import com.example.temacker.core.presentation.switcher.ProjectSwitcherAction
+import com.example.temacker.core.presentation.switcher.ProjectSwitcherState
+import com.example.temacker.core.presentation.switcher.ProjectSwitcherViewModel
 
 enum class TeamTab(val label: String) {
     ROSTER("Roster"), LOAD("Load"), STUCK("Stuck"), PULSE("Pulse")
@@ -69,12 +72,14 @@ fun TeamRoot(
     rosterViewModel: RosterViewModel = koinViewModel(),
     loadViewModel: LoadViewModel = koinViewModel(),
     stuckViewModel: StuckViewModel = koinViewModel(),
-    pulseViewModel: PulseViewModel = koinViewModel()
+    pulseViewModel: PulseViewModel = koinViewModel(),
+    switcherViewModel: ProjectSwitcherViewModel = koinViewModel()
 ) {
     val rosterState by rosterViewModel.state.collectAsStateWithLifecycle()
     val loadState by loadViewModel.state.collectAsStateWithLifecycle()
     val stuckState by stuckViewModel.state.collectAsStateWithLifecycle()
     val pulseState by pulseViewModel.state.collectAsStateWithLifecycle()
+    val switcherState by switcherViewModel.state.collectAsStateWithLifecycle()
     val clipboard = LocalClipboardManager.current
 
     ObserveAsEvents(rosterViewModel.events) { event ->
@@ -102,7 +107,9 @@ fun TeamRoot(
         onNavigateToInbox = onNavigateToInbox,
         onNavigateToYou = onNavigateToYou,
         onNavigateToSuccession = onNavigateToSuccession,
-        onNavigateToSwitchProject = onNavigateToSwitchProject
+        onNavigateToSwitchProject = onNavigateToSwitchProject,
+        switcher = switcherState,
+        onSwitcherAction = switcherViewModel::onAction
     )
 }
 
@@ -120,7 +127,9 @@ fun TeamScreen(
     onNavigateToInbox: () -> Unit,
     onNavigateToYou: () -> Unit,
     onNavigateToSuccession: () -> Unit,
-    onNavigateToSwitchProject: () -> Unit
+    onNavigateToSwitchProject: () -> Unit,
+    switcher: ProjectSwitcherState = ProjectSwitcherState(),
+    onSwitcherAction: (ProjectSwitcherAction) -> Unit = {}
 ) {
     var selectedTab by rememberSaveable { mutableStateOf(TeamTab.ROSTER) }
 
@@ -140,6 +149,10 @@ fun TeamScreen(
                 metaLine = "${memberCountLabel(rosterState.members.size)} · ${if (rosterState.isLeader) "Leader" else "Member"}",
                 hasOtherProjects = rosterState.hasOtherProjects,
                 onClick = onNavigateToSwitchProject,
+                previousProjectName = switcher.previous?.name,
+                nextProjectName = switcher.next?.name,
+                onSwipeToPrevious = { onSwitcherAction(ProjectSwitcherAction.OnSwipeToPrevious) },
+                onSwipeToNext = { onSwitcherAction(ProjectSwitcherAction.OnSwipeToNext) },
                 trailing = {
                     // Leader-only affordance — SuccessionScreen re-checks isLeader itself and
                     // bounces back if it ever gets reached by anyone else (see plan §6). Moved from a

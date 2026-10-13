@@ -80,6 +80,9 @@ import org.koin.androidx.compose.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.example.temacker.core.presentation.switcher.ProjectSwitcherAction
+import com.example.temacker.core.presentation.switcher.ProjectSwitcherState
+import com.example.temacker.core.presentation.switcher.ProjectSwitcherViewModel
 
 @Composable
 fun BoardRoot(
@@ -92,9 +95,11 @@ fun BoardRoot(
     onNavigateToIncoming: (String, String) -> Unit,
     onNavigateToQueue: () -> Unit,
     onNavigateToSwitchProject: () -> Unit,
-    viewModel: BoardViewModel = koinViewModel()
+    viewModel: BoardViewModel = koinViewModel(),
+    switcherViewModel: ProjectSwitcherViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val switcherState by switcherViewModel.state.collectAsStateWithLifecycle()
 
     ObserveAsEvents(viewModel.events) { event ->
         when (event) {
@@ -112,7 +117,9 @@ fun BoardRoot(
         onNavigateToInbox = onNavigateToInbox,
         onNavigateToTeam = onNavigateToTeam,
         onNavigateToYou = onNavigateToYou,
-        onNavigateToSwitchProject = onNavigateToSwitchProject
+        onNavigateToSwitchProject = onNavigateToSwitchProject,
+        switcher = switcherState,
+        onSwitcherAction = switcherViewModel::onAction
     )
 }
 
@@ -123,7 +130,9 @@ fun BoardScreen(
     onNavigateToInbox: () -> Unit,
     onNavigateToTeam: () -> Unit,
     onNavigateToYou: () -> Unit,
-    onNavigateToSwitchProject: () -> Unit
+    onNavigateToSwitchProject: () -> Unit,
+    switcher: ProjectSwitcherState = ProjectSwitcherState(),
+    onSwitcherAction: (ProjectSwitcherAction) -> Unit = {}
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     // Undo is offered while the notice is showing; either way the notice is cleared afterwards.
@@ -154,6 +163,10 @@ fun BoardScreen(
                 metaLine = state.projectSummary?.let { "${memberCountLabel(it.memberCount)} · ${it.roleName}" },
                 hasOtherProjects = state.projectSummary?.hasOtherProjects ?: false,
                 onClick = onNavigateToSwitchProject,
+                previousProjectName = switcher.previous?.name,
+                nextProjectName = switcher.next?.name,
+                onSwipeToPrevious = { onSwitcherAction(ProjectSwitcherAction.OnSwipeToPrevious) },
+                onSwipeToNext = { onSwitcherAction(ProjectSwitcherAction.OnSwipeToNext) },
                 trailing = {
                     if (state.canImportTasks) {
                         TmkOverflowMenu(contentDescription = "Board actions") { dismiss ->

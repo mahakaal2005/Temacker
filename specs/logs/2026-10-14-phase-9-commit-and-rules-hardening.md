@@ -48,3 +48,9 @@
 ## Loading states
 - User asked for loading screens that say what is happening. `LoadingState(icon, title, body)` and `SkeletonList(caption)` are in `core/presentation/components/LoadingState.kt`, with a 400 ms text delay, a 6 s slow-connection hint, a polite live region, and reduced-motion support. Rolled out to the gate, 9 detail screens and 8 list screens. InvitedFirstRun's loading moved outside its scroll so it centres.
 - Noticed, not fixed (rule 14): deprecated `Icons.Rounded.Send` (PulseScreen) and `Icons.Rounded.Assignment` (BoardScreen) warnings, both pre-existing.
+
+## Swipe the pill to switch projects
+- Spec: follow-up section in `phase-5b-project-switcher.md`. The user chose a bounce at the ends (no wrap-around) and a peek of the neighbour while dragging. They approved the first ViewModel in core (`core/presentation/switcher/ProjectSwitcherViewModel`, which uses only `CurrentProjectProvider` and `SelectedProjectStore`), and the architecture spec §4 now notes the allowance.
+- `SwitcherPill` gained `previousProjectName`/`nextProjectName` and the swipe callbacks. Faces slide via `graphicsLayer`, a custom `Layout` sizes the slot to the current face only, a release past 40% or a fling commits, there's a tick haptic, and TalkBack gets custom actions. If the new name hasn't arrived after 4 s, it slides back. Wired into Board, Inbox, Team and You.
+- Bug found on device: the peek promised one project and the switch landed on another. `ProjectDao.observeActiveByIds` had no ORDER BY, and Room's REPLACE upserts reshuffle row order, so the project order drifted between emissions (the Switch project list too). Fixed with `ORDER BY createdAt, id` (query only, no migration).
+- Verified on RZCWA28EAZF: up/down switches in under 0.5 s with the pill and board agreeing, swiping up on the last project bounces and stays, and Team switches too. 6 new ViewModel tests, 88/88 overall.

@@ -239,6 +239,8 @@ Per-layer allowances in this single module:
 | `feature_x/domain` | `core/domain` only — **never** `data` or `presentation` |
 | `App.kt` / `di` | everything (it wires the graph) |
 
+`core/presentation` may hold a ViewModel only when several features render the same stateful control and it depends solely on `core/domain` contracts (first case: `switcher/ProjectSwitcherViewModel`, approved 2026-10-14, see phase-5b-project-switcher.md).
+
 **Features never import each other.** If `feature_tasks` needs to know the user is logged in, it
 does **not** import `feature_auth`. It depends on a shared contract in `core/domain`
 (`SessionManager`), whose implementation lives in `core/data`. See §8.

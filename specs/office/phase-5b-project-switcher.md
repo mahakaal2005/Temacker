@@ -163,3 +163,19 @@ gated) or to `CreateProjectRoute`'s reachability.
 
 Mark this phase complete here, tick it off in `specs/office/progress.md`, and log the session in
 `specs/logs/` (CLAUDE.md rule 4).
+
+## Follow-up: swipe the pill to switch projects (agreed 2026-10-14)
+Tapping the pill still opens Switch project. In addition, a vertical swipe on the pill switches one project at a time, in the same order as the Switch project list (`observeUserProjects()`).
+
+- **Swipe up:** go to the next project. **Swipe down:** go to the previous one.
+- **While dragging:** the current project slides with the finger, and the neighbour's tile and name slide in behind it, like a slot machine.
+- **Release:** a release past roughly 40% of the pill's height, or a fling, switches. A shorter drag springs back.
+- **At the ends:** there is no wrap-around. Dragging toward a missing neighbour rubber-bands and springs back.
+- **Feedback:** a tick haptic on a successful switch. Reduced motion snaps instead of animating.
+- **Accessibility:** custom actions "Next project: X" and "Previous project: Y".
+- **Where:** all four pill screens, Board, Inbox, Team and You.
+
+### Architecture (approved deviation, rule 2)
+- **The ViewModel:** `core/presentation/switcher/ProjectSwitcherViewModel` is the first ViewModel in core. It depends only on the core contracts `CurrentProjectProvider` (`observeUserProjectRefs`, `observeCurrentProjectId`) and `SelectedProjectStore`, and is bound in `CoreModule`.
+- **Why core:** the four screens live in three features, which can't import each other.
+- **The screens:** each Root gets it from Koin and passes `ProjectSwitcherState` plus `onSwitcherAction` to its stateless Screen. `SwitcherPill` stays stateless; it takes the neighbours' names and swipe callbacks.
