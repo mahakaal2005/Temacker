@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.rounded.Badge
+import androidx.compose.material.icons.rounded.Policy
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.automirrored.rounded.ExitToApp
@@ -29,6 +30,7 @@ import com.example.temacker.core.presentation.designsystem.TealInk
 import com.example.temacker.core.presentation.designsystem.TealWash
 import com.example.temacker.core.presentation.designsystem.White
 import android.content.Intent
+import android.net.Uri
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -85,6 +87,9 @@ import androidx.compose.material.icons.rounded.Person
 import com.example.temacker.core.presentation.switcher.ProjectSwitcherAction
 import com.example.temacker.core.presentation.switcher.ProjectSwitcherState
 import com.example.temacker.core.presentation.switcher.ProjectSwitcherViewModel
+
+// Hosted on Firebase Hosting; Play requires it reachable from inside the app.
+private const val PRIVACY_POLICY_URL = "https://temacker-a0252.web.app/privacy"
 
 @Composable
 fun ProfileRoot(
@@ -235,6 +240,14 @@ fun ProfileScreen(
                                 leading = { IconBadge(Icons.Rounded.Speed, Ink500, NeutralWash) },
                                 trailing = { RowChevron() },
                                 onClick = onNavigateToPlanLimits
+                            )
+                            InsetDivider()
+                            ListRow(
+                                headline = "Privacy policy",
+                                supporting = "What we collect and why",
+                                leading = { IconBadge(Icons.Rounded.Policy, Ink500, NeutralWash) },
+                                trailing = { RowChevron() },
+                                onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_POLICY_URL))) }
                             )
                         }
 
