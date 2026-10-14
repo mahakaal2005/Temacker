@@ -281,6 +281,14 @@ named exception (visuals only). Not started.
 - [x] Loading states that say what is happening (2026-10-14): `LoadingState(icon, title, body)` on the gate and 9 detail screens, and a captioned `SkeletonList` on 8 list screens, both with a 6 s slow-connection hint.
 - [x] Swipe the project pill to switch projects (2026-10-14): up for next, down for previous, peek while dragging, a bounce at the ends; shared `core/presentation/switcher/ProjectSwitcherViewModel` (approved deviation); project order is now stable (`ORDER BY createdAt, id`). Device-verified on Board and Team.
 
+## Play Store release (2026-10-14)
+- [x] Release setup: `com.temacker.app`, upload key, R8 with the mapping in the bundle, versionCode 2, no AD_ID; debug, upload and Play app-signing SHA-1s all registered in Firebase.
+- [x] Privacy and account-deletion pages on Firebase Hosting; an in-app "Privacy policy" row on the You tab.
+- [x] Play Console: all App content declarations, store listing (text, icon, feature graphic, 4 screenshots), store settings.
+- [x] Closed test (Alpha, India) with Google Group `temacker-testers@googlegroups.com` as testers; submitted for Google review 2026-10-14.
+- [ ] Review approved, then share the group link and the opt-in link with testers.
+- [ ] 12+ testers opted in for 14 days, then apply for production access, then open testing.
+
 ## Deferred
 - [ ] **Phase 9 — task assignment, JSON import, drop/transfer requests, extra permissions** (spec approved 2026-09-26: `specs/office/phase-9-task-assignment.md`). Groups: [x] A permissions plumbing, [x] B Leader assigns/reassigns, [x] C JSON import, [x] D drop/transfer requests. Code, unit tests and emulator rules tests done 2026-09-26 (17 Jest). Rules hardened 2026-10-14 after a security review: joiners can no longer self-grant extras, role reassignment cannot touch extras, extras accept only known keys, and a transfer target name must match the target member (133 rules tests); Rules and indexes deployed to `temacker-a0252` 2026-10-14 (functions were already live, deploy skipped them as unchanged); NOT yet device-verified. Deviations: JSON matches assignee by display name (member docs store no email); unmatched assignees go to the importer (no unassigned tasks); "assigned to you" push not built. Known pre-existing gap: task rules let any member take a task via the accept branch.
 
