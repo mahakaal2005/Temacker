@@ -80,3 +80,8 @@
   - a 1024×500 feature graphic built from brand tokens
   - Still needed: two or more phone screenshots, which need the phone on adb.
 - In-app "Privacy policy" row on the You tab opens the hosted page (`36e18c6`).
+- The user solved the CAPTCHA, so the group exists. Closed testing testers are set to the group, with feedback going to the user's Gmail.
+- Store listing: 4 phone screenshots (Board, Task, Team and You, cropped to 1080×2160 for Play's 2:1 limit), taken with adb on RZCWA28EAZF from the reviewer account. Only the feature graphic is labelled as made with AI, because Claude wrote the code that drew it.
+- The category had not saved the first time because the dialog's Save was never clicked. It is now saved as Productivity.
+- The release preview has no errors, only the native-symbols warning. The release is saved, and Publishing overview has 14 changes ready to submit, waiting on the user's OK.
+- Play's app-signing SHA-1 is now registered in Firebase (3 SHA-1s: debug, upload and Play signing).
