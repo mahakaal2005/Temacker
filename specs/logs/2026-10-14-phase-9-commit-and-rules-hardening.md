@@ -59,3 +59,24 @@
 - Free Firebase Hosting on `temacker-a0252`: `hosting/public/` (index, privacy, delete-account, style.css), with `firebase.json` hosting config and `cleanUrls`. Deployed by the user's go-ahead with `firebase deploy --only hosting --project temacker-a0252`.
 - Live: https://temacker-a0252.web.app/privacy and https://temacker-a0252.web.app/delete-account (both return 200).
 - Content was checked against the code: account deletion removes the Auth user, memberships and this device's FCM token, and wipes local data; it is blocked for Leaders. Contact is the user's personal Gmail for now; the user plans to change it later.
+
+## Play Console setup
+- App content is all done (Play shows "You're all caught up"). Data safety's per-type answers had not been saved before, so all 9 were filled again and submitted:
+  - Name, email and other info (the profile photo link): app functionality and account management.
+  - User IDs: the same plus analytics, because the uid is set as the Crashlytics/Analytics user ID.
+  - Other user-generated content: app functionality.
+  - App interactions, crash logs and diagnostics: analytics.
+  - Device IDs (FCM token and app instance ID): app functionality and analytics.
+  - Every type is collected, not shared, not ephemeral, and required.
+- Open testing is locked until production access. New personal accounts need a closed test with at least 12 testers for 14 days first. The user chose a closed test with a Google Group, so testers join without handing over their emails. The group is `temacker-testers@googlegroups.com`: anyone can join, only the owner can post, and only the owner sees the member list. It is waiting on a CAPTCHA the user has to solve.
+- Closed testing (Alpha):
+  - India is targeted.
+  - The release has versionCode 2 (uploaded from this machine) and release notes.
+  - Saved as a draft. It can't be sent until the testers and the store listing screenshots are in.
+- Store settings: category is Productivity; contact is the user's Gmail and https://temacker-a0252.web.app.
+- Default store listing (draft):
+  - name, short and full description
+  - a 512 icon rendered from the adaptive-icon vectors
+  - a 1024×500 feature graphic built from brand tokens
+  - Still needed: two or more phone screenshots, which need the phone on adb.
+- In-app "Privacy policy" row on the You tab opens the hosted page (`36e18c6`).
