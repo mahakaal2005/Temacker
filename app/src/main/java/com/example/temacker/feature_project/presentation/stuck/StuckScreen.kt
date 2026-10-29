@@ -1,6 +1,5 @@
 package com.example.temacker.feature_project.presentation.stuck
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,7 +9,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -26,6 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.temacker.core.domain.model.StuckHandoff
 import com.example.temacker.core.presentation.components.ChipTone
 import com.example.temacker.core.presentation.components.EmptyState
+import com.example.temacker.core.presentation.components.SkeletonList
 import com.example.temacker.core.presentation.components.StatusChip
 import com.example.temacker.core.presentation.designsystem.Ink500
 import com.example.temacker.core.presentation.designsystem.Line
@@ -63,13 +62,7 @@ fun StuckTabContent(
             }
 
             when {
-                state.isLoading -> Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
+                state.isLoading -> SkeletonList(caption = "Looking for stuck tasks…")
                 state.stuckHandoffs.isEmpty() -> EmptyState(
                     icon = Icons.Rounded.Schedule,
                     title = "Nothing's been sitting unanswered",

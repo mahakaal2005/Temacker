@@ -39,6 +39,7 @@ class RosterViewModel(
     private val removeMember: RemoveMemberUseCase,
     private val reassignMemberRole: ReassignMemberRoleUseCase,
     private val transferLeadership: TransferLeadershipUseCase,
+    private val setMemberExtraPermissions: com.example.temacker.feature_project.domain.use_case.SetMemberExtraPermissionsUseCase,
     private val currentProjectProvider: CurrentProjectProvider
 ) : ViewModel() {
 
@@ -97,9 +98,9 @@ class RosterViewModel(
                     .onSuccess { membership ->
                         _state.update {
                             it.copy(
-                                canManageInvite = membership?.permissions?.manageInviteCode == true,
-                                canRemoveMembers = membership?.permissions?.removeMembers == true,
-                                canManageRoles = membership?.permissions?.manageRoles == true,
+                                canManageInvite = membership?.effectivePermissions?.manageInviteCode == true,
+                                canRemoveMembers = membership?.effectivePermissions?.removeMembers == true,
+                                canManageRoles = membership?.effectivePermissions?.manageRoles == true,
                                 isLeader = membership?.isLeader == true
                             )
                         }
@@ -142,6 +143,15 @@ class RosterViewModel(
                 _state.update { it.copy(reassignTargetUserId = null) }
                 viewModelScope.launch {
                     reassignMemberRole(projectId, targetUserId, action.roleId)
+                        .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
+                }
+            }
+            is RosterAction.OnExtraPermissionsClick -> _state.update { it.copy(menuForUserId = null, extrasTargetUserId = action.userId) }
+            RosterAction.OnDismissExtras -> _state.update { it.copy(extrasTargetUserId = null) }
+            is RosterAction.OnExtrasChanged -> {
+                val targetUserId = _state.value.extrasTargetUserId ?: return
+                viewModelScope.launch {
+                    setMemberExtraPermissions(projectId, targetUserId, action.extras)
                         .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
                 }
             }

@@ -16,6 +16,10 @@ data class UserProjectsSnapshot(
 
 interface ProjectRemoteDataSource {
     fun observeUserProjects(userId: String): Flow<UserProjectsSnapshot>
+
+    // One read straight from the server; throws when offline instead of answering from cache.
+    suspend fun fetchUserProjects(userId: String): UserProjectsSnapshot
+
     fun observeProject(projectId: String): Flow<Project?>
 
     // Creates the project, its immutable Leader role, an initial Default role, and the creator's

@@ -1,6 +1,6 @@
 package com.example.temacker.feature_tasks.domain.model
 
-enum class EventType { TASK_CREATED, TASK_DELETED, HANDOFF_OFFERED, HANDOFF_ACCEPTED, HANDOFF_DECLINED, TASK_MARKED_DONE }
+enum class EventType { TASK_CREATED, TASK_DELETED, HANDOFF_OFFERED, HANDOFF_ACCEPTED, HANDOFF_DECLINED, TASK_MARKED_DONE, TASK_REASSIGNED }
 
 data class Event(
     val id: String,

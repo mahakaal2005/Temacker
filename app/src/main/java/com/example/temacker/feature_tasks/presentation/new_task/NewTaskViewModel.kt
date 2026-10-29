@@ -8,6 +8,7 @@ import com.example.temacker.core.presentation.util.toUiText
 import com.example.temacker.feature_tasks.domain.use_case.CreateTaskUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveCurrentProjectIdUseCase
 import com.example.temacker.feature_tasks.domain.use_case.ObserveCurrentProjectMemberUseCase
+import com.example.temacker.feature_tasks.domain.use_case.ObserveProjectMembersUseCase
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +20,7 @@ import kotlinx.coroutines.launch
 class NewTaskViewModel(
     private val observeCurrentProjectId: ObserveCurrentProjectIdUseCase,
     private val observeCurrentProjectMember: ObserveCurrentProjectMemberUseCase,
+    private val observeProjectMembers: ObserveProjectMembersUseCase,
     private val createTask: CreateTaskUseCase
 ) : ViewModel() {
 
@@ -28,10 +30,21 @@ class NewTaskViewModel(
     private val _events = Channel<NewTaskEvent>()
     val events = _events.receiveAsFlow()
 
+    init {
+        // Only assignTasks holders see the assignee picker; everyone else creates for themselves.
+        viewModelScope.launch {
+            val projectId = (observeCurrentProjectId().first() as? Result.Success)?.data ?: return@launch
+            val me = (observeCurrentProjectMember(projectId).first() as? Result.Success)?.data
+            val members = (observeProjectMembers(projectId).first() as? Result.Success)?.data.orEmpty()
+            _state.update { it.copy(canAssign = me?.canAssignTasks == true, members = members) }
+        }
+    }
+
     fun onAction(action: NewTaskAction) {
         when (action) {
             is NewTaskAction.OnTitleChange -> _state.update { it.copy(title = action.value, error = null) }
             is NewTaskAction.OnDescriptionChange -> _state.update { it.copy(description = action.value) }
+            is NewTaskAction.OnAssigneeSelected -> _state.update { it.copy(assigneeUid = action.uid) }
             is NewTaskAction.OnDueDateSelected -> _state.update { it.copy(dueDate = action.value) }
             NewTaskAction.OnCreateClick -> create()
             NewTaskAction.OnBackClick -> viewModelScope.launch { _events.send(NewTaskEvent.NavigateBack) }
@@ -55,13 +68,14 @@ class NewTaskViewModel(
             return@launch
         }
 
+        val assignee = _state.value.members.firstOrNull { it.uid == _state.value.assigneeUid } ?: member
         createTask(
             projectId = projectId,
             title = title,
             description = _state.value.description.trim().ifBlank { null },
             dueDate = _state.value.dueDate,
-            holderUid = member.uid,
-            holderDisplayName = member.displayName,
+            holderUid = assignee.uid,
+            holderDisplayName = assignee.displayName,
             createdByDisplayName = member.displayName
         ).let { result ->
             when (result) {

@@ -10,6 +10,9 @@ sealed interface RosterAction {
     data class OnRemoveMemberClick(val userId: String) : RosterAction
     data class OnReassignRoleClick(val userId: String) : RosterAction
     data object OnDismissReassignSheet : RosterAction
+    data class OnExtraPermissionsClick(val userId: String) : RosterAction
+    data class OnExtrasChanged(val extras: com.example.temacker.feature_project.domain.model.RolePermissions) : RosterAction
+    data object OnDismissExtras : RosterAction
     data class OnMakeLeaderClick(val userId: String) : RosterAction
     data object OnConfirmTransferLeadership : RosterAction
     data object OnDismissTransferDialog : RosterAction

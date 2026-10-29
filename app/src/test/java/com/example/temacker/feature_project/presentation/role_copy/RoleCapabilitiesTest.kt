@@ -25,22 +25,29 @@ class RoleCapabilitiesTest {
     @Test
     fun `no permissions grants nothing and misses everything`() {
         assertThat(RolePermissions.NONE.grantedCapabilities()).isEmpty()
-        assertThat(RolePermissions.NONE.missingCapabilities()).containsExactlyInAnyOrder(*Capability.entries.toTypedArray())
+        assertThat(RolePermissions.NONE.missingCapabilities()).containsExactlyInAnyOrder(*PermissionInfo.entries.toTypedArray())
     }
 
     @Test
     fun `leader grants everything and misses nothing`() {
-        assertThat(RolePermissions.ALL_GRANTED.grantedCapabilities()).containsExactlyInAnyOrder(*Capability.entries.toTypedArray())
+        assertThat(RolePermissions.ALL_GRANTED.grantedCapabilities()).containsExactlyInAnyOrder(*PermissionInfo.entries.toTypedArray())
         assertThat(RolePermissions.ALL_GRANTED.missingCapabilities()).isEmpty()
     }
 
     @Test
     fun `each flag maps to its own capability`() {
         val role = RolePermissions(manageRoles = true, assignTasks = true)
-        assertThat(role.grantedCapabilities()).containsExactly(Capability.CHANGE_ROLES, Capability.CREATE_TASKS)
-        assertThat(role.missingCapabilities()).containsExactly(
-            Capability.INVITE_MEMBERS, Capability.REMOVE_MEMBERS, Capability.DELETE_TASKS
+        assertThat(role.grantedCapabilities()).containsExactly(PermissionInfo.CHANGE_ROLES, PermissionInfo.ASSIGN_TASKS)
+        assertThat(role.missingCapabilities().size).isEqualTo(PermissionInfo.entries.size - 2)
+    }
+
+    @Test
+    fun `added extras skip what the role already gives and never include delete project`() {
+        val m = member().copy(
+            permissions = RolePermissions(assignTasks = true),
+            extraPermissions = RolePermissions(assignTasks = true, importTasks = true, deleteProject = true)
         )
+        assertThat(m.addedExtras()).containsExactly(PermissionInfo.IMPORT_TASKS)
     }
 
     @Test

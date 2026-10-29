@@ -14,9 +14,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.temacker.core.presentation.components.LoadingState
 import com.example.temacker.core.presentation.designsystem.AmberInk
 import com.example.temacker.core.presentation.designsystem.AmberWash
 import com.example.temacker.core.presentation.designsystem.Ink500
@@ -92,9 +93,7 @@ fun PlanLimitsScreen(state: PlanLimitsState, onAction: (PlanLimitsAction) -> Uni
             }
 
             if (state.isLoading) {
-                Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
+                LoadingState(icon = Icons.Rounded.Speed, title = "Loading plan & limits", body = "Counting tasks and members…")
             } else {
                 Column(
                     modifier = Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),

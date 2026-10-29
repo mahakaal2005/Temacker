@@ -8,5 +8,8 @@ data class ProjectMember(
     val photoUrl: String?,
     val roleName: String,
     val canAssignTasks: Boolean,
-    val canEditAnyTask: Boolean
+    val canEditAnyTask: Boolean,
+    val canImportTasks: Boolean = false,
+    val canApproveTaskRequests: Boolean = false,
+    val isLeader: Boolean = false
 )

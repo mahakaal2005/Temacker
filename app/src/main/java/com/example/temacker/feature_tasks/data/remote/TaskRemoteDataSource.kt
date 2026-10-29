@@ -5,6 +5,7 @@ import com.example.temacker.core.domain.util.EmptyResult
 import com.example.temacker.core.domain.util.Result
 import com.example.temacker.feature_tasks.domain.model.Event
 import com.example.temacker.feature_tasks.domain.model.Handoff
+import com.example.temacker.feature_tasks.domain.model.HandoffKind
 import com.example.temacker.feature_tasks.domain.model.HandoffStatus
 import com.example.temacker.feature_tasks.domain.model.Task
 import kotlinx.coroutines.flow.Flow
@@ -18,6 +19,8 @@ interface TaskRemoteDataSource {
     fun observeSentHandoffs(projectId: String, fromUid: String): Flow<List<Handoff>>
     // Team "Pulse" tab's activity feed.
     fun observeEvents(projectId: String, limit: Int): Flow<List<Event>>
+
+    suspend fun reassignTask(projectId: String, taskId: String, toUid: String, toDisplayName: String, byDisplayName: String): Result<Task, DataError>
 
     suspend fun createTask(
         projectId: String,
@@ -35,7 +38,10 @@ interface TaskRemoteDataSource {
         taskId: String,
         toUid: String,
         toDisplayName: String,
-        note: String?
+        note: String?,
+        kind: HandoffKind = HandoffKind.OFFER,
+        targetUid: String? = null,
+        targetDisplayName: String? = null
     ): Result<Handoff, DataError>
 
     suspend fun acceptHandoff(projectId: String, taskId: String, handoffId: String): Result<Task, DataError>

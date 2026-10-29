@@ -24,7 +24,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -33,7 +32,7 @@ import com.example.temacker.core.presentation.components.EmptyState
 import com.example.temacker.core.presentation.components.InfoStrip
 import com.example.temacker.core.presentation.components.InsetGroup
 import com.example.temacker.core.presentation.components.ListRow
-import com.example.temacker.core.presentation.components.LoadingState
+import com.example.temacker.core.presentation.components.SkeletonList
 import com.example.temacker.core.presentation.components.StatusChip
 import com.example.temacker.core.presentation.designsystem.Ink500
 import com.example.temacker.core.presentation.designsystem.Line
@@ -74,7 +73,7 @@ fun QueueScreen(state: QueueState, onAction: (QueueAction) -> Unit, onNavigateBa
             )
 
             when {
-                state.isLoading -> LoadingState()
+                state.isLoading -> SkeletonList(caption = "Loading queued changes…")
                 state.failed.isEmpty() && state.waiting.isEmpty() -> EmptyState(
                     icon = Icons.Rounded.CloudOff,
                     title = "Nothing waiting",

@@ -20,6 +20,9 @@ import com.example.temacker.feature_tasks.domain.use_case.RetryPendingWriteUseCa
 import org.koin.android.ext.koin.androidContext
 import com.example.temacker.feature_tasks.domain.use_case.AcceptHandoffUseCase
 import com.example.temacker.feature_tasks.domain.use_case.CreateTaskUseCase
+import com.example.temacker.feature_tasks.domain.use_case.RequestTaskChangeUseCase
+import com.example.temacker.feature_tasks.domain.use_case.ImportTasksUseCase
+import com.example.temacker.feature_tasks.domain.use_case.ReassignTaskUseCase
 import com.example.temacker.feature_tasks.domain.use_case.DeclineHandoffUseCase
 import com.example.temacker.feature_tasks.domain.use_case.DeleteTaskUseCase
 import com.example.temacker.feature_tasks.domain.use_case.MarkTaskDoneUseCase
@@ -42,6 +45,7 @@ import com.example.temacker.feature_tasks.presentation.handoff.HandoffViewModel
 import com.example.temacker.feature_tasks.presentation.inbox.InboxBadgeViewModel
 import com.example.temacker.feature_tasks.presentation.inbox.InboxViewModel
 import com.example.temacker.feature_tasks.presentation.incoming.IncomingViewModel
+import com.example.temacker.feature_tasks.presentation.import_tasks.ImportTasksViewModel
 import com.example.temacker.feature_tasks.presentation.new_task.NewTaskViewModel
 import com.example.temacker.feature_tasks.presentation.queue.QueueViewModel
 import com.example.temacker.feature_tasks.presentation.task_detail.TaskDetailViewModel
@@ -87,6 +91,9 @@ val tasksModule = module {
     factoryOf(::ObserveNotificationRationaleSeenUseCase)
     factoryOf(::MarkNotificationRationaleSeenUseCase)
     factoryOf(::CreateTaskUseCase)
+    factoryOf(::RequestTaskChangeUseCase)
+    factoryOf(::ImportTasksUseCase)
+    factoryOf(::ReassignTaskUseCase)
     factoryOf(::OfferHandoffUseCase)
     factoryOf(::AcceptHandoffUseCase)
     factoryOf(::DeclineHandoffUseCase)
@@ -100,9 +107,10 @@ val tasksModule = module {
     viewModelOf(::NotificationRationaleGateViewModel)
     viewModelOf(::NotificationRationaleViewModel)
     viewModelOf(::NewTaskViewModel)
+    viewModelOf(::ImportTasksViewModel)
     // taskId/handoffId are runtime nav params, not resolvable by constructor reference alone —
     // lambda form is the documented fallback (android-di-koin skill).
-    viewModel { (taskId: String) -> TaskDetailViewModel(taskId, get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { (taskId: String) -> TaskDetailViewModel(taskId, get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { (taskId: String) -> HandoffViewModel(taskId, get(), get(), get(), get()) }
     viewModel { (taskId: String, handoffId: String) -> IncomingViewModel(taskId, handoffId, get(), get(), get(), get()) }
     viewModel { (taskId: String, handoffId: String) -> DeclineViewModel(taskId, handoffId, get(), get()) }

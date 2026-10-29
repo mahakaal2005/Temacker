@@ -15,5 +15,11 @@ data class Membership(
     // Who last set this role and when; null on docs older than Phase 5.
     val roleSetByUid: String? = null,
     val roleSetByDisplayName: String? = null,
-    val roleSetAt: Long? = null
-)
+    val roleSetAt: Long? = null,
+    // Add-only grants on top of the role (Phase 9); never removes anything the role gives.
+    val extraPermissions: RolePermissions = RolePermissions.NONE
+) {
+    // What this member can actually do: the Leader always has everything, others get role + extras.
+    val effectivePermissions: RolePermissions
+        get() = if (isLeader) RolePermissions.ALL_GRANTED else permissions + extraPermissions
+}

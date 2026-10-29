@@ -1,5 +1,6 @@
 package com.example.temacker.feature_project.data.remote
 
+import com.example.temacker.feature_project.domain.model.RolePermissions
 import com.example.temacker.core.data.firebase.safeFirestoreCall
 import com.example.temacker.core.data.firebase.snapshots
 import com.example.temacker.core.domain.util.DataError
@@ -145,6 +146,14 @@ class FirestoreMembershipRemoteDataSource(
 
         listOfNotNull(toRef.get().await().toMembership(projectId), fromRef.get().await().toMembership(projectId))
     }
+
+    override suspend fun setExtraPermissions(projectId: String, userId: String, extras: RolePermissions): Result<Membership, DataError> =
+        safeFirestoreCall {
+            val memberRef = membersRef(projectId).document(userId)
+            memberRef.update("extraPermissions", extras.toFirestoreMap()).await()
+            memberRef.get().await().toMembership(projectId)
+                ?: throw FirebaseFirestoreException("Member not found", FirebaseFirestoreException.Code.NOT_FOUND)
+        }
 
     override suspend fun reassignRole(projectId: String, userId: String, roleId: String, byUid: String, byDisplayName: String): Result<Membership, DataError> =
         safeFirestoreCall {

@@ -1,5 +1,6 @@
 package com.example.temacker.feature_tasks.presentation.inbox
 
+import com.example.temacker.feature_tasks.domain.model.HandoffKind
 import com.example.temacker.feature_tasks.domain.model.HandoffStatus
 import com.example.temacker.feature_tasks.domain.model.Inbox
 import com.example.temacker.feature_tasks.domain.model.InboxEntry
@@ -19,8 +20,12 @@ fun List<InboxEntry>.toWaitingRows(nowMillis: Long): List<InboxRowUi> = map { it
 private fun InboxEntry.toWaitingRow(nowMillis: Long) = InboxRowUi(
     handoffId = handoff.id,
     taskId = handoff.taskId,
-    title = "${handoff.fromDisplayName} is handing you $taskTitle",
-    detail = "${relativeTime(nowMillis, handoff.offeredAt)} · offer open",
+    title = when (handoff.kind) {
+        HandoffKind.OFFER -> "${handoff.fromDisplayName} is handing you $taskTitle"
+        HandoffKind.DROP_REQUEST -> "${handoff.fromDisplayName} wants to drop $taskTitle"
+        HandoffKind.TRANSFER_REQUEST -> "${handoff.fromDisplayName} asks to move $taskTitle to ${handoff.targetDisplayName ?: "someone else"}"
+    },
+    detail = "${relativeTime(nowMillis, handoff.offeredAt)} · ${if (handoff.kind == HandoffKind.OFFER) "offer open" else "needs your answer"}",
     kind = InboxRowKind.OFFER_TO_YOU
 )
 
@@ -30,21 +35,21 @@ private fun InboxEntry.toEarlierRow(nowMillis: Long): InboxRowUi {
         HandoffStatus.OFFERED -> InboxRowUi(
             handoffId = handoff.id,
             taskId = handoff.taskId,
-            title = "${handoff.toDisplayName} still hasn't answered $taskTitle",
+            title = "${handoff.toDisplayName} still hasn't answered ${handoff.requestWord()}$taskTitle",
             detail = "${(nowMillis - handoff.offeredAt) / HOUR}h unanswered · still yours",
             kind = InboxRowKind.UNANSWERED
         )
         HandoffStatus.ACCEPTED -> InboxRowUi(
             handoffId = handoff.id,
             taskId = handoff.taskId,
-            title = "${handoff.toDisplayName} accepted $taskTitle",
+            title = "${handoff.toDisplayName} ${if (handoff.kind == HandoffKind.OFFER) "accepted" else "approved"} ${handoff.requestWord()}$taskTitle",
             detail = relativeTime(nowMillis, respondedAt),
             kind = InboxRowKind.ACCEPTED
         )
         HandoffStatus.DECLINED -> InboxRowUi(
             handoffId = handoff.id,
             taskId = handoff.taskId,
-            title = "${handoff.toDisplayName} declined $taskTitle",
+            title = "${handoff.toDisplayName} declined ${handoff.requestWord()}$taskTitle",
             detail = listOfNotNull(
                 relativeTime(nowMillis, respondedAt),
                 handoff.declineReason?.takeIf { it.isNotBlank() }?.let { "\"$it\"" }
@@ -53,6 +58,9 @@ private fun InboxEntry.toEarlierRow(nowMillis: Long): InboxRowUi {
         )
     }
 }
+
+private fun com.example.temacker.feature_tasks.domain.model.Handoff.requestWord() =
+    if (kind == HandoffKind.OFFER) "" else "your request for "
 
 // Same style as the mock: "now", "2h", "Yesterday", "Mon", then a date.
 internal fun relativeTime(nowMillis: Long, thenMillis: Long): String {

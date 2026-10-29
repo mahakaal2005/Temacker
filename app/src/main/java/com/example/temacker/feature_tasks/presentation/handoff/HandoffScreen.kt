@@ -1,6 +1,5 @@
 package com.example.temacker.feature_tasks.presentation.handoff
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Groups
+import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -98,7 +98,7 @@ fun HandoffScreen(state: HandoffState, onAction: (HandoffAction) -> Unit, onNavi
             )
 
             when {
-                state.isLoading -> LoadingState()
+                state.isLoading -> LoadingState(icon = Icons.Rounded.SwapHoriz, title = "Loading hand-off", body = "Getting the task and your team…")
                 state.members.isEmpty() -> EmptyState(
                     icon = Icons.Rounded.Groups,
                     title = "No one to hand this to yet",

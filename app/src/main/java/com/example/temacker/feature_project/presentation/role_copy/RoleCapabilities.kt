@@ -9,33 +9,42 @@ import java.util.TimeZone
 
 enum class CapabilityGroup { TEAM, TASKS }
 
-// The permission flags a person can feel in the app, worded for the first-run and role-explainer screens.
-enum class Capability(val label: String, val group: CapabilityGroup) {
-    INVITE_MEMBERS("Invite members", CapabilityGroup.TEAM),
-    CHANGE_ROLES("Change roles", CapabilityGroup.TEAM),
-    REMOVE_MEMBERS("Remove members", CapabilityGroup.TEAM),
-    CREATE_TASKS("Create tasks", CapabilityGroup.TASKS),
-    DELETE_TASKS("Delete tasks — permanent, cannot be undone", CapabilityGroup.TASKS)
+// Every permission flag, worded once for Manage roles, the member page, extras and first run.
+enum class PermissionInfo(
+    val label: String,
+    val subtitle: String,
+    val group: CapabilityGroup,
+    val get: (RolePermissions) -> Boolean,
+    val set: (RolePermissions, Boolean) -> RolePermissions,
+    // deleteProject can only come from a role, never as a per-member extra.
+    val grantable: Boolean = true,
+    val isDangerous: Boolean = false
+) {
+    INVITE_MEMBERS("Invite members", "Create and share invite codes", CapabilityGroup.TEAM, { it.manageInviteCode }, { p, on -> p.copy(manageInviteCode = on) }),
+    CHANGE_ROLES("Change roles", "Change roles and extra permissions", CapabilityGroup.TEAM, { it.manageRoles }, { p, on -> p.copy(manageRoles = on) }),
+    REMOVE_MEMBERS("Remove members", "Take someone out of the project", CapabilityGroup.TEAM, { it.removeMembers }, { p, on -> p.copy(removeMembers = on) }),
+    DELETE_PROJECT("Delete project", "Permanent, can't be undone", CapabilityGroup.TEAM, { it.deleteProject }, { p, on -> p.copy(deleteProject = on) }, grantable = false, isDangerous = true),
+    ASSIGN_TASKS("Create and assign tasks", "Make tasks and give them to anyone", CapabilityGroup.TASKS, { it.assignTasks }, { p, on -> p.copy(assignTasks = on) }),
+    EDIT_ANY_TASK("Delete any task", "Not just the ones they hold", CapabilityGroup.TASKS, { it.editAnyTask }, { p, on -> p.copy(editAnyTask = on) }),
+    MANAGE_TAGS("Manage tags", "Create, rename and delete tags", CapabilityGroup.TASKS, { it.manageTags }, { p, on -> p.copy(manageTags = on) }),
+    IMPORT_TASKS("Import tasks", "Create many tasks from a JSON file", CapabilityGroup.TASKS, { it.importTasks }, { p, on -> p.copy(importTasks = on) }),
+    APPROVE_REQUESTS("Approve task requests", "Answer requests to drop or transfer a task", CapabilityGroup.TASKS, { it.approveTaskRequests }, { p, on -> p.copy(approveTaskRequests = on) })
 }
 
 // Handing on a task you hold never needs a role, so these are true for everyone.
 val ALWAYS_ALLOWED = listOf(
     "See every task and who holds it",
     "Hold a task if someone hands you one",
-    "Hand it back, or decline it with a reason"
+    "Hand it back, or ask to drop or transfer it"
 )
 
-private fun RolePermissions.allows(capability: Capability): Boolean = when (capability) {
-    Capability.INVITE_MEMBERS -> manageInviteCode
-    Capability.CHANGE_ROLES -> manageRoles
-    Capability.REMOVE_MEMBERS -> removeMembers
-    Capability.CREATE_TASKS -> assignTasks
-    Capability.DELETE_TASKS -> editAnyTask
-}
+fun RolePermissions.grantedCapabilities(): List<PermissionInfo> = PermissionInfo.entries.filter { it.get(this) }
 
-fun RolePermissions.grantedCapabilities(): List<Capability> = Capability.entries.filter { allows(it) }
+fun RolePermissions.missingCapabilities(): List<PermissionInfo> = PermissionInfo.entries.filterNot { it.get(this) }
 
-fun RolePermissions.missingCapabilities(): List<Capability> = Capability.entries.filterNot { allows(it) }
+// Extras that add something the role doesn't already give.
+fun Membership.addedExtras(): List<PermissionInfo> =
+    PermissionInfo.entries.filter { it.grantable && it.get(extraPermissions) && !it.get(permissions) }
 
 fun formatRoleDate(millis: Long, locale: Locale = Locale.getDefault(), zone: TimeZone = TimeZone.getDefault()): String =
     SimpleDateFormat("d MMM", locale).apply { timeZone = zone }.format(Date(millis))

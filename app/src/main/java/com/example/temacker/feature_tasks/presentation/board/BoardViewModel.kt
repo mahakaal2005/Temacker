@@ -97,7 +97,7 @@ class BoardViewModel(
         viewModelScope.launch {
             projectId.flatMapLatest { observeCurrentProjectMember(it) }.collect { result ->
                 result
-                    .onSuccess { member -> _state.update { it.copy(canCreateTask = member?.canAssignTasks == true) } }
+                    .onSuccess { member -> _state.update { it.copy(canCreateTask = member?.canAssignTasks == true, canImportTasks = member?.canImportTasks == true) } }
                     .onFailure { error -> _state.update { it.copy(error = error.toUiText()) } }
             }
         }
@@ -110,6 +110,7 @@ class BoardViewModel(
             is BoardAction.OnTaskClick -> viewModelScope.launch { _events.send(BoardEvent.NavigateToTaskDetail(action.taskId)) }
             is BoardAction.OnIncomingTaskClick -> viewModelScope.launch { _events.send(BoardEvent.NavigateToIncoming(action.taskId, action.handoffId)) }
             BoardAction.OnSyncStripClick -> viewModelScope.launch { _events.send(BoardEvent.NavigateToQueue) }
+            BoardAction.OnImportClick -> viewModelScope.launch { _events.send(BoardEvent.NavigateToImportTasks) }
             BoardAction.OnFabClick -> viewModelScope.launch { _events.send(BoardEvent.NavigateToNewTask) }
             BoardAction.OnErrorDismissed -> _state.update { it.copy(error = null) }
             is BoardAction.OnQueuedUndo -> viewModelScope.launch {

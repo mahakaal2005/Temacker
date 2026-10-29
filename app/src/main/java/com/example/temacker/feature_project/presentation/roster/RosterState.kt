@@ -22,5 +22,6 @@ data class RosterState(
     val menuForUserId: String? = null,
     val reassignTargetUserId: String? = null,
     val transferTargetUserId: String? = null,
+    val extrasTargetUserId: String? = null,
     val error: UiText? = null
 )

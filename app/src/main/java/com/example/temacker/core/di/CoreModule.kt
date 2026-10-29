@@ -16,6 +16,7 @@ import com.example.temacker.core.domain.network.ConnectivityObserver
 import com.example.temacker.core.domain.notification.PushTokenRegistrar
 import com.example.temacker.core.domain.repository.LocalDataCleaner
 import com.example.temacker.core.domain.session.SessionManager
+import com.example.temacker.core.presentation.switcher.ProjectSwitcherViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.messaging.FirebaseMessaging
@@ -23,6 +24,7 @@ import org.koin.android.ext.koin.androidApplication
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.bind
 import org.koin.core.module.dsl.singleOf
+import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 
 val coreModule = module {
@@ -57,4 +59,5 @@ val coreModule = module {
 
     // createdAtStart: must register its ActivityLifecycleCallbacks before MainActivity's onActivityResumed fires.
     single(createdAtStart = true) { CurrentActivityHolder(androidApplication()) }
+    viewModelOf(::ProjectSwitcherViewModel)
 }

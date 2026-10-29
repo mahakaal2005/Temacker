@@ -16,6 +16,7 @@ fun Query.snapshots(): Flow<QuerySnapshot> = callbackFlow {
     val registration = addSnapshotListener { snapshot, error ->
         if (error != null) {
             Log.e(TAG, "Query.snapshots: listener error", error)
+            error.reportIfUnexpected()
             close(error)
         } else if (snapshot != null) {
             trySend(snapshot)
@@ -28,6 +29,7 @@ fun DocumentReference.snapshots(): Flow<DocumentSnapshot> = callbackFlow {
     val registration = addSnapshotListener { snapshot, error ->
         if (error != null) {
             Log.e(TAG, "DocumentReference.snapshots: listener error", error)
+            error.reportIfUnexpected()
             close(error)
         } else if (snapshot != null) {
             trySend(snapshot)

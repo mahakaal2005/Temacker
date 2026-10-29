@@ -1,5 +1,6 @@
 package com.example.temacker.feature_project.data.repository
 
+import com.example.temacker.feature_project.domain.model.RolePermissions
 import com.example.temacker.core.data.database.MembershipDao
 import com.example.temacker.core.data.database.ProjectDao
 import com.example.temacker.core.data.firebase.toFirestoreDataError
@@ -78,6 +79,11 @@ class OfflineFirstMembershipRepository(
     override suspend fun transferLeadership(projectId: String, fromUid: String, fromDisplayName: String, toUid: String) =
         remote.transferLeadership(projectId, fromUid, fromDisplayName, toUid)
             .onSuccess { memberships -> membershipDao.upsertAll(memberships.map { it.toEntity() }) }
+            .asEmptyResult()
+
+    override suspend fun setExtraPermissions(projectId: String, userId: String, extras: RolePermissions) =
+        remote.setExtraPermissions(projectId, userId, extras)
+            .onSuccess { membershipDao.upsertAll(listOf(it.toEntity())) }
             .asEmptyResult()
 
     override suspend fun reassignRole(projectId: String, userId: String, roleId: String, byUid: String, byDisplayName: String) =

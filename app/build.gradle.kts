@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -6,6 +8,13 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.junit5.android)
     alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
+}
+
+// Release signing secrets live in the gitignored keystore.properties at the repo root.
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("keystore.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
 }
 
 android {
@@ -15,19 +24,37 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.temacker"
+        applicationId = "com.temacker.app"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
+        versionCode = 2
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            if (!keystoreProperties.isEmpty) {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
+            // Unsigned without keystore.properties, so debug builds keep working on machines without the key.
+            if (!keystoreProperties.isEmpty) signingConfig = signingConfigs.getByName("release")
             optimization {
-                enable = false
+                enable = true
+            }
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // Packages native symbol tables in the bundle so Play can symbolicate native crashes.
+            ndk {
+                debugSymbolLevel = "SYMBOL_TABLE"
             }
         }
     }
@@ -70,6 +97,8 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.messaging)
+    implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.analytics)
     implementation(libs.kotlinx.coroutines.play.services)
 
     implementation(libs.androidx.credentials)
@@ -88,6 +117,7 @@ dependencies {
 
     implementation(libs.androidx.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.core.splashscreen)
 
     testImplementation(libs.junit5.jupiter.api)
     testImplementation(libs.junit5.jupiter.params)

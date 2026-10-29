@@ -1,5 +1,6 @@
 package com.example.temacker.feature_project.data.remote
 
+import com.example.temacker.feature_project.domain.model.RolePermissions
 import com.example.temacker.core.domain.util.DataError
 import com.example.temacker.core.domain.util.EmptyResult
 import com.example.temacker.core.domain.util.Result
@@ -16,6 +17,7 @@ interface MembershipRemoteDataSource {
     suspend fun joinProject(code: String, userId: String, displayName: String, photoUrl: String?): Result<Pair<Membership, Project>, DataError>
     suspend fun removeMember(projectId: String, userId: String): EmptyResult<DataError>
     suspend fun reassignRole(projectId: String, userId: String, roleId: String, byUid: String, byDisplayName: String): Result<Membership, DataError>
+    suspend fun setExtraPermissions(projectId: String, userId: String, extras: RolePermissions): Result<Membership, DataError>
     // Swaps Leader with another member in one batch; returns both updated memberships so the repo can upsert Room.
     suspend fun transferLeadership(projectId: String, fromUid: String, fromDisplayName: String, toUid: String): Result<List<Membership>, DataError>
 }

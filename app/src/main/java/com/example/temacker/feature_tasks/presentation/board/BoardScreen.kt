@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.FileUpload
 import androidx.compose.material.icons.rounded.Assignment
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Schedule
@@ -45,6 +46,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.temacker.core.presentation.components.memberCountLabel
 import com.example.temacker.core.presentation.components.AppDestination
 import com.example.temacker.core.presentation.components.AppScaffold
 import com.example.temacker.core.presentation.components.Avatar
@@ -55,6 +57,8 @@ import com.example.temacker.core.presentation.components.SegmentedTabs
 import com.example.temacker.core.presentation.components.SkeletonList
 import com.example.temacker.core.presentation.components.StatusChip
 import com.example.temacker.core.presentation.components.SwitcherPill
+import com.example.temacker.core.presentation.components.TmkMenuItem
+import com.example.temacker.core.presentation.components.TmkOverflowMenu
 import com.example.temacker.core.presentation.components.bottomBarContentPadding
 import com.example.temacker.core.presentation.designsystem.Amber
 import com.example.temacker.core.presentation.designsystem.AmberInk
@@ -76,6 +80,9 @@ import org.koin.androidx.compose.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.example.temacker.core.presentation.switcher.ProjectSwitcherAction
+import com.example.temacker.core.presentation.switcher.ProjectSwitcherState
+import com.example.temacker.core.presentation.switcher.ProjectSwitcherViewModel
 
 @Composable
 fun BoardRoot(
@@ -83,17 +90,21 @@ fun BoardRoot(
     onNavigateToTeam: () -> Unit,
     onNavigateToYou: () -> Unit,
     onNavigateToNewTask: () -> Unit,
+    onNavigateToImportTasks: () -> Unit,
     onNavigateToTaskDetail: (String) -> Unit,
     onNavigateToIncoming: (String, String) -> Unit,
     onNavigateToQueue: () -> Unit,
     onNavigateToSwitchProject: () -> Unit,
-    viewModel: BoardViewModel = koinViewModel()
+    viewModel: BoardViewModel = koinViewModel(),
+    switcherViewModel: ProjectSwitcherViewModel = koinViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val switcherState by switcherViewModel.state.collectAsStateWithLifecycle()
 
     ObserveAsEvents(viewModel.events) { event ->
         when (event) {
             BoardEvent.NavigateToNewTask -> onNavigateToNewTask()
+            BoardEvent.NavigateToImportTasks -> onNavigateToImportTasks()
             BoardEvent.NavigateToQueue -> onNavigateToQueue()
             is BoardEvent.NavigateToTaskDetail -> onNavigateToTaskDetail(event.taskId)
             is BoardEvent.NavigateToIncoming -> onNavigateToIncoming(event.taskId, event.handoffId)
@@ -106,7 +117,9 @@ fun BoardRoot(
         onNavigateToInbox = onNavigateToInbox,
         onNavigateToTeam = onNavigateToTeam,
         onNavigateToYou = onNavigateToYou,
-        onNavigateToSwitchProject = onNavigateToSwitchProject
+        onNavigateToSwitchProject = onNavigateToSwitchProject,
+        switcher = switcherState,
+        onSwitcherAction = switcherViewModel::onAction
     )
 }
 
@@ -117,7 +130,9 @@ fun BoardScreen(
     onNavigateToInbox: () -> Unit,
     onNavigateToTeam: () -> Unit,
     onNavigateToYou: () -> Unit,
-    onNavigateToSwitchProject: () -> Unit
+    onNavigateToSwitchProject: () -> Unit,
+    switcher: ProjectSwitcherState = ProjectSwitcherState(),
+    onSwitcherAction: (ProjectSwitcherAction) -> Unit = {}
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     // Undo is offered while the notice is showing; either way the notice is cleared afterwards.
@@ -145,9 +160,25 @@ fun BoardScreen(
             // Header never disappears while loading — SwitcherPill shows its own skeleton then.
             SwitcherPill(
                 projectName = state.projectSummary?.name,
-                metaLine = state.projectSummary?.let { "${it.memberCount} members · ${it.roleName}" },
+                metaLine = state.projectSummary?.let { "${memberCountLabel(it.memberCount)} · ${it.roleName}" },
                 hasOtherProjects = state.projectSummary?.hasOtherProjects ?: false,
-                onClick = onNavigateToSwitchProject
+                onClick = onNavigateToSwitchProject,
+                previousProjectName = switcher.previous?.name,
+                nextProjectName = switcher.next?.name,
+                onSwipeToPrevious = { onSwitcherAction(ProjectSwitcherAction.OnSwipeToPrevious) },
+                onSwipeToNext = { onSwitcherAction(ProjectSwitcherAction.OnSwipeToNext) },
+                trailing = {
+                    if (state.canImportTasks) {
+                        TmkOverflowMenu(contentDescription = "Board actions") { dismiss ->
+                            TmkMenuItem(
+                                label = "Import tasks",
+                                hint = "Create many at once from a JSON file",
+                                icon = Icons.Rounded.FileUpload,
+                                onClick = { dismiss(); onAction(BoardAction.OnImportClick) }
+                            )
+                        }
+                    }
+                }
             )
         }
     ) { padding ->
@@ -214,7 +245,7 @@ fun BoardScreen(
                 }
 
                 if (state.isLoading) {
-                    SkeletonList()
+                    SkeletonList(caption = "Loading tasks…")
                 } else {
                     val now = remember { System.currentTimeMillis() }
                     val visibleTasks = if (state.isFilteredToPending) {
@@ -257,7 +288,8 @@ fun BoardScreen(
                 }
             }
 
-            if (state.canCreateTask) {
+            // An empty board already shows "Add the first task", so the FAB would be a duplicate CTA.
+            if (state.canCreateTask && !state.isLoading && state.boardTasks().isNotEmpty()) {
                 // Compose-owned LazyListState driving a derived value — the one case the
                 // android-compose-ui skill calls out for derivedStateOf.
                 val fabExpanded by remember { derivedStateOf { lazyListState.firstVisibleItemIndex == 0 } }

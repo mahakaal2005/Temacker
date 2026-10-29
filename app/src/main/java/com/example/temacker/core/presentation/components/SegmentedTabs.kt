@@ -5,6 +5,7 @@ import androidx.compose.animation.core.snap
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -78,7 +79,7 @@ fun <T> SegmentedTabs(
                     modifier = Modifier
                         .weight(1f)
                         .height(36.dp)
-                        .clickable(role = Role.Tab, onClick = { if (!isSelected) { haptics.tick(); onSelect(item) } })
+                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, role = Role.Tab, onClick = { if (!isSelected) { haptics.tick(); onSelect(item) } })
                         .semantics { this.selected = isSelected },
                     contentAlignment = Alignment.Center
                 ) {

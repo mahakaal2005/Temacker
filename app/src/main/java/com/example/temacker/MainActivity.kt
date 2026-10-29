@@ -1,5 +1,14 @@
 package com.example.temacker
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.background
+import com.example.temacker.core.presentation.designsystem.Ink900
+import com.example.temacker.core.presentation.designsystem.rememberReducedMotion
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -8,7 +17,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,12 +35,16 @@ import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.core.os.bundleOf
+import com.google.firebase.analytics.FirebaseAnalytics
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 import kotlinx.coroutines.flow.first
 import com.example.temacker.core.domain.repository.SelectedProjectStore
 import com.example.temacker.core.domain.util.Result
+import com.example.temacker.core.presentation.components.AppDestination
 import com.example.temacker.core.presentation.components.LocalInboxBadgeCount
+import com.example.temacker.core.presentation.components.TmkBottomBar
 import com.example.temacker.core.presentation.designsystem.TemackerTheme
 import com.example.temacker.feature_auth.presentation.navigation.LoginRoute
 import com.example.temacker.feature_auth.presentation.navigation.SplashRoute
@@ -65,6 +83,7 @@ class MainActivity : ComponentActivity() {
     private var handledPostedAt = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         handledPostedAt = savedInstanceState?.getLong(STATE_HANDLED_POSTED_AT) ?: 0L
@@ -126,6 +145,15 @@ private fun TemackerApp(
     ).none { destination.hasRoute(it) }
     val rationaleSeen by rationaleGate.seen.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    // Single-activity app, so Analytics only sees screens we log; the short name keeps route args out.
+    LaunchedEffect(destination?.route) {
+        val screen = destination?.route?.substringBefore('/')?.substringBefore('?')?.substringAfterLast('.')?.removeSuffix("Route")
+            ?: return@LaunchedEffect
+        FirebaseAnalytics.getInstance(context).logEvent(
+            FirebaseAnalytics.Event.SCREEN_VIEW,
+            bundleOf(FirebaseAnalytics.Param.SCREEN_NAME to screen, FirebaseAnalytics.Param.SCREEN_CLASS to "MainActivity")
+        )
+    }
     // Shown once, API 33+ only, and never to someone who already granted the permission.
     val needsRationale = rationaleSeen == false && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
@@ -143,9 +171,32 @@ private fun TemackerApp(
         }
     }
     val inboxBadge by badgeViewModel.count.collectAsStateWithLifecycle()
-    val toInbox = { navController.navigate(InboxRoute) { launchSingleTop = true } }
+    // Every tab hangs off Board, so Back from any tab lands on Board and Back from Board exits.
+    val goToTab: (Any) -> Unit = { route ->
+        navController.navigate(route) {
+            popUpTo<BoardRoute> { inclusive = false }
+            launchSingleTop = true
+        }
+    }
+    val selectedTab = when {
+        destination?.hasRoute<BoardRoute>() == true -> AppDestination.BOARD
+        destination?.hasRoute<InboxRoute>() == true -> AppDestination.INBOX
+        destination?.hasRoute<TeamRoute>() == true -> AppDestination.TEAM
+        destination?.hasRoute<ProfileRoute>() == true -> AppDestination.YOU
+        else -> null
+    }
     CompositionLocalProvider(LocalInboxBadgeCount provides inboxBadge) {
-        NavHost(navController = navController, startDestination = SplashRoute) {
+      // Dark behind the NavHost so a parent fading to 0.6 alpha under a stacked child reads as dimmed.
+      Box(modifier = Modifier.fillMaxSize().background(Ink900)) {
+        val reducedMotion = rememberReducedMotion()
+        NavHost(
+            navController = navController,
+            startDestination = SplashRoute,
+            enterTransition = appEnter(reducedMotion),
+            exitTransition = appExit(reducedMotion),
+            popEnterTransition = appPopEnter(reducedMotion),
+            popExitTransition = appPopExit(reducedMotion)
+        ) {
             authGraph(
                 navController = navController,
                 onNavigateToApp = {
@@ -156,21 +207,22 @@ private fun TemackerApp(
             )
             projectGraph(
                 navController = navController,
-                onNavigateToBoard = { navController.navigate(BoardRoute) { launchSingleTop = true } },
-                onNavigateToInbox = { toInbox() },
-                onNavigateToProfile = { navController.navigate(ProfileRoute) { launchSingleTop = true } }
+                // Reached from the gate, Create project and first-run: Board becomes the base so Back from it exits.
+                onNavigateToBoard = { navController.navigate(BoardRoute) { popUpTo(0) { inclusive = true } } },
+                onNavigateToInbox = { goToTab(InboxRoute) },
+                onNavigateToProfile = { goToTab(ProfileRoute) }
             )
             tasksGraph(
                 navController = navController,
-                onNavigateToTeam = { navController.navigate(TeamRoute) { launchSingleTop = true } },
-                onNavigateToYou = { navController.navigate(ProfileRoute) { launchSingleTop = true } },
+                onNavigateToTeam = { goToTab(TeamRoute) },
+                onNavigateToYou = { goToTab(ProfileRoute) },
                 onNavigateToSwitchProject = { navController.navigate(SwitchProjectRoute) }
             )
             profileGraph(
                 navController = navController,
-                onNavigateToBoard = { navController.navigate(BoardRoute) { launchSingleTop = true } },
-                onNavigateToInbox = { toInbox() },
-                onNavigateToTeam = { navController.navigate(TeamRoute) { launchSingleTop = true } },
+                onNavigateToBoard = { goToTab(BoardRoute) },
+                onNavigateToInbox = { goToTab(InboxRoute) },
+                onNavigateToTeam = { goToTab(TeamRoute) },
                 onNavigateToLogin = {
                     navController.navigate(LoginRoute) {
                         popUpTo(0) { inclusive = true }
@@ -186,5 +238,30 @@ private fun TemackerApp(
                 onNavigateToPlanLimits = { navController.navigate(PlanLimitsRoute) }
             )
         }
+        // One bar for all four tabs, above the NavHost, so it doesn't fade with the screens. It keeps the last
+        // tab while animating out so it slides away with a child page instead of snapping.
+        var lastTab by remember { mutableStateOf(AppDestination.BOARD) }
+        if (selectedTab != null) lastTab = selectedTab
+        AnimatedVisibility(
+            visible = selectedTab != null,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            modifier = Modifier.align(Alignment.BottomCenter)
+        ) {
+            TmkBottomBar(
+                selected = lastTab,
+                onSelect = { tab ->
+                    goToTab(
+                        when (tab) {
+                            AppDestination.BOARD -> BoardRoute
+                            AppDestination.INBOX -> InboxRoute
+                            AppDestination.TEAM -> TeamRoute
+                            AppDestination.YOU -> ProfileRoute
+                        }
+                    )
+                }
+            )
+        }
+      }
     }
 }

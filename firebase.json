@@ -19,5 +19,12 @@
         "npm --prefix \"$RESOURCE_DIR\" run build"
       ]
     }
-  ]
+  ],
+  "hosting": {
+    "public": "hosting/public",
+    "cleanUrls": true,
+    "ignore": [
+      "**/.*"
+    ]
+  }
 }

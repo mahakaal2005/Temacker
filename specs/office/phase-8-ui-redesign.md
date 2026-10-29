@@ -172,7 +172,11 @@ Nothing else vibrates: no scroll haptics and no haptic on plain navigation taps.
   - A failed *load* → an in-place error state with Retry, in the same slot as the empty state.
   - A successful baton moment → toast plus a `Confirm` haptic, e.g. "Handed to Daniel. It stays yours until he accepts."
   - Implemented in the UI only: `LaunchedEffect(state.error)` shows the toast and calls the existing `On…ErrorDismissed` action on dismissal. There is no ViewModel change.
-- **Loading:** list screens show `SkeletonList` shaped like their real rows. Buttons show their own loading state. A full-screen spinner survives only on Splash and the Project gate.
+- **Loading:** every load says what is happening.
+  - List screens show `SkeletonList(caption = …)`: rows shaped like the real list, under a one-line caption such as "Loading tasks…".
+  - Single-item and detail screens (and the Project gate) show `LoadingState(icon, title, body)`, laid out like `EmptyState` with a progress ring around the icon. Its text fades in after 400 ms, so fast loads never flash.
+  - After 6 s, both switch to a slow-connection hint.
+  - Buttons show their own loading state. Splash keeps its own "Checking your session…" (added 2026-10-14).
 
 ## 7. Key surfaces
 

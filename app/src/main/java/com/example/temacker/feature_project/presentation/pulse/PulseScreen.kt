@@ -1,7 +1,6 @@
 package com.example.temacker.feature_project.presentation.pulse
 
 import android.text.format.DateUtils
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,10 +15,10 @@ import androidx.compose.material.icons.rounded.AddCircle
 import androidx.compose.material.icons.rounded.Cancel
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.Send
 import androidx.compose.material.icons.rounded.TaskAlt
 import androidx.compose.material.icons.rounded.Timeline
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -37,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.temacker.core.domain.model.TeamEvent
 import com.example.temacker.core.domain.model.TeamEventType
 import com.example.temacker.core.presentation.components.EmptyState
+import com.example.temacker.core.presentation.components.LoadingState
 import com.example.temacker.core.presentation.designsystem.Ink500
 import com.example.temacker.core.presentation.designsystem.Line
 import com.example.temacker.core.presentation.designsystem.NeutralWash
@@ -75,13 +75,7 @@ fun PulseTabContent(
             }
 
             when {
-                state.isLoading -> Column(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
+                state.isLoading -> LoadingState(icon = Icons.Rounded.Insights, title = "Loading team pulse", body = "Gathering recent activity…")
                 state.events.isEmpty() -> EmptyState(
                     icon = Icons.Rounded.Timeline,
                     title = "It's quiet so far",
@@ -122,6 +116,7 @@ private fun TeamEventType.describe(): String = when (this) {
     TeamEventType.HANDOFF_ACCEPTED -> "accepted a hand-off for"
     TeamEventType.HANDOFF_DECLINED -> "declined a hand-off for"
     TeamEventType.TASK_MARKED_DONE -> "marked done"
+    TeamEventType.TASK_REASSIGNED -> "reassigned"
 }
 
 private fun TeamEventType.icon(): ImageVector = when (this) {
@@ -131,6 +126,7 @@ private fun TeamEventType.icon(): ImageVector = when (this) {
     TeamEventType.HANDOFF_ACCEPTED -> Icons.Rounded.CheckCircle
     TeamEventType.HANDOFF_DECLINED -> Icons.Rounded.Cancel
     TeamEventType.TASK_MARKED_DONE -> Icons.Rounded.TaskAlt
+    TeamEventType.TASK_REASSIGNED -> Icons.Rounded.Send
 }
 
 private val dayHeaderFormat = java.text.SimpleDateFormat("MMM d, yyyy", java.util.Locale.getDefault())

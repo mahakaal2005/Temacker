@@ -9,6 +9,7 @@ import com.example.temacker.feature_tasks.presentation.decline.DeclineRoot
 import com.example.temacker.feature_tasks.presentation.handoff.HandoffRoot
 import com.example.temacker.feature_tasks.presentation.inbox.InboxRoot
 import com.example.temacker.feature_tasks.presentation.incoming.IncomingRoot
+import com.example.temacker.feature_tasks.presentation.import_tasks.ImportTasksRoot
 import com.example.temacker.feature_tasks.presentation.new_task.NewTaskRoot
 import com.example.temacker.feature_tasks.presentation.notification_rationale.NotificationRationaleRoot
 import com.example.temacker.feature_tasks.presentation.queue.QueueRoot
@@ -28,6 +29,7 @@ fun NavGraphBuilder.tasksGraph(
             onNavigateToTeam = onNavigateToTeam,
             onNavigateToYou = onNavigateToYou,
             onNavigateToNewTask = { navController.navigate(NewTaskRoute) },
+            onNavigateToImportTasks = { navController.navigate(ImportTasksRoute) },
             onNavigateToTaskDetail = { taskId -> navController.navigate(TaskDetailRoute(taskId)) },
             onNavigateToIncoming = { taskId, handoffId -> navController.navigate(IncomingRoute(taskId, handoffId)) },
             onNavigateToQueue = { navController.navigate(QueueRoute) { launchSingleTop = true } },
@@ -49,6 +51,12 @@ fun NavGraphBuilder.tasksGraph(
     }
     composable<NotificationRationaleRoute> {
         NotificationRationaleRoot(onClose = { navController.popBackStack() })
+    }
+    composable<ImportTasksRoute> {
+        ImportTasksRoot(
+            onNavigateBack = { navController.popBackStack() },
+            onNavigateToBoard = { navController.popBackStack() }
+        )
     }
     composable<NewTaskRoute> {
         NewTaskRoot(

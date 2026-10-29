@@ -1,5 +1,6 @@
 package com.example.temacker.core.data.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -16,5 +17,7 @@ data class RoleEntity(
     val assignTasks: Boolean,
     val editAnyTask: Boolean,
     val manageTags: Boolean,
+    @ColumnInfo(defaultValue = "0") val importTasks: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val approveTaskRequests: Boolean = false,
     val isLeader: Boolean
 )

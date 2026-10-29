@@ -31,6 +31,8 @@ class LeadershipAndLeaveUseCaseTest {
             removeCall = projectId to userId
             return Result.Success(Unit)
         }
+        override suspend fun setExtraPermissions(projectId: String, userId: String, extras: com.example.temacker.feature_project.domain.model.RolePermissions): EmptyResult<DataError> =
+            throw NotImplementedError()
         override suspend fun reassignRole(projectId: String, userId: String, roleId: String, byUid: String, byDisplayName: String) =
             throw NotImplementedError()
         override suspend fun transferLeadership(projectId: String, fromUid: String, fromDisplayName: String, toUid: String): EmptyResult<DataError> {

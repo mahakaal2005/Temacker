@@ -1,5 +1,6 @@
 package com.example.temacker.core.data.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -17,5 +18,8 @@ data class HandoffEntity(
     val status: String,
     val declineReason: String?,
     val offeredAt: Long,
-    val respondedAt: Long?
+    val respondedAt: Long?,
+    @ColumnInfo(defaultValue = "OFFER") val kind: String = "OFFER",
+    val targetUid: String? = null,
+    val targetDisplayName: String? = null
 )

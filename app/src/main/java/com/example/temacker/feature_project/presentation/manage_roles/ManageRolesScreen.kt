@@ -1,5 +1,36 @@
 package com.example.temacker.feature_project.presentation.manage_roles
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.text.style.TextOverflow
+import com.example.temacker.core.presentation.designsystem.Line
+import com.example.temacker.core.presentation.designsystem.White
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material.icons.rounded.DeleteOutline
+import androidx.compose.ui.text.font.FontWeight
+import com.example.temacker.core.presentation.components.IconBadge
+import com.example.temacker.core.presentation.components.InsetDivider
+import com.example.temacker.core.presentation.components.SectionLabel
+import com.example.temacker.core.presentation.designsystem.Amber
+import com.example.temacker.core.presentation.designsystem.CoralInk
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,18 +46,15 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
+import com.example.temacker.core.presentation.components.TmkSwitch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -45,7 +73,10 @@ import com.example.temacker.core.presentation.util.ObserveAsEvents
 import com.example.temacker.core.presentation.util.UiText
 import com.example.temacker.feature_project.domain.model.Role
 import com.example.temacker.feature_project.domain.model.RolePermissions
+import com.example.temacker.feature_project.presentation.role_copy.CapabilityGroup
+import com.example.temacker.feature_project.presentation.role_copy.PermissionInfo
 import org.koin.androidx.compose.koinViewModel
+import com.example.temacker.core.presentation.components.SkeletonList
 
 @Composable
 fun ManageRolesRoot(
@@ -68,20 +99,21 @@ fun ManageRolesRoot(
 fun ManageRolesScreen(state: ManageRolesState, onAction: (ManageRolesAction) -> Unit) {
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(modifier = Modifier.fillMaxSize()) {
-            TopAppBar(
-                title = { Text("Manage roles") },
-                navigationIcon = {
-                    IconButton(onClick = { onAction(ManageRolesAction.OnBackClick) }) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+            Row(
+                modifier = Modifier.fillMaxWidth().windowInsetsPadding(WindowInsets.statusBars).padding(start = 4.dp, end = Spacing.m, top = 4.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { onAction(ManageRolesAction.OnBackClick) }) {
+                    Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                }
+                Text("Manage roles", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Surface(onClick = { onAction(ManageRolesAction.OnAddRoleClick) }, shape = RoundedCornerShape(50), color = AmberWash) {
+                    Row(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Rounded.Add, contentDescription = null, tint = AmberInk, modifier = Modifier.size(18.dp))
+                        Text("New role", style = MaterialTheme.typography.labelLarge, color = AmberInk, modifier = Modifier.padding(start = 4.dp))
                     }
-                },
-                actions = {
-                    IconButton(onClick = { onAction(ManageRolesAction.OnAddRoleClick) }) {
-                        Icon(Icons.Rounded.Add, contentDescription = "New role")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background)
-            )
+                }
+            }
 
             state.error?.let { error ->
                 Row(
@@ -101,17 +133,29 @@ fun ManageRolesScreen(state: ManageRolesState, onAction: (ManageRolesAction) -> 
             }
 
             if (state.isLoading) {
-                Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
+                SkeletonList(caption = "Loading roles…")
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-                    items(state.roles, key = { it.id }) { role ->
+                // One role open at a time keeps ten roles scannable; a role you just created opens itself.
+                var expandedId by rememberSaveable { mutableStateOf<String?>(null) }
+                var knownIds by remember { mutableStateOf<Set<String>?>(null) }
+                LaunchedEffect(state.roles) {
+                    val ids = state.roles.map { it.id }.toSet()
+                    knownIds?.let { known -> (ids - known).firstOrNull()?.let { expandedId = it } }
+                    knownIds = ids
+                }
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = Spacing.m, end = Spacing.m, bottom = Spacing.xl),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(state.roles.sortedByDescending { it.isLeader }, key = { it.id }) { role ->
                         if (role.isLeader) {
                             LeaderRoleCard(role)
                         } else {
                             EditableRoleCard(
                                 role = role,
+                                expanded = expandedId == role.id,
+                                onToggleExpanded = { expandedId = if (expandedId == role.id) null else role.id },
                                 onPermissionToggle = { permissions -> onAction(ManageRolesAction.OnPermissionToggle(role.id, permissions)) },
                                 onDeleteClick = { onAction(ManageRolesAction.OnDeleteRoleClick(role.id)) }
                             )
@@ -125,7 +169,7 @@ fun ManageRolesScreen(state: ManageRolesState, onAction: (ManageRolesAction) -> 
     if (state.isCreateDialogVisible) {
         AlertDialog(
             onDismissRequest = { onAction(ManageRolesAction.OnDismissCreateDialog) },
-            title = { Text("New role") },
+            title = { Text("New role", fontWeight = FontWeight.Bold) },
             text = {
                 OutlinedTextField(
                     value = state.newRoleName,
@@ -136,10 +180,10 @@ fun ManageRolesScreen(state: ManageRolesState, onAction: (ManageRolesAction) -> 
                 )
             },
             confirmButton = {
-                TextButton(onClick = { onAction(ManageRolesAction.OnCreateRoleConfirm) }) { Text("Create") }
+                TextButton(onClick = { onAction(ManageRolesAction.OnCreateRoleConfirm) }) { Text("Create", color = AmberInk) }
             },
             dismissButton = {
-                TextButton(onClick = { onAction(ManageRolesAction.OnDismissCreateDialog) }) { Text("Cancel") }
+                TextButton(onClick = { onAction(ManageRolesAction.OnDismissCreateDialog) }) { Text("Cancel", color = Ink500) }
             }
         )
     }
@@ -147,20 +191,22 @@ fun ManageRolesScreen(state: ManageRolesState, onAction: (ManageRolesAction) -> 
 
 @Composable
 private fun LeaderRoleCard(role: Role) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = AmberWash),
-        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(AmberWash, RoundedCornerShape(18.dp))
+            .border(1.dp, Amber.copy(alpha = 0.4f), RoundedCornerShape(18.dp))
+            .padding(Spacing.m),
+        verticalAlignment = Alignment.Top
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Rounded.Lock, contentDescription = null, tint = AmberInk, modifier = Modifier.padding(end = 10.dp))
-                Text(role.name, style = MaterialTheme.typography.titleMedium, color = AmberInk)
-            }
+        IconBadge(Icons.Rounded.Lock, AmberInk, Amber.copy(alpha = 0.25f))
+        Column(modifier = Modifier.padding(start = Spacing.s)) {
+            Text(role.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = AmberInk)
             Text(
-                "Full access to this project. Granted at creation and not transferable — so it can't be edited or removed here.",
+                "Full access, always. It can't be edited here. To hand it to someone else, use Make Leader on the Team tab.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = AmberInk,
-                modifier = Modifier.padding(top = 8.dp)
+                modifier = Modifier.padding(top = 2.dp)
             )
         }
     }
@@ -169,61 +215,81 @@ private fun LeaderRoleCard(role: Role) {
 @Composable
 private fun EditableRoleCard(
     role: Role,
+    expanded: Boolean,
+    onToggleExpanded: () -> Unit,
     onPermissionToggle: (RolePermissions) -> Unit,
     onDeleteClick: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = Spacing.xs)) {
-            Text(role.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            TextButton(onClick = onDeleteClick) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+    val p = role.permissions
+    val enabledCount = PermissionInfo.entries.count { it.get(p) }
+    val shape = RoundedCornerShape(18.dp)
+    val chevronRotation by animateFloatAsState(if (expanded) 180f else 0f, label = "roleChevron")
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(White, shape)
+            .border(1.dp, if (expanded) Amber else Line, shape)
+            .clip(shape)
+            .animateContentSize()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClickLabel = if (expanded) "Collapse ${role.name}" else "Edit ${role.name}", onClick = onToggleExpanded)
+                .padding(horizontal = Spacing.m, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(role.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    if (enabledCount == 0) "No permissions yet" else "$enabledCount of ${PermissionInfo.entries.size} permissions",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Ink500
+                )
+            }
+            Icon(Icons.Rounded.ExpandMore, contentDescription = null, tint = Ink500, modifier = Modifier.rotate(chevronRotation))
         }
+        if (expanded) {
+            HorizontalDivider(color = Line)
+            Column(modifier = Modifier.padding(bottom = Spacing.xs)) {
+                CapabilityGroup.entries.forEach { group ->
+                    SectionLabel(if (group == CapabilityGroup.TEAM) "Team" else "Tasks", modifier = Modifier.padding(start = Spacing.m))
+                    PermissionInfo.entries.filter { it.group == group }.forEachIndexed { index, info ->
+                        if (index > 0) InsetDivider(start = Spacing.m)
+                        PermissionRow(info.label, info.subtitle, info.get(p), isDangerous = info.isDangerous) { onPermissionToggle(info.set(p, it)) }
+                    }
+                }
 
-        Text("TEAM", style = MaterialTheme.typography.labelSmall, color = Ink500, modifier = Modifier.padding(bottom = Spacing.xxs))
-        InsetGroup {
-            PermissionRow("Invite members", "Can generate invite codes", role.permissions.manageInviteCode) {
-                onPermissionToggle(role.permissions.copy(manageInviteCode = it))
-            }
-            PermissionRow("Reassign roles", null, role.permissions.manageRoles) {
-                onPermissionToggle(role.permissions.copy(manageRoles = it))
-            }
-            PermissionRow("Remove members", null, role.permissions.removeMembers) {
-                onPermissionToggle(role.permissions.copy(removeMembers = it))
-            }
-            PermissionRow("Delete project", "Permanent — cannot be undone", role.permissions.deleteProject) {
-                onPermissionToggle(role.permissions.copy(deleteProject = it))
-            }
-        }
-
-        Text("TASKS", style = MaterialTheme.typography.labelSmall, color = Ink500, modifier = Modifier.padding(top = Spacing.m, bottom = Spacing.xxs))
-        InsetGroup {
-            PermissionRow("Assign tasks", null, role.permissions.assignTasks) {
-                onPermissionToggle(role.permissions.copy(assignTasks = it))
-            }
-            PermissionRow("Edit any task", null, role.permissions.editAnyTask) {
-                onPermissionToggle(role.permissions.copy(editAnyTask = it))
-            }
-            PermissionRow("Manage tags", null, role.permissions.manageTags) {
-                onPermissionToggle(role.permissions.copy(manageTags = it))
+                HorizontalDivider(color = Line, modifier = Modifier.padding(top = Spacing.xs))
+                TextButton(onClick = onDeleteClick, modifier = Modifier.padding(horizontal = Spacing.xs)) {
+                    Icon(Icons.Rounded.DeleteOutline, contentDescription = null, tint = CoralInk, modifier = Modifier.size(18.dp))
+                    Text("Delete role", color = CoralInk, modifier = Modifier.padding(start = 6.dp))
+                }
             }
         }
     }
 }
 
 @Composable
-private fun PermissionRow(name: String, subtitle: String?, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+private fun PermissionRow(name: String, subtitle: String, checked: Boolean, isDangerous: Boolean = false, onCheckedChange: (Boolean) -> Unit) {
     val haptics = rememberAppHaptics()
-    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.m, vertical = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(name, style = MaterialTheme.typography.bodyLarge)
-            subtitle?.let { Text(it, style = MaterialTheme.typography.bodyMedium, color = Ink500) }
+    val toggle: (Boolean) -> Unit = {
+        if (it) haptics.toggleOn() else haptics.toggleOff()
+        onCheckedChange(it)
+    }
+    // Whole row toggles, not just the small switch.
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(value = checked, role = androidx.compose.ui.semantics.Role.Switch, onValueChange = toggle)
+            .padding(horizontal = Spacing.m, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = Spacing.s)) {
+            Text(name, style = MaterialTheme.typography.bodyLarge, color = if (isDangerous) CoralInk else MaterialTheme.colorScheme.onSurface)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Ink500)
         }
-        Switch(
-            checked = checked,
-            onCheckedChange = {
-                if (it) haptics.toggleOn() else haptics.toggleOff()
-                onCheckedChange(it)
-            }
-        )
+        TmkSwitch(checked = checked, onCheckedChange = null)
     }
 }
 

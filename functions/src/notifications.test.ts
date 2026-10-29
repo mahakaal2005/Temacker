@@ -15,6 +15,17 @@ describe("planForHandoffChange", () => {
     expect(plan?.data.projectName).toBe("Design Club");
   });
 
+  test("a drop request pings the approver and carries its kind", () => {
+    const plan = planForHandoffChange(undefined, { ...offered, kind: "DROP_REQUEST" }, ctx);
+    expect(plan?.toUid).toBe("b");
+    expect(plan?.data.kind).toBe("DROP_REQUEST");
+  });
+
+  test("a transfer request names the target", () => {
+    const plan = planForHandoffChange(undefined, { ...offered, kind: "TRANSFER_REQUEST", targetDisplayName: "Cy" }, ctx);
+    expect(plan?.data.targetDisplayName).toBe("Cy");
+  });
+
   test("accept pings the offerer", () => {
     const plan = planForHandoffChange(offered, { ...offered, status: "ACCEPTED" }, ctx);
     expect(plan).toMatchObject({ toUid: "a", data: { type: "HANDOFF_ACCEPTED" } });

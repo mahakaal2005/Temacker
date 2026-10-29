@@ -32,3 +32,8 @@ functions/node_modules/
 # Python bytecode cache from Claude Code skill scripts (e.g. ui-ux-pro-max)
 __pycache__/
 *.pyc
+
+# Release signing key and its passwords — never checked in
+keystore.properties
+*.jks
+*.keystore

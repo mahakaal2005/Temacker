@@ -58,6 +58,7 @@ import org.koin.core.parameter.parametersOf
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.material.icons.automirrored.rounded.Assignment
 
 @Composable
 fun TaskDetailRoot(
@@ -101,6 +102,16 @@ fun TaskDetailScreen(state: TaskDetailState, onAction: (TaskDetailAction) -> Uni
                                     onClick = { onAction(TaskDetailAction.OnHandBackToPreviousClick) }
                                 )
                             }
+                            if (state.canRequestChange) {
+                                DropdownMenuItem(text = { Text("Ask to drop this task") }, onClick = { onAction(TaskDetailAction.OnAskDropClick) })
+                                DropdownMenuItem(text = { Text("Ask to transfer it") }, onClick = { onAction(TaskDetailAction.OnAskTransferClick) })
+                            }
+                            if (state.canReassign && state.task?.status != TaskStatus.DONE) {
+                                DropdownMenuItem(
+                                    text = { Text("Reassign task") },
+                                    onClick = { onAction(TaskDetailAction.OnReassignClick) }
+                                )
+                            }
                             if (state.canDelete || state.isCurrentUserHolder) {
                                 DropdownMenuItem(
                                     text = { Text("Delete task", color = MaterialTheme.colorScheme.error) },
@@ -121,7 +132,7 @@ fun TaskDetailScreen(state: TaskDetailState, onAction: (TaskDetailAction) -> Uni
             }
 
             if (state.isLoading || state.task == null) {
-                LoadingState()
+                LoadingState(icon = Icons.AutoMirrored.Rounded.Assignment, title = "Opening task", body = "Getting the latest details…")
             } else {
                 val task = state.task
                 // Scrollable — a long trail used to push Hand off / Mark done off-screen entirely.
@@ -134,6 +145,13 @@ fun TaskDetailScreen(state: TaskDetailState, onAction: (TaskDetailAction) -> Uni
                         StatusChip(
                             text = "Due ${SimpleDateFormat("EEE d MMM", Locale.getDefault()).format(Date(it))}",
                             tone = ChipTone.NEUTRAL,
+                            modifier = Modifier.padding(top = Spacing.s)
+                        )
+                    }
+                    if (state.hasPendingRequest) {
+                        StatusChip(
+                            text = "Waiting for ${state.approverName ?: "the Leader"} to answer your request",
+                            tone = ChipTone.WARNING,
                             modifier = Modifier.padding(top = Spacing.s)
                         )
                     }
@@ -155,6 +173,32 @@ fun TaskDetailScreen(state: TaskDetailState, onAction: (TaskDetailAction) -> Uni
                 }
             }
         }
+    }
+
+    if (state.requestStage == RequestStage.CONFIRM_DROP) {
+        ConfirmDialog(
+            title = "Ask to drop this task?",
+            text = "${state.approverName ?: "The Leader"} will get a request. If they approve, the task becomes theirs. Until then it stays with you.",
+            confirmLabel = "Send request",
+            onConfirm = { onAction(TaskDetailAction.OnConfirmDropClick) },
+            onDismiss = { onAction(TaskDetailAction.OnDismissRequest) }
+        )
+    }
+    if (state.requestStage == RequestStage.PICK_TRANSFER_TARGET) {
+        ReassignSheet(
+            title = "Ask to move it to",
+            members = state.members.filter { it.uid != state.task?.holderUid },
+            onSelect = { onAction(TaskDetailAction.OnTransferTargetSelected(it)) },
+            onDismiss = { onAction(TaskDetailAction.OnDismissRequest) }
+        )
+    }
+
+    if (state.isReassignVisible) {
+        ReassignSheet(
+            members = state.members.filter { it.uid != state.task?.holderUid },
+            onSelect = { onAction(TaskDetailAction.OnReassignTo(it)) },
+            onDismiss = { onAction(TaskDetailAction.OnDismissReassign) }
+        )
     }
 
     if (state.isDeleteConfirmVisible) {

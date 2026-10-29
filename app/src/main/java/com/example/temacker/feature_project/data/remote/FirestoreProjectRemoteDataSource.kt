@@ -14,6 +14,8 @@ import com.example.temacker.feature_project.domain.model.Role
 import com.example.temacker.feature_project.domain.model.RolePermissions
 import com.example.temacker.feature_project.domain.model.SuccessionResult
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.QuerySnapshot
+import com.google.firebase.firestore.Source
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
@@ -23,21 +25,26 @@ class FirestoreProjectRemoteDataSource(
 ) : ProjectRemoteDataSource {
 
     override fun observeUserProjects(userId: String): Flow<UserProjectsSnapshot> =
-        firestore.collectionGroup("members")
-            .whereEqualTo("userId", userId)
-            .snapshots()
-            .map { snapshot ->
-                // Member docs don't store their own projectId — it's implicit in the doc path
-                // (projects/{projectId}/members/{userId}) — so read it from the parent reference.
-                val memberships = snapshot.documents.mapNotNull { doc ->
-                    doc.reference.parent.parent?.id?.let { doc.toMembership(it) }
-                }
-                // Membership list changing re-fetches the (small, rarely-changing) project docs.
-                val projects = memberships.mapNotNull { m ->
-                    firestore.collection(PROJECTS).document(m.projectId).get().await().toProject()
-                }
-                UserProjectsSnapshot(projects, memberships, isAuthoritative = !snapshot.metadata.isFromCache)
-            }
+        userMembersQuery(userId).snapshots().map { it.toUserProjects() }
+
+    override suspend fun fetchUserProjects(userId: String): UserProjectsSnapshot =
+        userMembersQuery(userId).get(Source.SERVER).await().toUserProjects()
+
+    private fun userMembersQuery(userId: String) =
+        firestore.collectionGroup("members").whereEqualTo("userId", userId)
+
+    private suspend fun QuerySnapshot.toUserProjects(): UserProjectsSnapshot {
+        // Member docs don't store their own projectId — it's implicit in the doc path
+        // (projects/{projectId}/members/{userId}) — so read it from the parent reference.
+        val memberships = documents.mapNotNull { doc ->
+            doc.reference.parent.parent?.id?.let { doc.toMembership(it) }
+        }
+        // Membership list changing re-fetches the (small, rarely-changing) project docs.
+        val projects = memberships.mapNotNull { m ->
+            firestore.collection(PROJECTS).document(m.projectId).get().await().toProject()
+        }
+        return UserProjectsSnapshot(projects, memberships, isAuthoritative = !metadata.isFromCache)
+    }
 
     override fun observeProject(projectId: String): Flow<Project?> =
         firestore.collection(PROJECTS).document(projectId).snapshots().map { it.toProject() }

@@ -1,5 +1,6 @@
 package com.example.temacker.core.presentation.designsystem
 
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -20,9 +21,17 @@ private val AppColorScheme = lightColorScheme(
     onBackground = Ink900,
     surface = White,
     onSurface = Ink900,
+    // Dialogs, pickers, menus and sheets read these container roles; left unset they fall back to Material's lavender.
+    surfaceTint = Color.Transparent,
+    surfaceContainerLowest = White,
+    surfaceContainerLow = White,
+    surfaceContainer = White,
+    surfaceContainerHigh = White,
+    surfaceContainerHighest = NeutralWash,
     surfaceVariant = NeutralWash,
     onSurfaceVariant = Ink600,
     outline = Line,
+    outlineVariant = Line,
     error = Coral,
     onError = White,
     errorContainer = CoralWash,

@@ -39,6 +39,7 @@ class ProjectCurrentProjectProviderTest {
     private class FakeProjectRepository(projects: List<Project>) : ProjectRepository {
         val projects = MutableStateFlow<Result<List<Project>, DataError>>(Result.Success(projects))
         override fun observeUserProjects(): Flow<Result<List<Project>, DataError>> = projects
+        override suspend fun syncUserProjects() = throw NotImplementedError()
         override fun observeProject(projectId: String) = throw NotImplementedError()
         override suspend fun createProject(name: String, ownerDisplayName: String, ownerPhotoUrl: String?) =
             throw NotImplementedError()
@@ -56,6 +57,8 @@ class ProjectCurrentProjectProviderTest {
             MutableStateFlow(Result.Success(myMembership[projectId]))
         override suspend fun joinProject(code: String, displayName: String, photoUrl: String?) = throw NotImplementedError()
         override suspend fun removeMember(projectId: String, userId: String) = throw NotImplementedError()
+        override suspend fun setExtraPermissions(projectId: String, userId: String, extras: com.example.temacker.feature_project.domain.model.RolePermissions): com.example.temacker.core.domain.util.EmptyResult<DataError> =
+            throw NotImplementedError()
         override suspend fun reassignRole(projectId: String, userId: String, roleId: String, byUid: String, byDisplayName: String) =
             throw NotImplementedError()
         override suspend fun transferLeadership(projectId: String, fromUid: String, fromDisplayName: String, toUid: String) =

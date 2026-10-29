@@ -25,7 +25,9 @@ function fullPermissions() {
     deleteProject: true,
     assignTasks: true,
     editAnyTask: true,
-    manageTags: true
+    manageTags: true,
+    importTasks: true,
+    approveTaskRequests: true
   };
 }
 
@@ -37,7 +39,9 @@ function noPermissions() {
     deleteProject: false,
     assignTasks: false,
     editAnyTask: false,
-    manageTags: false
+    manageTags: false,
+    importTasks: false,
+    approveTaskRequests: false
   };
 }
 
@@ -538,6 +542,81 @@ describe("projects/{projectId}/members/{userId}", () => {
     );
   });
 
+  describe("extra permissions (Phase 9)", () => {
+    const members = () => `projects/${PROJECT_ID_1}/members`;
+
+    test("Leader can grant an extra permission to a member", async () => {
+      await assertSucceeds(
+        asLeader().collection(members()).doc(MEMBER_UID).update({ extraPermissions: { ...noPermissions(), assignTasks: true } })
+      );
+    });
+
+    test("deleteProject can never be granted as an extra", async () => {
+      await assertFails(
+        asLeader().collection(members()).doc(MEMBER_UID).update({ extraPermissions: { ...noPermissions(), deleteProject: true } })
+      );
+    });
+
+    test("a member without manageRoles cannot grant extras, not even to themselves", async () => {
+      await assertFails(
+        asMember().collection(members()).doc(MEMBER_UID).update({ extraPermissions: { ...noPermissions(), assignTasks: true } })
+      );
+    });
+
+    test("extras cannot be granted to the Leader", async () => {
+      await assertFails(
+        asLeader().collection(members()).doc(LEADER_UID).update({ extraPermissions: noPermissions() })
+      );
+    });
+
+    test("granting extras cannot smuggle in other field changes", async () => {
+      await assertFails(
+        asLeader().collection(members()).doc(MEMBER_UID).update({ extraPermissions: noPermissions(), roleName: "Manager" })
+      );
+    });
+
+    const joinAs = (extraPermissions) => asOutsider().collection(members()).doc(OUTSIDER_UID).set({
+      userId: OUTSIDER_UID, roleId: DEFAULT_ROLE_ID, roleName: "Default", permissions: noPermissions(),
+      displayName: "Joiner", photoUrl: null, joinedAt: Date.now(), isLeader: false, ...roleStamp(LEADER_UID), extraPermissions
+    });
+
+    test("joining with an all-false extras map (what the app writes) is allowed", async () => {
+      await assertSucceeds(joinAs(noPermissions()));
+    });
+
+    test("a joiner cannot grant themselves extras", async () => {
+      await assertFails(joinAs({ ...noPermissions(), manageRoles: true, deleteProject: true }));
+    });
+
+    test("reassigning a role cannot change extras on the side", async () => {
+      await assertFails(
+        asLeader().collection(members()).doc(MEMBER_UID).update({
+          roleId: "role-manager", roleName: "Manager", permissions: managerPermissions(), isLeader: false,
+          ...roleStamp(LEADER_UID), extraPermissions: { ...noPermissions(), deleteProject: true }
+        })
+      );
+    });
+
+    test("extras cannot carry unknown permission keys", async () => {
+      await assertFails(
+        asLeader().collection(members()).doc(MEMBER_UID).update({ extraPermissions: { ...noPermissions(), isLeader: true } })
+      );
+    });
+
+    test("an extra assignTasks lets a member create a task", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await ctx.firestore().collection(members()).doc(MEMBER_UID).update({ extraPermissions: { ...noPermissions(), assignTasks: true } });
+      });
+      await assertSucceeds(
+        asMember().collection(`projects/${PROJECT_ID_1}/tasks`).doc("t-extra").set({
+          title: "T", description: "", holderUid: MEMBER_UID, holderDisplayName: "Regular Member", status: "TODO",
+          dueDate: null, timesHandedOver: 0, createdByUid: MEMBER_UID, createdByDisplayName: "Regular Member",
+          createdAt: Date.now(), updatedAt: Date.now()
+        })
+      );
+    });
+  });
+
   test("reassigning without the roleSetBy stamp is denied", async () => {
     await assertFails(
       asLeader()
@@ -897,6 +976,48 @@ describe("projects/{projectId}/tasks/{taskId}", () => {
     await assertFails(asOutsider().collection(`projects/${PROJECT_ID_1}/tasks`).doc(TASK_ID).get());
   });
 
+  describe("assigning and reassigning (Phase 9)", () => {
+    const tasks = () => `projects/${PROJECT_ID_1}/tasks`;
+    const newTask = (holderUid, name) => ({
+      title: "Assigned", description: null, holderUid, holderDisplayName: name, status: "TODO", dueDate: null,
+      timesHandedOver: 0, createdByUid: LEADER_UID, createdByDisplayName: "Leader Person", createdAt: Date.now(), updatedAt: Date.now()
+    });
+
+    test("Leader can create a task held by another member", async () => {
+      await assertSucceeds(asLeader().collection(tasks()).doc("t-for-member").set(newTask(MEMBER_UID, "Regular Member")));
+    });
+
+    test("a member with only importTasks can create tasks", async () => {
+      await testEnv.withSecurityRulesDisabled(async (ctx) => {
+        await ctx.firestore().collection(`projects/${PROJECT_ID_1}/members`).doc(MEMBER_UID).update({ extraPermissions: { ...noPermissions(), importTasks: true } });
+      });
+      await assertSucceeds(asMember().collection(tasks()).doc("t-import").set({ ...newTask(MEMBER_UID, "Regular Member"), createdByUid: MEMBER_UID, createdByDisplayName: "Regular Member" }));
+    });
+
+    test("a task cannot be created for someone who is not a member", async () => {
+      await assertFails(asLeader().collection(tasks()).doc("t-for-outsider").set(newTask(OUTSIDER_UID, "Outsider")));
+    });
+
+    test("Leader can reassign an unfinished task to another member", async () => {
+      await assertSucceeds(
+        asLeader().collection(tasks()).doc(TASK_ID).update({ holderUid: MEMBER_UID, holderDisplayName: "Regular Member", timesHandedOver: 1, updatedAt: Date.now() })
+      );
+    });
+
+    test("a finished task cannot be reassigned", async () => {
+      await seedTask({ status: "DONE" });
+      await assertFails(
+        asLeader().collection(tasks()).doc(TASK_ID).update({ holderUid: MEMBER_UID, holderDisplayName: "Regular Member", timesHandedOver: 1, updatedAt: Date.now() })
+      );
+    });
+
+    test("reassigning to a non-member is denied", async () => {
+      await assertFails(
+        asLeader().collection(tasks()).doc(TASK_ID).update({ holderUid: OUTSIDER_UID, holderDisplayName: "Outsider", timesHandedOver: 1, updatedAt: Date.now() })
+      );
+    });
+  });
+
   test("member with assignTasks can create a task, becoming its holder", async () => {
     await assertSucceeds(
       asLeader()
@@ -939,20 +1060,20 @@ describe("projects/{projectId}/tasks/{taskId}", () => {
     );
   });
 
-  test("cannot create a task claiming someone else as its holder", async () => {
+  test("a member without assignTasks cannot create a task for someone else", async () => {
     await assertFails(
-      asLeader()
+      asMember()
         .collection(`projects/${PROJECT_ID_1}/tasks`)
         .doc("task-new-3")
         .set({
           title: "New task",
           description: null,
-          holderUid: MEMBER_UID,
-          holderDisplayName: "Regular Member",
+          holderUid: LEADER_UID,
+          holderDisplayName: "Leader Person",
           status: "TODO",
           dueDate: null,
           timesHandedOver: 0,
-          createdByUid: LEADER_UID,
+          createdByUid: MEMBER_UID,
           createdByDisplayName: "Leader Person",
           createdAt: Date.now(),
           updatedAt: Date.now()
@@ -1004,6 +1125,58 @@ describe("projects/{projectId}/tasks/{taskId}/handoffs/{handoffId}", () => {
   beforeEach(async () => {
     await seedProjectOne();
     await seedTask();
+  });
+
+  describe("drop and transfer requests (Phase 9)", () => {
+    const handoffs = () => `projects/${PROJECT_ID_1}/tasks/${TASK_ID}/handoffs`;
+    const request = (kind, extra = {}) => ({
+      projectId: PROJECT_ID_1, fromUid: MEMBER_UID, fromDisplayName: "Regular Member", toUid: LEADER_UID, toDisplayName: "Leader Person",
+      note: null, status: "OFFERED", declineReason: null, offeredAt: Date.now(), respondedAt: null, kind, ...extra
+    });
+
+    beforeEach(async () => {
+      await seedTask({ holderUid: MEMBER_UID, holderDisplayName: "Regular Member" });
+    });
+
+    test("holder can ask the Leader to drop the task", async () => {
+      await assertSucceeds(asMember().collection(handoffs()).doc("req-drop").set(request("DROP_REQUEST")));
+    });
+
+    test("holder can ask the Leader to transfer the task to a member", async () => {
+      await assertSucceeds(
+        asMember().collection(handoffs()).doc("req-transfer").set(request("TRANSFER_REQUEST", { targetUid: LEADER_UID, targetDisplayName: "Leader Person" }))
+      );
+    });
+
+    test("a request addressed to someone who cannot approve is denied", async () => {
+      await assertFails(
+        asMember().collection(handoffs()).doc("req-bad").set(request("DROP_REQUEST", { toUid: OUTSIDER_UID }))
+      );
+    });
+
+    test("a transfer request naming a non-member target is denied", async () => {
+      await assertFails(
+        asMember().collection(handoffs()).doc("req-bad2").set(request("TRANSFER_REQUEST", { targetUid: OUTSIDER_UID, targetDisplayName: "Outsider" }))
+      );
+    });
+
+    test("a transfer request whose target name does not match the target member is denied", async () => {
+      await assertFails(
+        asMember().collection(handoffs()).doc("req-bad4").set(request("TRANSFER_REQUEST", { targetUid: LEADER_UID, targetDisplayName: "Someone Else" }))
+      );
+    });
+
+    test("an unknown request kind is denied", async () => {
+      await assertFails(asMember().collection(handoffs()).doc("req-bad3").set(request("STEAL_REQUEST")));
+    });
+
+    test("the approver can move the task to the transfer target", async () => {
+      await assertSucceeds(
+        asLeader().collection(`projects/${PROJECT_ID_1}/tasks`).doc(TASK_ID).update({
+          holderUid: LEADER_UID, holderDisplayName: "Leader Person", timesHandedOver: 1, updatedAt: Date.now()
+        })
+      );
+    });
   });
 
   test("current holder can offer a handoff", async () => {

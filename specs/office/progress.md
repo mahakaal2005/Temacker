@@ -222,16 +222,16 @@ Load/Stuck/Pulse read already exists and doesn't depend on notifications.
 Spec agreed 2026-09-26 after a multi-project gap audit.
 - [~] Group A — bugs: coded, build/lint/unit tests pass, rules tests 96/96 (2026-09-26, see
   `specs/logs/2026-09-26-phase-7-group-a-bugs.md`). Sign-out wipe, duplicate-join check, stale switcher rows. Per-user
-  outbox column dropped (wipe covers it). **Not yet device-verified; rules must be deployed before installing.**
+  outbox column dropped (wipe covers it). Rules deployed 2026-10-14. **Not yet device-verified.**
 - [~] Group B — coded and tested (2026-09-26, see `specs/logs/2026-09-26-phase-7-group-b-inbox-push.md`): badge across
-  all projects, "Waiting in <project>" Inbox sections, project name in push. **Functions need redeploying; not yet
+  all projects, "Waiting in <project>" Inbox sections, project name in push. Functions live (2026-10-14 deploy found them unchanged). **Not yet
   device-verified.**
 - [~] Group C — coded and tested (2026-09-26, see `specs/logs/2026-09-26-phase-7-group-c-leave-transfer.md`): leave
-  project, `onMemberRemoved` cleanup function, leadership transfer (rules tests 105/105). **Rules and functions need
-  deploying; not yet device-verified.**
+  project, `onMemberRemoved` cleanup function, leadership transfer (rules tests 105/105). Rules deployed 2026-10-14, functions already live. **Not
+  yet device-verified.**
 - [~] Group D — coded and tested (2026-09-26, see `specs/logs/2026-09-26-phase-7-group-d-polish.md`): create a second
   project from the switcher, archived projects read-only in the rules (110/110), queued-changes strip for other
-  projects. **Rules need deploying; not yet device-verified.**
+  projects. Rules deployed 2026-10-14. **Not yet device-verified.**
 - **Phase 7 release order:** deploy `firestore.rules` and `functions` first, then install the app build; then run the
   two-account device checks listed in each group's log.
 
@@ -275,5 +275,25 @@ named exception (visuals only). Not started.
 - **Blocker:** this cloud container has no Android SDK — `./gradlew` verification must run on the user's machine
   or after the environment setup script installs one, before any group is marked done (CLAUDE.md rule 12).
 
+## Phase 8 polish pass (2026-09-26, device-checked)
+- [x] Shared bottom bar above the NavHost, Board-rooted back stack, card-style project header, You/Team/Manage roles/Switch project restyle (grouped cards), branded menu/switch/dialog theme, collapsible roles, due-date picker fix. See `specs/logs/2026-09-26-phase-8-ui-polish-pass.md`.
+
+- [x] Loading states that say what is happening (2026-10-14): `LoadingState(icon, title, body)` on the gate and 9 detail screens, and a captioned `SkeletonList` on 8 list screens, both with a 6 s slow-connection hint.
+- [x] Swipe the project pill to switch projects (2026-10-14): up for next, down for previous, peek while dragging, a bounce at the ends; shared `core/presentation/switcher/ProjectSwitcherViewModel` (approved deviation); project order is now stable (`ORDER BY createdAt, id`). Device-verified on Board and Team.
+
+## Play Store release (2026-10-14)
+- [x] Release setup: `com.temacker.app`, upload key, R8 with the mapping in the bundle, versionCode 2, no AD_ID; debug, upload and Play app-signing SHA-1s all registered in Firebase.
+- [x] Privacy and account-deletion pages on Firebase Hosting; an in-app "Privacy policy" row on the You tab.
+- [x] Play Console: all App content declarations, store listing (text, icon, feature graphic, 4 screenshots), store settings.
+- [x] Closed test (Alpha, India) with Google Group `temacker-testers@googlegroups.com` as testers; submitted for Google review 2026-10-14.
+- [ ] Review approved, then share the group link and the opt-in link with testers.
+- [ ] 12+ testers opted in for 14 days, then apply for production access, then open testing.
+
+## Deferred
+- [ ] **Phase 9 — task assignment, JSON import, drop/transfer requests, extra permissions** (spec approved 2026-09-26: `specs/office/phase-9-task-assignment.md`). Groups: [x] A permissions plumbing, [x] B Leader assigns/reassigns, [x] C JSON import, [x] D drop/transfer requests. Code, unit tests and emulator rules tests done 2026-09-26 (17 Jest). Rules hardened 2026-10-14 after a security review: joiners can no longer self-grant extras, role reassignment cannot touch extras, extras accept only known keys, and a transfer target name must match the target member (133 rules tests); Rules and indexes deployed to `temacker-a0252` 2026-10-14 (functions were already live, deploy skipped them as unchanged); NOT yet device-verified. Deviations: JSON matches assignee by display name (member docs store no email); unmatched assignees go to the importer (no unassigned tasks); "assigned to you" push not built. Known pre-existing gap: task rules let any member take a task via the accept branch.
+
 ## Open decisions
+- Decided 2026-10-14: task reassignment stays unrestricted. Holders of `assignTasks` or `approveTaskRequests` can move any unfinished task without an open request, and the move may also change other task fields. Intentional, not a rules gap.
+- Approved 2026-10-14: `androidx.core:core-splashscreen:1.0.1` dependency (rule 10).
+- Approved 2026-10-14: Firebase Crashlytics (plugin 3.0.8) + Analytics, versions via the Firebase BoM. Release builds only; non-fatals from SafeFirestoreCall/FirestoreFlow, skipping offline/timeouts.
 - Phase 6: extend `feature_profile` vs. new `feature_settings` — default is extend, revisit if it grows.
