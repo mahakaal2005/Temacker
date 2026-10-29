@@ -85,7 +85,7 @@ A task's status comes from its holder history: **To do** until the first accepte
 A single `:app` module, organised by feature and then by layer. Dependencies point inward: the domain layer is pure Kotlin with no Android or Firebase imports.
 
 ```mermaid
-flowchart LR
+flowchart TB
     UI[Compose screen] -- Action --> VM[ViewModel]
     VM -- State / Event --> UI
     VM --> UC[Use case]
